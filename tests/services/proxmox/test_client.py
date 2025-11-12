@@ -52,6 +52,10 @@ logger = logging.getLogger(__name__)
 
 
 class TestProxmoxClient(UDSTransactionTestCase):
+    # Constants for VMID range for test VM creation
+    VMID_BASE: typing.ClassVar[int] = 1_000_000
+    VMID_RANGE: typing.ClassVar[int] = 899_999
+
     resource_group_name: str
 
     pclient: prox_client.ProxmoxClient
@@ -108,7 +112,7 @@ class TestProxmoxClient(UDSTransactionTestCase):
         MAX_RETRIES: typing.Final[int] = 512  # So we don't loop forever, just in case...
         vmid = 0
         for _ in range(MAX_RETRIES):
-            vmid = 1000000 + random.randint(0, 899999)  # Get a reasonable vmid
+            vmid = self.VMID_BASE + random.randint(0, self.VMID_RANGE)  # Get a reasonable vmid
             if self.pclient.is_vmid_available(vmid):
                 return vmid
             # All assigned vmid will be left as unusable on UDS until released by time (3 years)
