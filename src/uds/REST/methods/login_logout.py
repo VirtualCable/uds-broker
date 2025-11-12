@@ -195,7 +195,6 @@ class Login(Handler):
 
         except Exception as e:
             logger.error('Invalid credentials: %s: %s', self._params, e)
-            pass
 
         return Login.result(error='Invalid credentials')
 

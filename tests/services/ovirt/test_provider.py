@@ -132,5 +132,3 @@ class TestOVirtProvider(UDSTransactionTestCase):
         """
         with fixtures.patch_provider_api() as _api:
             _provider = fixtures.create_provider()
-
-            pass

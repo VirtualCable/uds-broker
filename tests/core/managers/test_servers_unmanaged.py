@@ -211,9 +211,9 @@ class ServerManagerUnmanagedServersTest(UDSTestCase):
                         return  # For mypy
                     uuid, counter = assign
                     # uuid shuld be one on registered servers
-                    self.assertTrue(uuid in self.all_uuids)
+                    self.assertIn(uuid, self.all_uuids)
                     # And only one assignment, so counter is 1
-                    self.assertTrue(counter, 1)
+                    self.assertEqual(counter, 1)
                     # Server locked should be None
                     self.assertIsNone(models.Server.objects.get(uuid=uuid).locked_until)
                     self.assertEqual(self.manager.get_unmanaged_usage(uuid), assignation + 1)

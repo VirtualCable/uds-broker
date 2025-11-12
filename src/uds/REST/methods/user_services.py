@@ -156,7 +156,6 @@ class AssignedUserService(DetailHandler[UserServiceItem]):
 
         if sort_info := self.get_sort_field_info('ip', 'actor_version'):
             return annotated_sort(*sort_info)
-            first_order_by_field, is_descending = sort_info
 
         return super().apply_sort(qs)
     

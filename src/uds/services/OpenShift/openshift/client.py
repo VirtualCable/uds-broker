@@ -362,7 +362,6 @@ class OpenshiftClient:
         return (
             response.get("spec", {}).get("pvc", {}).get("resources", {}).get("requests", {}).get("storage") or ""
         )
-        raise Exception(f"Could not get the size of DataVolume {dv_name}")
 
     def get_pvc_size(self, api_url: str, namespace: str, pvc_name: str) -> str:
         """
@@ -605,7 +604,6 @@ class OpenshiftClient:
         except Exception as e:
             logger.error(f"Error testing Openshift by enumerating VMs: {e}")
             raise exceptions.OpenshiftConnectionError(str(e)) from e
-            return False
 
     def enumerate_vms(self) -> collections.abc.Iterator[types.VM]:
         """

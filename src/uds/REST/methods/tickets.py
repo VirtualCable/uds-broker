@@ -239,10 +239,8 @@ class Tickets(Handler):
         except models.Authenticator.DoesNotExist:
             return Tickets.result(error='Authenticator does not exists')
         except models.ServicePool.DoesNotExist:
-            pass
             return Tickets.result(error='Service pool (or metapool) does not exists')
         except models.Transport.DoesNotExist:
-            pass
             return Tickets.result(error='Transport does not exists')
         except Exception as e:
             return Tickets.result(error=str(e))

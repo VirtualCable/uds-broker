@@ -104,11 +104,6 @@ class GuiBuilder:
             ),
         )
 
-        return {
-            'name': name,
-            'gui': gui_desk,
-        }
-
     def new_tab(self, tab: types.ui.Tab | str | None = None) -> typing.Self:
         """
         Resets the order counter to the next tab.

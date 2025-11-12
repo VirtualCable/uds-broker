@@ -100,7 +100,7 @@ class TestProxmoxClient(UDSTransactionTestCase):
         if self.storage.is_null():
             self.skipTest('No valid storage found')
 
-        if v.get('version', '8') < '9':
+        if int(v.get('version', '8').split('.', 1)[0]) < 9:
             self.hagroup = v['test_ha_group']
             # Ensure we have a valid pool, storage and ha group
             if self.hagroup not in self.pclient.list_ha_groups():
@@ -473,7 +473,7 @@ class TestProxmoxClient(UDSTransactionTestCase):
         with self._create_test_vm() as vm:
             result = self.pclient.start_vm(vm.id)
             self._wait_for_task(result)
-            self.assertTrue(self.pclient.get_vm_info(vm.id, force=True).status == prox_types.VMStatus.RUNNING)
+            self.assertEqual(self.pclient.get_vm_info(vm.id, force=True).status, prox_types.VMStatus.RUNNING)
 
             # Get the console connection
             console_info = self.pclient.get_console_connection(vm.id)

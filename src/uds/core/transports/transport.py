@@ -363,5 +363,3 @@ class Transport(Module):
 
         # Must be on new window
         return f'{link}{amp}{consts.transports.ON_NEW_WINDOW_VAR}={uuid}'
-
-        return link

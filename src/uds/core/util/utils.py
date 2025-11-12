@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 VT = typing.TypeVar('VT')
 
+
 class CaseInsensitiveDict(dict[str, VT]):
     @staticmethod
     def _k(key: str) -> str:
@@ -74,7 +75,7 @@ class CaseInsensitiveDict(dict[str, VT]):
     def pop(self, key: str, *args: typing.Any, **kwargs: typing.Any) -> VT:
         return super().pop(CaseInsensitiveDict._k(key), *args, **kwargs)
 
-    def get(self, key: str, *args: typing.Any, **kwargs: typing.Any) -> typing.Optional[VT]: # type: ignore
+    def get(self, key: str, *args: typing.Any, **kwargs: typing.Any) -> typing.Optional[VT]:  # type: ignore
         return super().get(CaseInsensitiveDict._k(key), *args, **kwargs)
 
     def setdefault(self, key: str, *args: typing.Any, **kwargs: typing.Any) -> VT:
@@ -171,24 +172,24 @@ def ignore_exceptions(log: bool = False) -> typing.Iterator[None]:
     except Exception as e:
         if log or getattr(settings, 'DEBUG', False):
             logger.error('Ignoring exception: %s', e)
-        pass
+
 
 class ExecutionTimer:
     _start: datetime.datetime
     _end: datetime.datetime
     _running: bool
-    
+
     _delay_threshold: float
     _max_delay_rate: float
 
     def __init__(self, delay_threshold: float, *, max_delay_rate: float = 4.0) -> None:
         """
         Creates a new ExecutionTimer
-        
+
         Arguments:
             delay_threshold {float} -- Threshold for the delay rate, in seconds.
             max_delay_rate {float} -- Maximum delay rate, defaults to 4.0
-            
+
         Note:
         - delay_threshold is the time in seconds that we consider an operation is taking too long
         - max_delay_rate is the maximum delay rate, if the operation is taking longer than the threshold, we will
@@ -200,7 +201,7 @@ class ExecutionTimer:
         self._start = timezone.localtime()
         self._end = self._start
         self._running = False
-        
+
         self._delay_threshold = delay_threshold
         self._max_delay_rate = max_delay_rate
 
@@ -232,7 +233,7 @@ class ExecutionTimer:
             * threshold = 2, elapsed = 4, delay rate = 2.0
             * threshold = 2, elapsed = 8, delay rate = 4.0
         - If the delay rate is greater than the max delay rate, the delay rate is the max delay rate
-        
+
         This allows us to increase the delay for next check based on how long the operation is taking
         (the longer it takes, the longer we wait for the next check)
         """
