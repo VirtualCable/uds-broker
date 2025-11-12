@@ -220,7 +220,7 @@ class DynamicServiceTest(UDSTestCase):
         userservice.unmarshal(userservice.marshal())  # As done by worker, to simulate the step-by-step
         state = userservice.check_state()
         self.assertEqual(state, types.states.TaskState.RUNNING)
-        self.assertEqual(userservice._vmid, '')
+        self.assertEqual(userservice._vmid, 'vmid')
 
         # Now, force failure (will be raise on op_custom_1_checker)
         userservice._queue = [types.services.Operation.CUSTOM_1]
