@@ -184,7 +184,7 @@ class ServerManagerUnmanagedServersTest(UDSTestCase):
                 # Server locked should not be None (that is, it should be locked)
                 self.assertIsNotNone(models.Server.objects.get(uuid=uuid).locked_until)
 
-            # Next one should fail with aa None return
+            # Next one should fail with a None return
             self.assertIsNone(
                 self.assign(self.user_services[NUM_REGISTEREDSERVERS], lock_interval=datetime.timedelta(seconds=1))
             )
