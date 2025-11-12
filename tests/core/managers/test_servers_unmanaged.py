@@ -177,7 +177,7 @@ class ServerManagerUnmanagedServersTest(UDSTestCase):
                     return  # For mypy
                 uuid, counter = assignation
                 
-                # uuid shuld be one on registered servers
+                # uuid should be one on registered servers
                 self.assertIn(uuid, self.all_uuids)
                 # And only one assignment, so counter is 1
                 self.assertEqual(counter, 1)
