@@ -60,7 +60,9 @@ class TestOVirtLinkedService(UDSTransactionTestCase):
             for _ in limited_iterator(lambda: state == types.states.TaskState.RUNNING, limit=128):
                 state = userservice.check_state()
                 # Ensure machine status is always DOWN, so the test does not end
-                utils.search_item_by_attr(fixtures.VMS_INFO, 'id', userservice._vmid).status = ov_types.VMStatus.DOWN
+                utils.search_item_by_attr(fixtures.VMS_INFO, 'id', userservice._vmid).status = (
+                    ov_types.VMStatus.DOWN
+                )
 
             self.assertEqual(state, types.states.TaskState.ERROR)
             self.assertGreater(
@@ -243,9 +245,6 @@ class TestOVirtLinkedService(UDSTransactionTestCase):
                 for _ in limited_iterator(lambda: state == types.states.TaskState.RUNNING, limit=128):
                     state = userservice.check_state()
                     counter += 1
-                    # Ensure that, after a few iterations, the machine is removed (state is UNKNOWN)
-                    # if counter == 5:
-                    #     utils.search_item_by_attr(fixtures.VMS_INFO, 'id', userservice._vmid).status = ov_types.VMStatus.UNKNOWN
 
                 self.assertEqual(
                     state, types.states.TaskState.FINISHED, f'Graceful: {graceful}, Counter: {counter}'

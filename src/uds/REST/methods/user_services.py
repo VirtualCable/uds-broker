@@ -503,7 +503,7 @@ class Transports(DetailHandler[TransportItem]):
         )
 
     def get_table(self, parent: 'Model') -> TableInfo:
-        parent = ensure.is_instance(parent, models.ServicePool)
+        ensure.is_instance(parent, models.ServicePool)  # Just ensures type
         return (
             ui_utils.TableBuilder(_('Assigned transports'))
             .numeric_column(name='priority', title=_('Priority'), width='6em')
@@ -670,7 +670,7 @@ class Changelog(DetailHandler[ChangelogItem]):
         raise exceptions.rest.NotSupportedError('Single changelog retrieval not implemented inside changelog')
 
     def get_table(self, parent: 'Model') -> types.rest.TableInfo:
-        parent = ensure.is_instance(parent, models.ServicePool)
+        ensure.is_instance(parent, models.ServicePool)  # Just ensures type
         return (
             ui_utils.TableBuilder(_('Changelog'))
             .numeric_column(name='revision', title=_('Revision'), width='6em')
