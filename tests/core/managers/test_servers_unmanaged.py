@@ -116,7 +116,7 @@ class ServerManagerUnmanagedServersTest(UDSTestCase):
                 self.assertEqual(
                     mockServerApiRequester.return_value.notify_assign.call_count, expected_notify_assign_calls + 1
                 )
-                # notify_assign paramsh should have been
+                # notify_assign params should have been
                 # request.ServerApiRequester(bestServer).notify_assign(userservice, serviceType, uuid_counter[1])
                 self.assertEqual(
                     mockServerApiRequester.return_value.notify_assign.call_args[0][0], userservice
