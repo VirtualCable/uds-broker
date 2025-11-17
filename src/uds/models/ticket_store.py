@@ -74,12 +74,12 @@ class TicketStore(UUIDModel):
         app_label = 'uds'
 
     @staticmethod
-    def generate_uuid(*, legacy_ticket_length: bool = False) -> str:
+    def generate_uuid() -> str:
         """In fact, generates a random string of TICKET_LENGTH chars, that will be used as uuid for the ticket (but is not an uuid compliant string)"""
         return (
             CryptoManager.manager()
             .random_string(
-                consts.ticket.TICKET_LENGTH if not legacy_ticket_length else consts.ticket.LEGACY_TICKET_LENGTH
+                consts.ticket.TICKET_LENGTH
             )
             .lower()
         )  # Temporary fix lower() for compat with 3.0
@@ -90,8 +90,6 @@ class TicketStore(UUIDModel):
         validity: int = consts.ticket.DEFAULT_TICKET_VALIDITY_TIME,
         owner: typing.Optional[str] = None,
         secure: bool = False,
-        *,
-        legacy_ticket_length: bool = False,
     ) -> str:
         """Creates a ticket (used to store data that can be retrieved later using REST API, for example)
 
@@ -117,7 +115,7 @@ class TicketStore(UUIDModel):
             )  # So data is REALLY encrypted, because key used to encrypt is sustituted by SECURED on DB
 
         return TicketStore.objects.create(
-            uuid=TicketStore.generate_uuid(legacy_ticket_length=legacy_ticket_length),
+            uuid=TicketStore.generate_uuid(),
             stamp=sql_now(),
             data=data,
             validity=validity,
