@@ -220,7 +220,7 @@ class Config:
 
         def get_type(self) -> int:
             return self._type
-        
+
         @property
         def is_password(self) -> bool:
             return self._type == Config.FieldType.PASSWORD
@@ -308,7 +308,9 @@ class Config:
                 yield val
 
     @staticmethod
-    def update(section: 'Config.SectionType', key: str, value: str, check_type: bool = False) -> 'None|Config.Value':
+    def update(
+        section: 'Config.SectionType', key: str, value: str, check_type: bool = False
+    ) -> 'None|Config.Value':
         # If cfg value does not exists, simply ignore request
         try:
             cfg: DBConfig = DBConfig.objects.get(section=section, key=key)
@@ -482,7 +484,7 @@ class GlobalConfig:
         type=Config.FieldType.NUMERIC,
         help=_('How long should the user service be unused before os manager considers it for removal'),
     )  # Defaults to 10 minutes
-    
+
     # Default CSS Used: REMOVED! (keep the for for naw, for reference, but will be cleaned on future...)
     # CSS: Config.Value = Config.section(Config.SectionType.GLOBAL).value('css', settings.STATIC_URL + 'css/uds.css', type=Config.FieldType.TEXT_FIELD)
     # Max logins before blocking an account
@@ -766,7 +768,7 @@ class GlobalConfig:
     )
     ADMIN_PAGESIZE: Config.Value = Config.section(Config.SectionType.ADMIN).value(
         'List page size',
-        '0',
+        '10',
         type=Config.FieldType.NUMERIC,
         help=_('Number of items per page in admin tables'),
     )
@@ -783,12 +785,9 @@ class GlobalConfig:
         help=_('Enable VNC menu for user services'),
     )
     NOTIFY_CALLBACK_URL: Config.Value = Config.section(Config.SectionType.GLOBAL).value(
-        'notifyCallbackURL',
-        '',
-        type=Config.FieldType.HIDDEN,
-        help=''
+        'notifyCallbackURL', '', type=Config.FieldType.HIDDEN, help=''
     )
-    
+
     # Cookies consent
     COOKIES_CONSENT_TEXT: Config.Value = Config.section(Config.SectionType.CUSTOM).value(
         'Cookies consent text',
@@ -814,7 +813,6 @@ class GlobalConfig:
         type=Config.FieldType.TEXT,
         help=_('URL to leave cookies consent'),
     )
-        
 
     @staticmethod
     def is_initialized() -> bool:
