@@ -32,7 +32,7 @@ let process = null;
 if (data.as_file) {
     Logger.debug('Has as_file property, creating temp RDP file');
     // Create and save the temp file
-    rdpFilePath = File.createTempFile(File.getHomeDirectory(), data.as_file, '.rdp');
+    let rdpFilePath = File.createTempFile(File.getHomeDirectory(), data.as_file, '.rdp');
     Logger.debug(`RDP temp file created at ${rdpFilePath}`);
 
     // Append to removable task to delete the file later
