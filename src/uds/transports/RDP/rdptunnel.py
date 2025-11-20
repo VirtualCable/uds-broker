@@ -195,7 +195,7 @@ class TRDPTransport(BaseRDPTransport):
                 'host': tunnel_host,
                 'port': tunnel_port,
                 'ticket': ticket,
-                'timeout': self.startup_time.as_int(),
+                'startup_time': self.startup_time.as_int(),
                 'verify_ssl': self.verify_certificate.as_bool(),
             },
             'password': ci.password,
