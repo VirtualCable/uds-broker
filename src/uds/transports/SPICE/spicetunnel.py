@@ -64,7 +64,7 @@ class TSPICETransport(BaseSpiceTransport):
     group = types.transports.Grouping.TUNNELED
 
     tunnel = fields.tunnel_field()
-    tunnel_wait = fields.tunnel_wait_time_field()
+    tunnel_wait = fields.tunnel_startup_time_secs()
 
     verify_certificate = gui.CheckBoxField(
         label=_('Force SSL certificate verification'),
