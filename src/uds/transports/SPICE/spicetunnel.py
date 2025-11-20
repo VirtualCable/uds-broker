@@ -139,11 +139,14 @@ class TSPICETransport(BaseSpiceTransport):
                 validity=self.tunnel_wait.as_int() + 60,  # Ticket overtime
                 key=key,
             )
+            
+        port: str = str(con.port) or '-1'
+        secure_port: str = str(con.secure_port) or '-1'
 
         r = RemoteViewerFile(
-            '127.0.0.1',
-            '{port}',
-            '{secure_port}',
+            con.address,
+            port,
+            secure_port,
             con.ticket.value,  # This is secure ticket from kvm, not UDS ticket
             con.ca or self.server_certificate.value.strip(),
             con.cert_subject,
