@@ -115,7 +115,11 @@ class ManagedObjectItem(BaseRestItem, typing.Generic[T_Model]):
         """
         Returns a dictionary representation of the managed object item.
         """
+        tmp_item = self.item
+        self.item = typing.cast(T_Model, None)  # Avoid recursion on data
         base = super().as_dict()
+        self.item = tmp_item  # Restore
+
         # Remove the fields that are not needed in the dictionary
         base.pop('item')
         item = self.item.get_instance()
