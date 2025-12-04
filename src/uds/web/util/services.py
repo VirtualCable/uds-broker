@@ -81,6 +81,7 @@ def _service_info(
     to_be_replaced_text: str,
     custom_calendar_text: str,
     custom_message_text: typing.Optional[str],
+    favorite: bool = False,
 ) -> collections.abc.Mapping[str, typing.Any]:
     return {
         'id': ('M' if is_meta else 'F') + uuid,
@@ -101,6 +102,7 @@ def _service_info(
         'to_be_replaced_text': to_be_replaced_text,
         'custom_calendar_text': custom_calendar_text,
         'custom_message_text': custom_message_text,
+        'favorite': favorite
     }
 
 
@@ -138,6 +140,8 @@ def get_services_info_dict(
 
     os_type: 'types.os.KnownOS' = request.os.os
     logger.debug('OS: %s', os_type)
+
+    user_favorites: set[str] = request.user.get_favorites()
 
     def _is_valid_transport(t: Transport) -> bool:
         transport_type = t.get_type()
@@ -305,6 +309,7 @@ def get_services_info_dict(
                     to_be_replaced_text='',
                     custom_calendar_text=meta.calendar_message,
                     custom_message_text=custom_message,
+                    favorite=meta.uuid in user_favorites,
                 )
             )
 
@@ -405,6 +410,7 @@ def get_services_info_dict(
                     if service_pool.display_custom_message and service_pool.custom_message.strip()
                     else None
                 ),
+                favorite=service_pool.uuid in user_favorites,
             )
         )
 

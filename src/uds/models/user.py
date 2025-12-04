@@ -126,6 +126,32 @@ class User(UUIDModel, properties.PropertiesMixin):
     ) -> None:
         log.log(self, level, message, source)
 
+    def get_favorites(self) -> set[str]:
+        """
+        Returns a list of favorite user services for this user
+        """
+        with self.properties as props:
+            return props.get('favorites', set())
+
+    def add_favorite(self, favorite: str) -> None:
+        """
+        Sets a list of favorite user services for this user
+        """
+        with self.properties as props:
+            favs: set[str] = props.get('favorites', set())
+            favs.add(favorite)
+            props['favorites'] = favs
+
+    def remove_favorite(self, favorite: str) -> None:
+        """
+        Sets a list of favorite user services for this user
+        """
+        with self.properties as props:
+            favs: set[str] = props.get('favorites', set())
+            if favorite in favs:
+                favs.discard(favorite)
+                props['favorites'] = favs
+
     def is_staff(self) -> bool:
         """
         Return true if this user is admin or staff member

@@ -180,6 +180,14 @@ def action(request: 'ExtendedHttpRequestWithUser', service_id: str, action_strin
     rebuild: bool = False
     if userservice:
         match action_string:
+            case 'favorite':
+                if userservice.user is None:
+                    raise Exception('UserService is None!')
+                userservice.user.add_favorite(userservice.service_pool.uuid)
+            case 'unfavorite':
+                if userservice.user is None:
+                    raise Exception('UserService is None!')
+                userservice.user.remove_favorite(userservice.service_pool.uuid)
             case 'release':
                 if userservice.service_pool.allow_users_remove:
                     rebuild = True
