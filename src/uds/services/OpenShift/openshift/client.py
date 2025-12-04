@@ -374,6 +374,16 @@ class OpenshiftClient:
         if capacity:
             return capacity
         raise Exception(f"Could not get the size of PVC {pvc_name}")
+    
+    def get_pvc_storage_class_and_volume_mode(
+        self, api_url: str, namespace: str, source_pvc_name: str
+    ) -> tuple[str | None, str | None]:
+        # Get the storageClassName and volumeMode of the source PVC
+        path = f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{source_pvc_name}"
+        response = self.do_request('GET', path)
+        source_storage_class = response.get("spec", {}).get("storageClassName", None)
+        source_volume_mode = response.get("spec", {}).get("volumeMode", None)
+        return source_storage_class, source_volume_mode
 
     def clone_pvc_with_datavolume(
         self,
@@ -447,11 +457,9 @@ class OpenshiftClient:
 
         # Use the source PVC size and volumeMode for the new DataVolumeTemplate
         pvc_size = self.get_pvc_size(api_url, namespace, source_pvc_name)
-        # Obtener el storageClassName y volumeMode del PVC fuente
-        path = f"/api/v1/namespaces/{namespace}/persistentvolumeclaims/{source_pvc_name}"
-        response = self.do_request('GET', path)
-        source_storage_class = response.get("spec", {}).get("storageClassName", None)
-        source_volume_mode = response.get("spec", {}).get("volumeMode", None)
+
+        source_storage_class, source_volume_mode = self.get_pvc_storage_class_and_volume_mode(api_url, namespace, source_pvc_name)
+        
         pvc_spec = {
             "accessModes": ["ReadWriteOnce"],
             "resources": {"requests": {"storage": pvc_size}},
