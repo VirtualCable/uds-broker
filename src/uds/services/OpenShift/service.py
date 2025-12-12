@@ -72,8 +72,7 @@ class OpenshiftService(DynamicService):
 
     prov_uuid = gui.HiddenField(value=None)
 
-
-    _cached_api: typing.Optional['OpenshiftClient'] = None 
+    _cached_api: typing.Optional['OpenshiftClient'] = None
 
     @property
     def api(self) -> 'OpenshiftClient':
@@ -117,7 +116,7 @@ class OpenshiftService(DynamicService):
     def get_lenname(self) -> int:
         """Returns configured length for machine names"""
         return self.lenname.as_int()
-    
+
     # Utility
     def sanitized_name(self, name: str) -> str:
         """Sanitizes a name for Azure (only allowed chars)
@@ -145,7 +144,7 @@ class OpenshiftService(DynamicService):
         return self.provider().is_available()
 
     def get_ip(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str 
+        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
     ) -> str:
         """
         Returns the ip of the machine
@@ -158,13 +157,15 @@ class OpenshiftService(DynamicService):
             if vmi_info and vmi_info.interfaces:
                 logger.info(f"IP address found: {vmi_info.interfaces[0].ip_address}")
                 return vmi_info.interfaces[0].ip_address
-            logger.warning(f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Retrying in 5 seconds...')
+            logger.warning(
+                f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Retrying in 5 seconds...'
+            )
             time.sleep(5)
         raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
 
     def get_mac(
         self,
-        caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], 
+        caller_instance: typing.Optional['DynamicUserService | DynamicPublication'],
         vmid: str,
         *,
         for_unique_id: bool = False,
@@ -186,11 +187,14 @@ class OpenshiftService(DynamicService):
             if vmi_info and vmi_info.interfaces:
                 logger.info(f"MAC address found: {vmi_info.interfaces[0].mac_address}")
                 return vmi_info.interfaces[0].mac_address
-            logger.warning(f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Details: {vmi_info}. Retrying in 5 seconds...')
+            logger.warning(
+                f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Details: {vmi_info}. Retrying in 5 seconds...'
+            )
             time.sleep(5)
         raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
+
     def is_running(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str 
+        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
     ) -> bool:
         """
         Checks if the VM instance is currently running.
@@ -205,7 +209,7 @@ class OpenshiftService(DynamicService):
         )
 
     def start(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str 
+        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
     ) -> None:
         """
         Starts the machine
@@ -214,7 +218,7 @@ class OpenshiftService(DynamicService):
         self.api.start_vm_instance(vmid)
 
     def stop(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str 
+        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
     ) -> None:
         """
         Stops the machine
@@ -223,7 +227,7 @@ class OpenshiftService(DynamicService):
         self.api.stop_vm_instance(vmid)
 
     def shutdown(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str 
+        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
     ) -> None:
         """
         Shutdowns the machine, same as stop (both tries soft shutdown, it's a openshift thing)
