@@ -11,6 +11,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import logging
 import collections.abc
 import typing
+import time
 
 from django.utils.translation import gettext_lazy as _
 
@@ -149,13 +150,16 @@ class OpenshiftService(DynamicService):
         """
         Returns the ip of the machine
         If cannot be obtained, MUST raise an exception
+        Tries up to 3 times with 5 seconds delay if not found.
         """
         logger.debug('Getting IP for VM ID: %s', vmid)
-
-        vmi_info = self.api.get_vm_instance_info(vmid)
-        if not vmi_info or not vmi_info.interfaces:
-            raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
-        return vmi_info.interfaces[0].ip_address
+        for attempt in range(3):
+            vmi_info = self.api.get_vm_instance_info(vmid)
+            if vmi_info and vmi_info.interfaces:
+                return vmi_info.interfaces[0].ip_address
+            logger.warning(f'Attempt {attempt+1}/3: No interfaces found for VM {vmid}. Retrying in 5 seconds...')
+            time.sleep(5)
+        raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
 
     def get_mac(
         self,
@@ -170,19 +174,19 @@ class OpenshiftService(DynamicService):
         Note:
            vmid can be '' if we are requesting a new mac (on some services, where UDS generate the machines MAC)
            If the service does not support this, it can raise an exception
+        Tries up to 3 times with 5 seconds delay if not found.
         """
         if vmid == '':
             return ''
         logger.debug('Getting MAC for VM ID: %s', vmid)
-        vmi_info = self.api.get_vm_instance_info(vmid)
-        logger.debug(f"The vm info is:{vmi_info}")
-        if not vmi_info or not vmi_info.interfaces:
-            logger.warning(f'No interfaces found for VM {vmid}. Detalles: {vmi_info}')
-            # Opcional: retornar None o string vacía según la lógica de negocio
-            # return None
-            raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
-        return vmi_info.interfaces[0].mac_address
-
+        for attempt in range(3):
+            vmi_info = self.api.get_vm_instance_info(vmid)
+            logger.debug(f"The vm info is:{vmi_info}")
+            if vmi_info and vmi_info.interfaces:
+                return vmi_info.interfaces[0].mac_address
+            logger.warning(f'Attempt {attempt+1}/3: No interfaces found for VM {vmid}. Detalles: {vmi_info}. Retrying in 5 seconds...')
+            time.sleep(5)
+        raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
     def is_running(
         self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str #! DUDA
     ) -> bool:
