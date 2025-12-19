@@ -39,7 +39,7 @@ if (data.as_file) {
     Tasks.addEarlyUnlinkableFile(rdpFilePath);
     let password = data.password ? `/p:${data.password}` : '/p:';
     // Launch the RDP client with the temp file
-    process = Process.launch(executablePath, [rdpFilePath, password]); // the addres in INSIDE the file is already set to
+    process = Process.launch(executablePath, [password, rdpFilePath]); // the addres in INSIDE the file is already set to
 } else {
     // Launch the RDP client with the parameters
     process = Process.launch(executablePath, [...parameters, `/v:${data.address}`]);
