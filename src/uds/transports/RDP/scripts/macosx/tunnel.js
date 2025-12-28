@@ -108,7 +108,7 @@ if (thincastExecutable || xfreeRdpExecutable) {
         let content = data.as_file.replace(/\{address\}/g, `127.0.0.1:${tunnel.port}`);
         let rdpFilePath = File.createTempFile('.rdp', content);
         let password = data.password ? `/p:${data.password}` : '/p:';
-        params = ['-a', executablePath, rdpFilePath, password];
+        params = ['-a', executablePath, password, rdpFilePath];
         Tasks.addEarlyUnlinkableFile(rdpFilePath);
     } else {
         params = [
