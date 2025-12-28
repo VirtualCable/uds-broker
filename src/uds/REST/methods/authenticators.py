@@ -105,7 +105,7 @@ class Authenticators(ModelHandler[AuthenticatorItem]):
     # Custom get method "search" that requires authenticator id
     CUSTOM_METHODS = [types.rest.ModelCustomMethod('search', True)]
     DETAIL = {'users': Users, 'groups': Groups}
-    FIELDS_TO_SAVE = ['name', 'comments', 'tags', 'priority', 'small_name', 'mfa_id:_', 'state']
+    FIELDS_TO_SAVE = ['name', 'comments', 'tags', 'priority', 'small_name', 'mfa_id:_', 'state', 'net_filtering']
 
     TABLE = (
         ui_utils.TableBuilder(_('Authenticators'))
