@@ -1,0 +1,13 @@
+{
+    "ip": "192.168.1.85",
+    "port": "22",
+    "login": "uds",
+    "key": "-----BEGIN RSA PRIVATE KEY-----\n...your key here...\n-----END RSA PRIVATE KEY-----",
+    "xf": "[Session]\nsessionname=UDS/connect\nhost={ip}\nport={port}\nuser={login}\nkeyFile={keyFile}\n\n# Escritorio remoto\ncommand=XFCE\ntype=auto\nrootless=false\napplications=XFCE\n\n# Ruta inicial\npath=/\n\n# Ajustes gráficos habituales\nwidth=1920\nheight=1080\ndpi=96\nusekbd=true\nsound=false\nclipboard=both\n",
+    "other": {
+        "try_auto_login": true,
+        "kerberos": false,
+        "proxy": false,
+        "x2gokdrive": true
+    }
+}
