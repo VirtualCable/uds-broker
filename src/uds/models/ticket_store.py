@@ -110,7 +110,7 @@ class TicketStore(UUIDModel):
         if secure:
             if not owner:
                 raise ValueError('Tried to use a secure ticket without owner')
-            data = CryptoManager.manager().aes_crypt(data, owner.encode())
+            data = CryptoManager.manager().aes256_cbc_crypt(data, owner.encode())
             owner = (
                 consts.ticket.TICKET_SECURED_ONWER
             )  # So data is REALLY encrypted, because key used to encrypt is sustituted by SECURED on DB

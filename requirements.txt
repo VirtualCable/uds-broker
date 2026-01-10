@@ -12,6 +12,7 @@ bitarray
 numpy
 html5lib
 cryptography
+pqcrypto
 python3-saml
 six
 dnspython

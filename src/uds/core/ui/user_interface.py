@@ -1818,7 +1818,7 @@ def password_compat_field_decoder(value: str) -> str:
     Compatibility function to decode text fields converted to password fields
     """
     try:
-        value = CryptoManager.manager().aes_decrypt(value.encode('utf8'), UDSK, True).decode()
+        value = CryptoManager.manager().aes256_cbc_decrypt(value.encode('utf8'), UDSK, True).decode()
     except Exception:
         pass
     return value
@@ -1834,7 +1834,7 @@ FIELDS_ENCODERS: typing.Final[
     types.ui.FieldType.TEXT_AUTOCOMPLETE: lambda x: x.value,
     types.ui.FieldType.NUMERIC: lambda x: str(int(gui.as_int(x.value))),
     types.ui.FieldType.PASSWORD: lambda x: (
-        CryptoManager.manager().aes_crypt(x.value.encode('utf8'), UDSK, True).decode()
+        CryptoManager.manager().aes256_cbc_crypt(x.value.encode('utf8'), UDSK, True).decode()
     ),
     types.ui.FieldType.HIDDEN: (lambda x: None if not x.is_serializable() else x.value),
     types.ui.FieldType.CHOICE: lambda x: x.value,

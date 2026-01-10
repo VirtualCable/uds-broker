@@ -105,8 +105,16 @@ class Client(Handler):
         """
         return Client.result(_('Correct'))
 
-    def process(self, ticket: str, scrambler: str) -> dict[str, typing.Any]:
-        info: typing.Optional[types.services.UserServiceInfo] = None
+    def process(self, ticket: str, scrambler: str, kem_key: str = '') -> dict[str, typing.Any]:
+        """
+        Processes a client request
+            GET process /client/<ticket>/<scrambler>
+            POST process /client/<ticket>/ticket (With kem_key and scrambler in params, also rest of params will be passed to service)
+
+            kem_ml is encoded using base64
+
+        """
+        info: types.services.UserServiceInfo | None = None
         hostname = self._params.get('hostname', '')  # Or if hostname is not included...
         version = self._params.get('version', '0.0.0')
         src_ip = self._request.ip
@@ -185,12 +193,21 @@ class Client(Handler):
                 if is_logging_enabled
                 else None
             )
-            return Client.result(result=transport_script.as_dict())
+            # Support version without kem for now
+            if not kem_key:
+                return Client.result(result=transport_script.as_dict())
+            else:
+                shared_key, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
+                return Client.result(
+                    result=transport_script.as_encrypted_dict(
+                        shared_key, ciphertext, ticket_id=ticket
+                    )
+                )
         except ServiceNotReadyError as e:
             # Refresh ticket and make this retrayable
             # TODO: restore TicketStore.revalidate(ticket, 20)  # Retry will be in at most 5 seconds, so 20 is fine :)
             return Client.result(
-                error=types.errors.Error.SERVICE_IN_PREPARATION, percent=e.code*25, is_retrayable=True
+                error=types.errors.Error.SERVICE_IN_PREPARATION, percent=e.code * 25, is_retrayable=True
             )
         except Exception as e:
             logger.exception("Exception")
@@ -206,11 +223,20 @@ class Client(Handler):
         """
         Processes put requests
 
-        Currently, only "upload logs"
+        post /client/<ticket>/<command>
         """
         logger.debug('Client args for POST: %s', self._args)
         try:
             ticket, command = self._args[:2]
+            # if command is 'ticket' redirect to process
+            # This command is processed BEFORE the ticket extraction
+            if command == 'ticket':
+                return self.process(
+                    ticket,
+                    self._params.get('scrambler', ''),
+                    self._params.get('kem_key', ''),
+                )
+
             try:
                 data: dict[str, typing.Any] = TicketStore.get(ticket)
             except TicketStore.DoesNotExist:

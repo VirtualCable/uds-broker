@@ -39,6 +39,8 @@ import typing
 
 from django.utils.translation import gettext_noop as _, gettext
 
+from uds.core.managers.crypto import CryptoManager
+
 
 class Protocol(enum.StrEnum):
     NONE = ''
@@ -116,7 +118,11 @@ class TransportScript:
         """
         Returns encoded parameters for transport script
         """
-        return codecs.encode(codecs.encode(json.dumps(self.parameters).encode(), 'bz2'), 'base64').decode().replace('\n', '')
+        return (
+            codecs.encode(codecs.encode(json.dumps(self.parameters).encode(), 'bz2'), 'base64')
+            .decode()
+            .replace('\n', '')
+        )
 
     @property
     def encoded_script(self) -> str:
@@ -133,4 +139,19 @@ class TransportScript:
             'signature': self.signature_b64,
             'params': self.encoded_parameters,
             'log': self.log.as_dict(),
+        }
+
+    def as_encrypted_dict(self, shared_key: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
+
+        cm = CryptoManager.manager()
+        material = cm.derive_tunnel_material(shared_key, ticket_id.encode())
+
+        plaintext = json.dumps(self.as_dict()).encode()
+
+        encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_send, plaintext, b'')
+
+        return {
+            'algorithm': 'AES-256-GCM',
+            'ciphertext': codecs.encode(ciphertext, 'base64').decode().replace('\n', ''),
+            'data': codecs.encode(encrypted, 'base64').decode().replace('\n', ''),
         }

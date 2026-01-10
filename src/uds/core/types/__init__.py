@@ -51,6 +51,7 @@ from . import (
     log,
     net,
     rest,
+    crypt,
 )
 
 # Log is not imported here, as it is a special case with lots of dependencies
