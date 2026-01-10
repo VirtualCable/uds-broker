@@ -243,7 +243,7 @@ class Config:
                 value = str(value)
 
             if self._type == Config.FieldType.PASSWORD:
-                value = CryptoManager().hash(value)
+                value = CryptoManager.manager().hash(value)
 
             logger.debug('Saving config %s.%s as %s', self._section.name(), self._key, value)
             try:
@@ -693,7 +693,7 @@ class GlobalConfig:
     # Global UDS ID (common for all servers on the same cluster)
     UDS_ID: Config.Value = Config.section(Config.SectionType.GLOBAL).value(
         'UDS ID',
-        CryptoManager().uuid(),
+        CryptoManager.manager().uuid(),
         type=Config.FieldType.READ,
         help=_('Global UDS ID (common for all servers on the same cluster)'),
     )

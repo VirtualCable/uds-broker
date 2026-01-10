@@ -213,7 +213,7 @@ def ticket_auth(
             auth = data['auth']
             realname = data['realname']
             pool_uuid = data['servicePool']
-            password = CryptoManager().decrypt(data['password'])
+            password = CryptoManager.manager().decrypt(data['password'])
         except Exception:
             logger.error('Ticket stored is not valid')
             raise exceptions.auth.InvalidUserException() from None

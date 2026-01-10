@@ -169,7 +169,7 @@ class Login(Handler):
                 auth = Authenticator.objects.get(small_name__iexact=auth_label)
 
             # No matter in fact the password, just not empty (so it can be encrypted, but will be invalid anyway)
-            password = password or CryptoManager().random_string(32)
+            password = password or CryptoManager.manager().random_string(32)
 
             logger.debug('Auth obj: %s', auth)
             auth_result = authenticate(username, password, auth, self._request)

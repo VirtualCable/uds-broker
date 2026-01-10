@@ -292,7 +292,7 @@ class OpenGnsysUserService(services.UserService, autoserializable.AutoSerializab
         Deploys a machine from template for user/cache
         """
         r: typing.Any = None
-        token = CryptoManager().random_string(32)
+        token = CryptoManager.manager().random_string(32)
         try:
             r = self.service().reserve()
             self.service().notify_endpoints(r['id'], token, self._uuid)

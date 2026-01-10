@@ -34,19 +34,58 @@ import typing
 # Note, clients must use the same KEM module (kyber512, kyber768, kyber1024)
 from pqcrypto.kem import ml_kem_1024 as kyber
 
+
 def encrypt(kem_key_b64: str) -> tuple[bytes, bytes]:
     """
-    Given a base64-encoded KEM public key, generates a shared secret and ciphertext.
+    Given a base64-encoded KEM public key, generates a shared key and ciphertext.
 
-    Returns a tuple of (shared_secret: bytes, ciphertext: bytes)
+    Returns a tuple of (shared_key: bytes, ciphertext: bytes)
     """
     kem_key = base64.b64decode(kem_key_b64)
 
+    # Note: this may be already tested in pqcrypto, but we ensure that is correct here
+    # just in case a future version does not check it or we switch to another library
     if len(kem_key) != typing.cast(int, kyber.PUBLIC_KEY_SIZE):  # pyright: ignore[reportUnknownMemberType]
         raise ValueError(
             f"KEM key must be {kyber.PUBLIC_KEY_SIZE} bytes"  # pyright: ignore[reportUnknownMemberType]
         )
 
-    ciphertext, shared_secret = kyber.encrypt(kem_key)  # pyright: ignore[reportUnknownMemberType]
+    ciphertext, shared_key = kyber.encrypt(kem_key)  # pyright: ignore[reportUnknownMemberType]
 
-    return shared_secret, ciphertext
+    return shared_key, ciphertext
+
+
+def decrypt(kem_private_key_b64: str, ciphertext: bytes) -> bytes:
+    """
+    Given a base64-encoded KEM private key (kem secret) and a ciphertext, returns the shared key.
+
+    Returns shared_key: bytes
+    """
+    kem_private_key = base64.b64decode(kem_private_key_b64)
+
+    # Note: this may be already tested in pqcrypto, but we ensure that is correct here
+    # just in case a future version does not check it or we switch to another library
+    if len(kem_private_key) != typing.cast(
+        int, kyber.SECRET_KEY_SIZE  # pyright: ignore[reportUnknownMemberType]
+    ):
+        raise ValueError(
+            f"KEM private key must be {kyber.SECRET_KEY_SIZE} bytes"  # pyright: ignore[reportUnknownMemberType]
+        )
+
+    shared_key = kyber.decrypt(kem_private_key, ciphertext)  # pyright: ignore[reportUnknownMemberType]
+
+    return shared_key
+
+
+def generate_keypair() -> tuple[str, str]:
+    """
+    Generates a new KEM keypair.
+
+    Returns a tuple of (public_key_b64: str, private_key_b64: str)
+    """
+    public_key, private_key = kyber.generate_keypair()  # pyright: ignore[reportUnknownMemberType]
+
+    public_key_b64 = base64.b64encode(public_key).decode('utf-8')
+    private_key_b64 = base64.b64encode(private_key).decode('utf-8')
+
+    return public_key_b64, private_key_b64

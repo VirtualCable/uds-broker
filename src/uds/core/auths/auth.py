@@ -73,7 +73,7 @@ def uds_cookie(
     Generates a random cookie for uds, used, for example, to encript things
     """
     if 'uds' not in request.COOKIES:
-        cookie = CryptoManager().random_string(consts.auth.UDS_COOKIE_LENGTH)
+        cookie = CryptoManager.manager().random_string(consts.auth.UDS_COOKIE_LENGTH)
         if response is not None:
             response.set_cookie(
                 'uds',
@@ -449,7 +449,7 @@ def get_webpassword(request: HttpRequest) -> str:
             getattr(request, '_scrambler'),
         )
     passkey = base64.b64decode(request.session.get(consts.auth.SESSION_PASS_KEY, ''))
-    return CryptoManager().symmetric_decrypt(passkey, uds_cookie(request))  # recover as original unicode string
+    return CryptoManager.manager().symmetric_decrypt(passkey, uds_cookie(request))  # recover as original unicode string
 
 
 def weblogout(

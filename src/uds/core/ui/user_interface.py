@@ -1735,9 +1735,9 @@ class UserInterface(metaclass=UserInterfaceType):
                         if v.startswith(MULTIVALUE_FIELD):
                             val = pickle.loads(v[1:])
                         elif v.startswith(OLD_PASSWORD_FIELD):
-                            val = CryptoManager().aes_decrypt(v[1:], consts.ui.UDSB, True).decode()
+                            val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], consts.ui.UDSB, True).decode()
                         elif v.startswith(PASSWORD_FIELD):
-                            val = CryptoManager().aes_decrypt(v[1:], UDSK, True).decode()
+                            val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], UDSK, True).decode()
                         else:
                             val = v.decode('utf8')
                     except Exception:
@@ -1834,7 +1834,7 @@ FIELDS_ENCODERS: typing.Final[
     types.ui.FieldType.TEXT_AUTOCOMPLETE: lambda x: x.value,
     types.ui.FieldType.NUMERIC: lambda x: str(int(gui.as_int(x.value))),
     types.ui.FieldType.PASSWORD: lambda x: (
-        CryptoManager.manager().aes256_cbc_crypt(x.value.encode('utf8'), UDSK, True).decode()
+        CryptoManager.manager().aes256_cbc_encrypt(x.value.encode('utf8'), UDSK, True).decode()
     ),
     types.ui.FieldType.HIDDEN: (lambda x: None if not x.is_serializable() else x.value),
     types.ui.FieldType.CHOICE: lambda x: x.value,

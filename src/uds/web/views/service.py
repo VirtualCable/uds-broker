@@ -261,7 +261,7 @@ def update_transport_ticket(
                 domain = None
 
             if password:
-                password = CryptoManager().symmetric_encrypt(password, scrambler)
+                password = CryptoManager.manager().symmetric_encrypt(password, scrambler)
 
             def _is_ticket_valid(data: collections.abc.Mapping[str, typing.Any]) -> bool:
                 if 'ticket-info' in data:

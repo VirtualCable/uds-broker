@@ -194,7 +194,7 @@ class HTML5VNCTransport(transports.Transport):
 
         logger.debug('VNC Params: %s', params)
 
-        scrambler = CryptoManager().random_string(32)
+        scrambler = CryptoManager.manager().random_string(32)
         ticket = models.TicketStore.create(params, validity=self.ticket_validity.as_int())
 
         onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={transport.uuid}'

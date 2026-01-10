@@ -134,7 +134,7 @@ class WinRandomPassManager(WindowsOsManager):
         values = data.decode('utf8').split('\t')
         if values[0] == 'v1':
             self.user_account.value = values[1]
-            self.password.value = CryptoManager().decrypt(values[2])
+            self.password.value = CryptoManager.manager().decrypt(values[2])
             super().unmarshal(codecs.decode(values[3].encode(), 'hex'))
 
         self.mark_for_upgrade()  # Force upgrade to new format

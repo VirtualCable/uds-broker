@@ -226,7 +226,7 @@ class RadiusAuth(auths.Authenticator):
         try:
             connection = self.radius_client()
             # Reply is not important...
-            connection.authenticate(CryptoManager().random_string(10), CryptoManager().random_string(10))
+            connection.authenticate(CryptoManager.manager().random_string(10), CryptoManager.manager().random_string(10))
         except client.RadiusAuthenticationError:
             pass
         except Exception:

@@ -190,7 +190,7 @@ class Users(DetailHandler[UserItem]):
 
         if 'password' in self._params:
             valid_fields.append('password')
-            self._params['password'] = CryptoManager().hash(self._params['password'])
+            self._params['password'] = CryptoManager.manager().hash(self._params['password'])
 
         if 'mfa_data' in self._params:
             valid_fields.append('mfa_data')

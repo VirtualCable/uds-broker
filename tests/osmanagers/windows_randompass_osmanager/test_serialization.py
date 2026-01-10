@@ -40,7 +40,7 @@ from uds.core.managers.crypto import CryptoManager
 from uds.osmanagers.WindowsOsManager import windows_random as osmanager
 
 PASSWD: typing.Final[str] = 'PASSWD'
-CRYPTED_PASSWD: typing.Final[str] = CryptoManager().encrypt(PASSWD)
+CRYPTED_PASSWD: typing.Final[str] = CryptoManager.manager().encrypt(PASSWD)
 
 # if data.startswith(b'v'):
 #     return super().unmarshal(data)
@@ -48,7 +48,7 @@ CRYPTED_PASSWD: typing.Final[str] = CryptoManager().encrypt(PASSWD)
 # values = data.decode('utf8').split('\t')
 # if values[0] == 'v1':
 #     self._user_account = values[1]
-#     self._password = CryptoManager().decrypt(values[2])
+#     self._password = CryptoManager.manager().decrypt(values[2])
 #     super().unmarshal(codecs.decode(values[3].encode(), 'hex'))
 
 # self.flag_for_upgrade()  # Force upgrade to new format

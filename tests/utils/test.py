@@ -119,7 +119,7 @@ class UDSClient(UDSClientMixin, Client):
         super().__init__(enforce_csrf_checks, raise_request_exception)
 
         # and required UDS cookie
-        self.cookies['uds'] = CryptoManager().random_string(48)
+        self.cookies['uds'] = CryptoManager.manager().random_string(48)
 
     def request(self, **request: typing.Any) -> 'UDSHttpResponse':
         # Copy request dict
@@ -176,7 +176,7 @@ class UDSAsyncClient(UDSClientMixin, AsyncClient):  # type: ignore   # Django st
         UDSClientMixin.initialize(self)
 
         # and required UDS cookie
-        self.cookies['uds'] = CryptoManager().random_string(48)
+        self.cookies['uds'] = CryptoManager.manager().random_string(48)
 
     async def request(self, **request: typing.Any) -> 'UDSHttpResponse':
         # Copy request dict

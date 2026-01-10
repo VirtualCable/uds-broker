@@ -46,7 +46,7 @@ def _session_id_generator() -> str:
     """
     Generates a new session id
     """
-    return CryptoManager().unique()
+    return CryptoManager.manager().unique()
 
 
 class UserServiceSession(models.Model):  # pylint: disable=too-many-public-methods

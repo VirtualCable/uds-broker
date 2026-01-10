@@ -100,7 +100,7 @@ def old_serialize_form(ui: 'UserInterface') -> bytes:
             # logger.debug('Serializing value {0}'.format(v.value))
             val = MULTIVALUE_FIELD + pickle.dumps(v.value, protocol=0)
         elif v.is_type(types.ui.FieldType.PASSWORD):
-            val = PASSWORD_FIELD + CryptoManager().aes_crypt(v.value.encode('utf8'), UDSK, True)
+            val = PASSWORD_FIELD + CryptoManager.manager().aes256_cbc_encrypt(v.value.encode('utf8'), UDSK, True)
         elif v.is_type(types.ui.FieldType.NUMERIC):
             val = str(int(v.as_int())).encode('utf8')
         elif v.is_type(types.ui.FieldType.CHECKBOX):

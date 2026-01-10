@@ -152,7 +152,7 @@ def mfa(
                 # If mfaProvider requests to keep MFA code on client, create a mfacookie for this user
                 if mfa_provider.remember_device > 0 and form.cleaned_data['remember'] is True:
                     # Store also cookie locally, to check if remember_device is changed
-                    mfa_cookie = CryptoManager().random_string(96)
+                    mfa_cookie = CryptoManager.manager().random_string(96)
                     store.save_pickled(
                         mfa_cookie,
                         (mfa_user_id, now, request.ip),  # MFA will only be valid for this user and this ip

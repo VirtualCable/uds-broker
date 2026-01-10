@@ -164,7 +164,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         # logger.debug('Decripted: %s %s', data, decrypted)
         return decrypted.decode()
 
-    def aes256_cbc_crypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
+    def aes256_cbc_encrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
         # First, match key to 16 bytes. If key is over 16, create a new one based on key of 16 bytes length
         cipher = Cipher(
             algorithms.AES(CryptoManager.ensure_aes_key(key, 16)),
@@ -218,7 +218,7 @@ class CryptoManager(metaclass=singleton.Singleton):
 
     # Fast encription using django SECRET_KEY as key
     def fast_crypt(self, data: bytes) -> bytes:
-        return self.aes256_cbc_crypt(data, UDSK)
+        return self.aes256_cbc_encrypt(data, UDSK)
 
     # Fast decryption using django SECRET_KEY as key
     def fast_decrypt(self, data: bytes) -> bytes:
@@ -245,7 +245,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         if isinstance(key, str):
             key = key.encode()
 
-        return self.aes256_cbc_crypt(text, key)
+        return self.aes256_cbc_encrypt(text, key)
 
     def symmetric_decrypt(self, encrypted_text: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> str:
         if isinstance(encrypted_text, str):
@@ -404,7 +404,7 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         return hashlib.sha3_256(value).hexdigest()
 
-    def derive_tunnel_material(self, shared_secret: bytes, ticket_id: bytes) -> types.crypt.MaterialTunnelInfo:
+    def derive_tunnel_material(self, shared_secret: bytes, ticket_id: bytes) -> types.crypto.TunnelMaterial:
         """
         Derives keys and nonces for payload + tunnel from a KEM/Kyber shared_secret.
 
@@ -429,7 +429,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         nonce_send = okm[96:108]  # 12 bytes
         nonce_receive = okm[108:120]  # 12 bytes
 
-        return types.crypt.MaterialTunnelInfo(
+        return types.crypto.TunnelMaterial(
             key_payload=key_payload,
             key_send=key_send,
             key_receive=key_receive,

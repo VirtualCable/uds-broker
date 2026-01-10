@@ -476,7 +476,7 @@ class WinDomainOsManager(WindowsOsManager):
             self.domain.value = values[1]
             self.ou.value = values[2]
             self.account.value = values[3]
-            self.password.value = CryptoManager().decrypt(values[4])
+            self.password.value = CryptoManager.manager().decrypt(values[4])
 
         if values[0] in ('v2', 'v3', 'v4'):
             self.grp.value = values[6]

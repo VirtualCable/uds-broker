@@ -2,7 +2,7 @@ import dataclasses
 
 
 @dataclasses.dataclass
-class MaterialTunnelInfo:
+class TunnelMaterial:
     key_payload: bytes
     key_send: bytes
     key_receive: bytes

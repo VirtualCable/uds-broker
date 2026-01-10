@@ -40,14 +40,14 @@ from uds.core.managers.crypto import CryptoManager
 from uds.osmanagers.WindowsOsManager import windows_domain as osmanager
 
 PASSWD: typing.Final[str] = 'PASSWD'
-CRYPTED_PASSWD: typing.Final[str] = CryptoManager().encrypt(PASSWD)
+CRYPTED_PASSWD: typing.Final[str] = CryptoManager.manager().encrypt(PASSWD)
 
 # values = data.decode('utf8').split('\t')
 # if values[0] in ('v1', 'v2', 'v3', 'v4'):
 #     self.domain.value = values[1]
 #     self.ou.value = values[2]
 #     self.account.value = values[3]
-#     self.password.value = CryptoManager().decrypt(values[4])
+#     self.password.value = CryptoManager.manager().decrypt(values[4])
 
 # if values[0] in ('v2', 'v3', 'v4'):
 #     self.grp.value = values[6]
