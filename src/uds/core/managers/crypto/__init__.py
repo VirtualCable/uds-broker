@@ -159,9 +159,8 @@ class CryptoManager(metaclass=singleton.Singleton):
                 ),
             )
         except Exception:  # Old method is not supported
-            logger.exception('Decripting: %s', value)
+            logger.exception('Decripting value failed')
             return 'decript error'
-        # logger.debug('Decripted: %s %s', data, decrypted)
         return decrypted.decode()
 
     def aes256_cbc_encrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
