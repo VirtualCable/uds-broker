@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2023 Virtual Cable S.L.U.
+# Copyright (c) 2012-2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -61,15 +61,14 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes, aead
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-# Pqcrypto for KEM/Kyber
-import pqcrypto.kem.kyber768 as kyber
-
 
 from django.conf import settings
 from django.utils import timezone
 
 from uds.core.util import singleton
 from uds.core import types
+
+from . import kem
 
 logger = logging.getLogger(__name__)
 
@@ -444,15 +443,5 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         Returns a tuple of (shared_secret: bytes, ciphertext: bytes)
         """
-        kem_key = base64.b64decode(kem_key_b64)
-
-        if len(kem_key) != typing.cast(int, kyber.PUBLIC_KEY_SIZE):  # pyright: ignore[reportUnknownMemberType]
-            raise ValueError(
-                f"KEM key must be {kyber.PUBLIC_KEY_SIZE} bytes"  # pyright: ignore[reportUnknownMemberType]
-            )
-
-        ciphertext, shared_secret = typing.cast(
-            tuple[bytes, bytes], kyber.encrypt(kem_key)  # pyright: ignore[reportUnknownMemberType]
-        )
-
-        return shared_secret, ciphertext
+        return kem.encrypt(kem_key_b64)
+        

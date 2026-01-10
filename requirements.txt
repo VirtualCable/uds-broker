@@ -12,7 +12,8 @@ bitarray
 numpy
 html5lib
 cryptography
-pqcrypto
+# Ensure latest version, and no getting old unmaintained pqcrypto
+git+https://github.com/backbone-hq/pqcrypto.git
 python3-saml
 six
 dnspython
