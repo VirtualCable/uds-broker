@@ -197,21 +197,23 @@ class Client(Handler):
             if not kem_key:
                 return Client.result(result=transport_script.as_dict())
             else:
-                shared_key, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
+                shared_secret, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
                 return Client.result(
                     result=transport_script.as_encrypted_dict(
-                        shared_key, ciphertext, ticket_id=ticket
+                        shared_secret, ciphertext, ticket_id=ticket
                     )
                 )
         except ServiceNotReadyError as e:
             # Refresh ticket and make this retrayable
-            # TODO: restore TicketStore.revalidate(ticket, 20)  # Retry will be in at most 5 seconds, so 20 is fine :)
+            # TODO: This is test case, so ticket does not get refreshed never, beause refresh
+            # TODO: makes it invalidable. Testing tickets are hard modified on db right now for testing
+            # TODO: TicketStore.revalidate(ticket, 20)  # Retry will be in at most 5 seconds, so 20 is fine :)
             return Client.result(
                 error=types.errors.Error.SERVICE_IN_PREPARATION, percent=e.code * 25, is_retrayable=True
             )
         except Exception as e:
             logger.exception("Exception")
-            return Client.result(error=str(e))
+            return Client.result(error="Invalid request")
 
         finally:
             # ensures that we mark the service as accessed by client
@@ -234,7 +236,7 @@ class Client(Handler):
                 return self.process(
                     ticket,
                     self._params.get('scrambler', ''),
-                    self._params.get('kem_key', ''),
+                    self._params.get('kem_kyber_key', ''),
                 )
 
             try:

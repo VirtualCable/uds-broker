@@ -139,11 +139,11 @@ class TransportScript:
             'log': self.log.as_dict(),
         }
 
-    def as_encrypted_dict(self, shared_key: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
+    def as_encrypted_dict(self, shared_secret: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
         from uds.core.managers.crypto import CryptoManager  # Avoid circular import
 
         cm = CryptoManager.manager()
-        material = cm.derive_tunnel_material(shared_key, ticket_id.encode())
+        material = cm.derive_tunnel_material(shared_secret, ticket_id.encode())
 
         plaintext = json.dumps(self.as_dict()).encode()
 
