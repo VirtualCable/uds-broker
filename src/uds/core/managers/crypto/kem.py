@@ -32,7 +32,7 @@ import base64
 import typing
 
 # Note, clients must use the same KEM module (kyber512, kyber768, kyber1024)
-from pqcrypto.kem import ml_kem_1024 as kyber
+from pqcrypto.kem import ml_kem_768 as kyber
 
 
 def encrypt(kem_key_b64: str) -> tuple[bytes, bytes]:
