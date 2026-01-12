@@ -147,7 +147,7 @@ class TransportScript:
 
         plaintext = json.dumps(self.as_dict()).encode()
 
-        encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_send, plaintext, b'')
+        encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
 
         return {
             'algorithm': 'AES-256-GCM',

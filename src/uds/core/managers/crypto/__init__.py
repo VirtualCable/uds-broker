@@ -416,24 +416,22 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
-            length=120,
+            length=108,
             salt=ticket_id,
             info=b"openuds-ticket-crypt",
         )
-        okm = hkdf.derive(shared_secret)  # 120 bytes
+        okm = hkdf.derive(shared_secret)  # 108 bytes
 
         key_payload = okm[0:32]
         key_send = okm[32:64]
         key_receive = okm[64:96]
-        nonce_send = okm[96:108]  # 12 bytes
-        nonce_receive = okm[108:120]  # 12 bytes
+        nonce_payload = okm[96:108]  # 12 bytes
 
         return types.crypto.TunnelMaterial(
             key_payload=key_payload,
             key_send=key_send,
             key_receive=key_receive,
-            nonce_send=nonce_send,
-            nonce_receive=nonce_receive,
+            nonce_payload=nonce_payload,
         )
 
     def generate_kem_shared_ciphertext(self, kem_key_b64: str) -> tuple[bytes, bytes]:

@@ -105,7 +105,7 @@ class Client(Handler):
         """
         return Client.result(_('Correct'))
 
-    def process(self, ticket: str, scrambler: str, kem_key: str = '') -> dict[str, typing.Any]:
+    def process(self, ticket: str, scrambler: str, kem_key: str|None = None) -> dict[str, typing.Any]:
         """
         Processes a client request
             GET process /client/<ticket>/<scrambler>
