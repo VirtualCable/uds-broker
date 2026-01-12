@@ -178,6 +178,7 @@ def uds_js(request: 'ExtendedHttpRequest') -> str:
             'brand': settings.UDSBRAND if hasattr(settings, 'UDSBRAND') else '',
         },
         'min_for_filter': GlobalConfig.SITE_FILTER_MIN.as_int(True),
+        'enable_favorite_services': GlobalConfig.ENABLE_FAVORITE_SERVICES.as_bool(),
     }
 
     info: typing.Optional[dict[str, typing.Any]] = None
