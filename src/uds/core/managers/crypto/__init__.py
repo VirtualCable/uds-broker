@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2023 Virtual Cable S.L.U.
+# Copyright (c) 2012-2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -40,9 +40,10 @@ import logging
 import typing
 import secrets
 import base64
+import collections.abc
 
+uuid7: None | collections.abc.Callable[[], 'uuid.UUID']
 
-uuid7: None|typing.Callable[[], 'uuid.UUID']
 try:
     from edwh_uuid7 import uuid7  # type: ignore
 except ImportError:
@@ -51,18 +52,23 @@ except ImportError:
 # For password secrets
 from argon2 import PasswordHasher, Type as ArgonType
 
+# Standard cryptography library
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes, aead
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 
 from django.conf import settings
 from django.utils import timezone
 
 from uds.core.util import singleton
+from uds.core import types
+
+from . import kem
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +102,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         return CryptoManager()  # Singleton pattern will return always the same instance
 
     @staticmethod
-    def aes_key(key: typing.Union[str, bytes], length: int) -> bytes:
+    def ensure_aes_key(key: typing.Union[str, bytes], length: int) -> bytes:
         """
         Generate an AES key of the specified length using the provided key.
 
@@ -153,15 +159,14 @@ class CryptoManager(metaclass=singleton.Singleton):
                 ),
             )
         except Exception:  # Old method is not supported
-            logger.exception('Decripting: %s', value)
+            logger.exception('Decripting value failed')
             return 'decript error'
-        # logger.debug('Decripted: %s %s', data, decrypted)
         return decrypted.decode()
 
-    def aes_crypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
+    def aes256_cbc_encrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
         # First, match key to 16 bytes. If key is over 16, create a new one based on key of 16 bytes length
         cipher = Cipher(
-            algorithms.AES(CryptoManager.aes_key(key, 16)),
+            algorithms.AES(CryptoManager.ensure_aes_key(key, 16)),
             modes.CBC(b'udsinitvectoruds'),
             backend=default_backend(),
         )
@@ -176,12 +181,12 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         return encoded
 
-    def aes_decrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
+    def aes256_cbc_decrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
         if base64:
             text = codecs.decode(text, 'base64')
 
         cipher = Cipher(
-            algorithms.AES(CryptoManager.aes_key(key, 16)),
+            algorithms.AES(CryptoManager.ensure_aes_key(key, 16)),
             modes.CBC(b'udsinitvectoruds'),
             backend=default_backend(),
         )
@@ -190,13 +195,33 @@ class CryptoManager(metaclass=singleton.Singleton):
         to_decode = decryptor.update(text) + decryptor.finalize()
         return to_decode[4 : 4 + struct.unpack('>i', to_decode[:4])[0]]
 
+    def aes256_gcm_encrypt(self, key: bytes, nonce: bytes, plaintext: bytes, aad: bytes | None = None) -> bytes:
+        if len(key) != 32:
+            raise ValueError("AES-256-GCM key must be 32 bytes")
+        if len(nonce) != 12:
+            raise ValueError("AES-256-GCM nonce must be 12 bytes")
+
+        aesgcm = aead.AESGCM(key)
+        return aesgcm.encrypt(nonce, plaintext, aad)
+
+    def aes256_gcm_decrypt(
+        self, key: bytes, nonce: bytes, ciphertext: bytes, aad: bytes | None = None
+    ) -> bytes:
+        if len(key) != 32:
+            raise ValueError("AES-256-GCM key must be 32 bytes")
+        if len(nonce) != 12:
+            raise ValueError("AES-256-GCM nonce must be 12 bytes")
+
+        aesgcm = aead.AESGCM(key)
+        return aesgcm.decrypt(nonce, ciphertext, aad)
+
     # Fast encription using django SECRET_KEY as key
     def fast_crypt(self, data: bytes) -> bytes:
-        return self.aes_crypt(data, UDSK)
+        return self.aes256_cbc_encrypt(data, UDSK)
 
     # Fast decryption using django SECRET_KEY as key
     def fast_decrypt(self, data: bytes) -> bytes:
-        return self.aes_decrypt(data, UDSK)
+        return self.aes256_cbc_decrypt(data, UDSK)
 
     def xor(self, value: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> bytes:
         if not key:
@@ -219,7 +244,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         if isinstance(key, str):
             key = key.encode()
 
-        return self.aes_crypt(text, key)
+        return self.aes256_cbc_encrypt(text, key)
 
     def symmetric_decrypt(self, encrypted_text: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> str:
         if isinstance(encrypted_text, str):
@@ -232,7 +257,7 @@ class CryptoManager(metaclass=singleton.Singleton):
             return ''
 
         try:
-            return self.aes_decrypt(encrypted_text, key).decode('utf-8')
+            return self.aes256_cbc_decrypt(encrypted_text, key).decode('utf-8')
         except Exception:  # Error decoding crypted element, return empty one
             return ''
 
@@ -364,6 +389,9 @@ class CryptoManager(metaclass=singleton.Singleton):
         )
         return ''.join(secrets.choice(base) for _ in range(length))
 
+    def random_bytes(self, length: int = 32) -> bytes:
+        return secrets.token_bytes(length)
+
     def unique(self) -> str:
         return hashlib.sha3_256(
             (self.random_string(24, True) + timezone.localtime().strftime('%H%M%S%f')).encode()
@@ -374,3 +402,43 @@ class CryptoManager(metaclass=singleton.Singleton):
             value = value.encode()
 
         return hashlib.sha3_256(value).hexdigest()
+
+    def derive_tunnel_material(self, shared_secret: bytes, ticket_id: bytes) -> types.crypto.TunnelMaterial:
+        """
+        Derives keys and nonces for payload + tunnel from a KEM/Kyber shared_secret.
+
+        shared_secret: bytes from KEM/Kyber (same on client and broker/tunnel)
+        ticket_id: 48-byte unique ID for this ticket/session (used as HKDF salt)
+        """
+
+        if len(ticket_id) < 48:
+            raise ValueError(f"ticket_id must be at least 48 bytes, got {len(ticket_id)}")
+
+        hkdf = HKDF(
+            algorithm=hashes.SHA256(),
+            length=108,
+            salt=ticket_id,
+            info=b"openuds-ticket-crypt",
+        )
+        okm = hkdf.derive(shared_secret)  # 108 bytes
+
+        key_payload = okm[0:32]
+        key_send = okm[32:64]
+        key_receive = okm[64:96]
+        nonce_payload = okm[96:108]  # 12 bytes
+
+        return types.crypto.TunnelMaterial(
+            key_payload=key_payload,
+            key_send=key_send,
+            key_receive=key_receive,
+            nonce_payload=nonce_payload,
+        )
+
+    def generate_kem_shared_ciphertext(self, kem_key_b64: str) -> tuple[bytes, bytes]:
+        """
+        Given a base64-encoded KEM public key, generates a shared secret and ciphertext.
+
+        Returns a tuple of (shared_secret: bytes, ciphertext: bytes)
+        """
+        return kem.encrypt(kem_key_b64)
+        

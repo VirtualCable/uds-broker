@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019-2024 Virtual Cable S.L.U.
+# Copyright (c) 2019-2024 Virtual Cable S.L.
 # All rights reserved.
 #
 """
@@ -21,6 +21,7 @@ if typing.TYPE_CHECKING:
     from .service import OpenshiftService
 
 logger = logging.getLogger(__name__)
+
 
 class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSerializable):
     """
@@ -62,7 +63,7 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         self._waiting_name = False
 
         new_pvc_name = f"{self._name}-disk"
-        
+
         logger.info(f"Creating new VM '{self._name}' from cloned PVC '{new_pvc_name}'.")
         ok = api.create_vm_from_pvc(
             api_url=api_url,

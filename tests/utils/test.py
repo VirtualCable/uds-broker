@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2022 Virtual Cable S.L.U.
+# Copyright (c) 2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -119,7 +119,7 @@ class UDSClient(UDSClientMixin, Client):
         super().__init__(enforce_csrf_checks, raise_request_exception)
 
         # and required UDS cookie
-        self.cookies['uds'] = CryptoManager().random_string(48)
+        self.cookies['uds'] = CryptoManager.manager().random_string(48)
 
     def request(self, **request: typing.Any) -> 'UDSHttpResponse':
         # Copy request dict
@@ -176,7 +176,7 @@ class UDSAsyncClient(UDSClientMixin, AsyncClient):  # type: ignore   # Django st
         UDSClientMixin.initialize(self)
 
         # and required UDS cookie
-        self.cookies['uds'] = CryptoManager().random_string(48)
+        self.cookies['uds'] = CryptoManager.manager().random_string(48)
 
     async def request(self, **request: typing.Any) -> 'UDSHttpResponse':
         # Copy request dict

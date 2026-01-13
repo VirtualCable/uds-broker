@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2023 Virtual Cable S.L.U.
+# Copyright (c) 2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -104,7 +104,7 @@ def process_login(server: 'models.Server', data: dict[str, typing.Any]) -> typin
     src = userservice.get_connection_source()
     session_id = userservice.start_session()  # creates a session for every login requested
 
-    osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+    osmanager = userservice.get_osmanager_instance()
     max_idle = osmanager.max_idle() if osmanager else None
 
     logger.debug('Max idle: %s', max_idle)
@@ -143,7 +143,7 @@ def process_logout(server: 'models.Server', data: dict[str, typing.Any]) -> typi
 
     if userservice.in_use:  # If already logged out, do not add a second logout (windows does this i.e.)
         osmanagers.OSManager.logged_out(userservice, data['username'])
-        osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+        osmanager = userservice.get_osmanager_instance()
         if not osmanager or osmanager.is_removable_on_logout(userservice):
             logger.debug('Removable on logout: %s', osmanager)
             userservice.release()

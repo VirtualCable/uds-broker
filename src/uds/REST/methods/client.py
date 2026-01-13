@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014-2021 Virtual Cable S.L.U.
+# Copyright (c) 2014-2021 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -64,7 +64,7 @@ class Client(Handler):
     @staticmethod
     def result(
         result: typing.Any = None,
-        error: typing.Optional[typing.Union[str, int]] = None,
+        error: str | int | None = None,
         percent: int = 0,
         is_retrayable: bool = False,
     ) -> dict[str, typing.Any]:
@@ -105,8 +105,16 @@ class Client(Handler):
         """
         return Client.result(_('Correct'))
 
-    def process(self, ticket: str, scrambler: str) -> dict[str, typing.Any]:
-        info: typing.Optional[types.services.UserServiceInfo] = None
+    def process(self, ticket: str, scrambler: str, kem_key: str | None = None) -> dict[str, typing.Any]:
+        """
+        Processes a client request
+            GET process /client/<ticket>/<scrambler>
+            POST process /client/<ticket>/ticket (With kem_key and scrambler in params, also rest of params will be passed to service)
+
+            kem_ml is encoded using base64
+
+        """
+        info: types.services.UserServiceInfo | None = None
         hostname = self._params.get('hostname', '')  # Or if hostname is not included...
         version = self._params.get('version', '0.0.0')
         src_ip = self._request.ip
@@ -185,16 +193,25 @@ class Client(Handler):
                 if is_logging_enabled
                 else None
             )
-            return Client.result(result=transport_script.as_dict())
+            # Support version without kem for now
+            if not kem_key:
+                return Client.result(result=transport_script.as_dict())
+            else:
+                shared_secret, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
+                return Client.result(
+                    result=transport_script.as_encrypted_dict(shared_secret, ciphertext, ticket_id=ticket)
+                )
         except ServiceNotReadyError as e:
             # Refresh ticket and make this retrayable
-            # TODO: restore TicketStore.revalidate(ticket, 20)  # Retry will be in at most 5 seconds, so 20 is fine :)
+            # TODO: This is test case, so ticket does not get refreshed never, beause refresh
+            # TODO: makes it invalidable. Testing tickets are hard modified on db right now for testing
+            # TODO: TicketStore.revalidate(ticket, 20)  # Retry will be in at most 5 seconds, so 20 is fine :)
             return Client.result(
-                error=types.errors.Error.SERVICE_IN_PREPARATION, percent=e.code*25, is_retrayable=True
+                error=types.errors.Error.SERVICE_IN_PREPARATION, percent=e.code * 25, is_retrayable=True
             )
         except Exception as e:
             logger.exception("Exception")
-            return Client.result(error=str(e))
+            return Client.result(error="Invalid request")
 
         finally:
             # ensures that we mark the service as accessed by client
@@ -206,11 +223,20 @@ class Client(Handler):
         """
         Processes put requests
 
-        Currently, only "upload logs"
+        post /client/<ticket>/<command>
         """
         logger.debug('Client args for POST: %s', self._args)
         try:
             ticket, command = self._args[:2]
+            # if command is 'ticket' redirect to process
+            # This command is processed BEFORE the ticket extraction
+            if command == 'ticket':
+                return self.process(
+                    ticket,
+                    self._params.get('scrambler', ''),
+                    self._params.get('kem_kyber_key', ''),
+                )
+
             try:
                 data: dict[str, typing.Any] = TicketStore.get(ticket)
             except TicketStore.DoesNotExist:

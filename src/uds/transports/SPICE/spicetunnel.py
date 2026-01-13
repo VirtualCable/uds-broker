@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2022 Virtual Cable S.L.U.
+# Copyright (c) 2012-2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -54,6 +54,7 @@ class TSPICETransport(BaseSpiceTransport):
     """
     Provides access via SPICE to service.
     """
+
     is_base = False
 
     icon_file = 'spice-tunnel.png'
@@ -69,9 +70,7 @@ class TSPICETransport(BaseSpiceTransport):
     verify_certificate = gui.CheckBoxField(
         label=_('Force SSL certificate verification'),
         order=23,
-        tooltip=_(
-            'If enabled, the certificate of tunnel server will be verified (recommended).'
-        ),
+        tooltip=_('If enabled, the certificate of tunnel server will be verified (recommended).'),
         default=False,
         tab=types.ui.Tab.TUNNEL,
         old_field_name='verifyCertificate',
@@ -118,17 +117,13 @@ class TSPICETransport(BaseSpiceTransport):
 
         if con.proxy:
             logger.exception('Proxied SPICE tunnels are not suppoorted')
-            return super().get_transport_script(
-                userservice, transport, ip, os, user, password, request
-            )
+            return super().get_transport_script(userservice, transport, ip, os, user, password, request)
 
-        key = self.generate_key()
         if con.port:
             ticket = TicketStore.create_for_tunnel(
                 userservice=userservice,
                 port=int(con.port),
                 validity=self.startup_time.as_int() + 60,  # Ticket overtime
-                key=key,
             )
 
         if con.secure_port:
@@ -137,7 +132,6 @@ class TSPICETransport(BaseSpiceTransport):
                 port=int(con.secure_port),
                 host=con.address,
                 validity=self.startup_time.as_int() + 60,  # Ticket overtime
-                key=key,
             )
 
         r = RemoteViewerFile(
@@ -167,12 +161,9 @@ class TSPICETransport(BaseSpiceTransport):
             'tunChk': self.verify_certificate.as_bool(),
             'ticket': ticket,
             'ticket_secure': ticket_secure,
-            'tunnel_key': key,
         }
 
         try:
-            return self.get_script(os.os.os_name(), 'tunnel', sp)
+            return self.get_script(os.os.os_name(), 'tunnel', sp, associated_ticket=ticket)
         except Exception:
-            return super().get_transport_script(
-                userservice, transport, ip, os, user, password, request
-            )
+            return super().get_transport_script(userservice, transport, ip, os, user, password, request)

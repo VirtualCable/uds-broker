@@ -6,7 +6,7 @@ Tests are grouped by functionality: configuration, utility methods, availability
 """
 
 #
-# Copyright (c) 2024 Virtual Cable S.L.U.
+# Copyright (c) 2024 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,

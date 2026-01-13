@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2014-2023 Virtual Cable S.L.U.
+# Copyright (c) 2014-2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -34,6 +34,7 @@ import dataclasses
 import datetime
 import logging
 import typing
+import collections.abc
 
 from django.utils.translation import gettext, gettext_lazy as _
 from django.db.models import Model, Count, Q, Case, When, Value, F, IntegerField, ExpressionWrapper, FloatField
@@ -65,7 +66,7 @@ class ServicePoolItem(types.rest.BaseRestItem):
     id: str
     name: str
     short_name: str
-    tags: typing.List[str]
+    tags: list[str]
     parent: str
     parent_type: str
     comments: str
@@ -234,7 +235,7 @@ class ServicesPools(ModelHandler[ServicePoolItem]):
 
     def get_items(
         self, *args: typing.Any, **kwargs: typing.Any
-    ) -> typing.Generator[ServicePoolItem, None, None]:
+    ) -> collections.abc.Generator[ServicePoolItem, None, None]:
         # Optimized query, due that there is a lot of info needed for theee
         d = sql_now() - datetime.timedelta(seconds=GlobalConfig.RESTRAINT_TIME.as_int())
         return super().get_items(

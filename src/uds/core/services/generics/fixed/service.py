@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012-2022 Virtual Cable S.L.U.
+# Copyright (c) 2012-2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -10,7 +10,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -65,7 +65,7 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
     overrided_fields = {'max_services_count_type': types.services.ServicesCountingType.CONSERVATIVE}
 
     # If machines has an alternate field with it, it will be used instead of "machines" field
-    alternate_machines_field: typing.Optional[str] = None
+    machines_field: typing.ClassVar[str] = 'machines'
 
     # : Types of publications (preparated data for deploys)
     # : In our case, we do no need a publication, so this is None
@@ -165,7 +165,7 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
                 d['vms'] = machines  # Store it
 
     def _get_machines_field(self) -> gui.MultiChoiceField:
-        return typing.cast(gui.MultiChoiceField, getattr(self, self.alternate_machines_field or 'machines'))
+        return typing.cast(gui.MultiChoiceField, getattr(self, self.machines_field))
 
     def snapshot_creation(self, userservice_instance: 'FixedUserService') -> None:
         """

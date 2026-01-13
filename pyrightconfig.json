@@ -12,5 +12,6 @@
     "reportUnusedImport": true,
     "reportMissingTypeStubs": false,
     "disableBytesTypePromotions": true,
+    "deprecateTypingAliases": true,
     "stubPath": "../../enterprise/stubs",
 }

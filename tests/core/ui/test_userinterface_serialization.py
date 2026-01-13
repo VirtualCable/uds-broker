@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2022 Virtual Cable S.L.U.
+# Copyright (c) 2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -100,7 +100,7 @@ def old_serialize_form(ui: 'UserInterface') -> bytes:
             # logger.debug('Serializing value {0}'.format(v.value))
             val = MULTIVALUE_FIELD + pickle.dumps(v.value, protocol=0)
         elif v.is_type(types.ui.FieldType.PASSWORD):
-            val = PASSWORD_FIELD + CryptoManager().aes_crypt(v.value.encode('utf8'), UDSK, True)
+            val = PASSWORD_FIELD + CryptoManager.manager().aes256_cbc_encrypt(v.value.encode('utf8'), UDSK, True)
         elif v.is_type(types.ui.FieldType.NUMERIC):
             val = str(int(v.as_int())).encode('utf8')
         elif v.is_type(types.ui.FieldType.CHECKBOX):

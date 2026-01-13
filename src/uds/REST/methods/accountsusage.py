@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2017-2023 Virtual Cable S.L.U.
+# Copyright (c) 2017-2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -33,7 +33,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import dataclasses
 import datetime
 import logging
-import typing
 
 from django.utils.translation import gettext as _
 from django.db.models import Model
@@ -89,7 +88,7 @@ class AccountsUsage(DetailHandler[AccountItem]):  # pylint: disable=too-many-pub
             elapsed_timemark=item.elapsed_timemark,
             permission=perm,
         )
-        
+
     def get_item_position(self, parent: 'Model', item_uuid: str) -> int:
         parent = ensure.is_instance(parent, Account)
         return self.calc_item_position(item_uuid, parent.usages.all())
@@ -122,7 +121,7 @@ class AccountsUsage(DetailHandler[AccountItem]):  # pylint: disable=too-many-pub
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> AccountItem:
+    def save_item(self, parent: 'Model', item: str | None) -> AccountItem:
         raise exceptions.rest.RequestError('Accounts usage cannot be edited')
 
     def delete_item(self, parent: 'Model', item: str) -> None:

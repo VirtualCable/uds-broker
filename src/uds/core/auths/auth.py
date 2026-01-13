@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2025 Virtual Cable S.L.U.
+# Copyright (c) 2012-2025 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -73,7 +73,7 @@ def uds_cookie(
     Generates a random cookie for uds, used, for example, to encript things
     """
     if 'uds' not in request.COOKIES:
-        cookie = CryptoManager().random_string(consts.auth.UDS_COOKIE_LENGTH)
+        cookie = CryptoManager.manager().random_string(consts.auth.UDS_COOKIE_LENGTH)
         if response is not None:
             response.set_cookie(
                 'uds',
@@ -449,7 +449,7 @@ def get_webpassword(request: HttpRequest) -> str:
             getattr(request, '_scrambler'),
         )
     passkey = base64.b64decode(request.session.get(consts.auth.SESSION_PASS_KEY, ''))
-    return CryptoManager().symmetric_decrypt(passkey, uds_cookie(request))  # recover as original unicode string
+    return CryptoManager.manager().symmetric_decrypt(passkey, uds_cookie(request))  # recover as original unicode string
 
 
 def weblogout(

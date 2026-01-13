@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015-2021 Virtual Cable S.L.U.
+# Copyright (c) 2015-2021 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -292,7 +292,7 @@ class OpenGnsysUserService(services.UserService, autoserializable.AutoSerializab
         Deploys a machine from template for user/cache
         """
         r: typing.Any = None
-        token = CryptoManager().random_string(32)
+        token = CryptoManager.manager().random_string(32)
         try:
             r = self.service().reserve()
             self.service().notify_endpoints(r['id'], token, self._uuid)
