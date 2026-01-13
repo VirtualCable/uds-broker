@@ -39,6 +39,8 @@ import typing
 
 from django.utils.translation import gettext_noop as _, gettext
 
+from uds.models.ticket_store import TicketStore
+
 
 class Protocol(enum.StrEnum):
     NONE = ''
@@ -58,7 +60,7 @@ class Protocol(enum.StrEnum):
     OTHER = 'other'
 
     @staticmethod
-    def generic_vdi(*extra: 'Protocol') -> typing.Tuple['Protocol', ...]:
+    def generic_vdi(*extra: 'Protocol') -> tuple['Protocol', ...]:
         return (
             Protocol.RDP,
             Protocol.VNC,
@@ -110,6 +112,7 @@ class TransportScript:
         default_factory=dict[str, typing.Any]
     )
     log: TransportLog = dataclasses.field(default_factory=TransportLog)
+    associated_ticket: str | None = None  # Ticket associated with this script, if any
 
     @property
     def encoded_parameters(self) -> str:
@@ -148,6 +151,10 @@ class TransportScript:
         plaintext = json.dumps(self.as_dict()).encode()
 
         encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
+        
+        # Associated ticket needs to have the shared secret to be accesed later
+        if self.associated_ticket is not None:
+            TicketStore.set_shared_secret(self.associated_ticket, shared_secret)
 
         return {
             'algorithm': 'AES-256-GCM',

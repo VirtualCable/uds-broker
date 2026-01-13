@@ -64,7 +64,7 @@ class Client(Handler):
     @staticmethod
     def result(
         result: typing.Any = None,
-        error: typing.Optional[typing.Union[str, int]] = None,
+        error: str | int | None = None,
         percent: int = 0,
         is_retrayable: bool = False,
     ) -> dict[str, typing.Any]:
@@ -105,7 +105,7 @@ class Client(Handler):
         """
         return Client.result(_('Correct'))
 
-    def process(self, ticket: str, scrambler: str, kem_key: str|None = None) -> dict[str, typing.Any]:
+    def process(self, ticket: str, scrambler: str, kem_key: str | None = None) -> dict[str, typing.Any]:
         """
         Processes a client request
             GET process /client/<ticket>/<scrambler>
@@ -199,9 +199,7 @@ class Client(Handler):
             else:
                 shared_secret, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
                 return Client.result(
-                    result=transport_script.as_encrypted_dict(
-                        shared_secret, ciphertext, ticket_id=ticket
-                    )
+                    result=transport_script.as_encrypted_dict(shared_secret, ciphertext, ticket_id=ticket)
                 )
         except ServiceNotReadyError as e:
             # Refresh ticket and make this retrayable

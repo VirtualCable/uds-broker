@@ -146,12 +146,10 @@ class TRDPTransport(BaseRDPTransport):
         width, height = self.screen_size.value.split('x')
         depth = self.color_depth.value
 
-        key = self.generate_key()
         ticket = TicketStore.create_for_tunnel(
             userservice=userservice,
             port=self.rdp_port.as_int(),
             validity=self.startup_time.as_int() + 60,  # Ticket overtime
-            key=key,
         )
 
         tunnel_fields = fields.get_tunnel_from_field(self.tunnel)
@@ -241,4 +239,4 @@ class TRDPTransport(BaseRDPTransport):
             )
             return super().get_transport_script(userservice, transport, ip, os, user, password, request)
 
-        return self.get_script(os.os.os_name(), 'tunnel', sp)
+        return self.get_script(os.os.os_name(), 'tunnel', sp, associated_ticket=ticket)
