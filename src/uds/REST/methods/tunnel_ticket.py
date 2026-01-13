@@ -87,7 +87,7 @@ class TunnelTicket(Handler):
 
         # Try to get ticket from DB
         try:
-            user, user_service, host, port, extra, key = models.TicketStore.get_for_tunnel(self._args[0])
+            user, user_service, host, port, extra, shared_secret = models.TicketStore.get_for_tunnel(self._args[0])
             host = host or ''
             data: dict[str, typing.Any] = {}
             if self._args[1][:4] == 'stop':
@@ -139,7 +139,7 @@ class TunnelTicket(Handler):
                     },
                     validity=MAX_SESSION_LENGTH,
                 )
-                data = {'host': host, 'port': port, 'notify': notify_ticket, 'tunnel_key': key}
+                data = {'host': host, 'port': port, 'notify': notify_ticket, 'shared_secret': shared_secret}
 
             return data
         except Exception as e:

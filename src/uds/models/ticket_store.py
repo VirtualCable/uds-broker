@@ -210,7 +210,7 @@ class TicketStore(UUIDModel):
     @staticmethod
     def revalidate(
         uuid: str,
-        validity: str | None = None,
+        validity: int | None = None,
         owner: str | None = None,
     ) -> None:
         try:
@@ -288,7 +288,7 @@ class TicketStore(UUIDModel):
             if not host:
                 host = userservice.get_instance().get_ip()
 
-            return (user, userservice, host, data['p'], data['e'], data.get('k', ''))
+            return (user, userservice, host, data['p'], data['e'], data.get('shared_secret', ''))
         except Exception as e:
             raise TicketStore.DoesNotExist(str(e))
 

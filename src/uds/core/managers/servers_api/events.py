@@ -104,7 +104,7 @@ def process_login(server: 'models.Server', data: dict[str, typing.Any]) -> typin
     src = userservice.get_connection_source()
     session_id = userservice.start_session()  # creates a session for every login requested
 
-    osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+    osmanager = userservice.get_osmanager_instance()
     max_idle = osmanager.max_idle() if osmanager else None
 
     logger.debug('Max idle: %s', max_idle)
@@ -143,7 +143,7 @@ def process_logout(server: 'models.Server', data: dict[str, typing.Any]) -> typi
 
     if userservice.in_use:  # If already logged out, do not add a second logout (windows does this i.e.)
         osmanagers.OSManager.logged_out(userservice, data['username'])
-        osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+        osmanager = userservice.get_osmanager_instance()
         if not osmanager or osmanager.is_removable_on_logout(userservice):
             logger.debug('Removable on logout: %s', osmanager)
             userservice.release()
