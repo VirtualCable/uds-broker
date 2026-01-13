@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2022 Virtual Cable S.L.U.
+# Copyright (c) 2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -35,6 +35,7 @@ import uuid as uuid_type
 
 from django.conf import settings
 
+from uds.core import types
 from uds.core.managers import crypto
 from ...utils.test import UDSTestCase
 
@@ -46,20 +47,21 @@ CRYPTED_STRING = (
     b'\x92z2.\xf81=\xed\xf6z\xc6\x057\xe1\xb8\x7f\xc6\xc2\x14>\x10\xa4\xec\x85'
     b'3pdux\xbbB\xc8\xe7\x8f\x96\xc3\x9f\x07\xaa\x13\xf1\x0c\x7f\xf2\xe0d\x99'
     b'\x12\xc6s\xa5\xd9^\xd2\xbb|=\x93=\xfb\xab>w\x04\x9cti\xb9\xcf@\\\xd5\x1c'
-    b'\xd9\x90\x04Y\x82 \xb5\xa2\xf1'    
+    b'\xd9\x90\x04Y\x82 \xb5\xa2\xf1'
 )
 
 UDSK = crypto.UDSK  # Store original UDSK
 
+
 class CryptoManagerTest(UDSTestCase):
-    manager = crypto.CryptoManager()
+    manager = crypto.CryptoManager.manager()
     _oldUDSK: bytes
 
     def setUp(self) -> None:
         # Override UDSK
-        crypto.UDSK = b'1234567890123456'  # type: ignore  # UDSK is final, 
+        crypto.UDSK = b'1234567890123456'  # type: ignore  # UDSK is final,
         return super().setUp()
-    
+
     def tearDown(self) -> None:
         crypto.UDSK = UDSK  # type: ignore  # UDSK is final,
         return super().tearDown()
@@ -150,9 +152,34 @@ class CryptoManagerTest(UDSTestCase):
 
     def testFastCrypt(self) -> None:
         # Fast crypt uses random padding text, so the last block can be different
-        self.assertEqual(
-            self.manager.fast_crypt(TEST_STRING.encode())[:-16], CRYPTED_STRING[:-16]
-        )
+        self.assertEqual(self.manager.fast_crypt(TEST_STRING.encode())[:-16], CRYPTED_STRING[:-16])
 
     def testFastDecrypt(self) -> None:
         self.assertEqual(self.manager.fast_decrypt(CRYPTED_STRING).decode(), TEST_STRING)
+
+    def test_kem_module(self) -> None:
+        pub_key_b64, priv_key_b64 = crypto.kem.generate_keypair()
+
+        shared_secret_enc, ciphertext = crypto.kem.encrypt(pub_key_b64)
+
+        shared_secret_dec = crypto.kem.decrypt(priv_key_b64, ciphertext)
+
+        self.assertEqual(
+            shared_secret_enc,
+            shared_secret_dec,
+            'KEM shared secrets do not match!',
+        )
+
+    def test_derive_tunnel_material(self) -> None:
+        shared_secret = b'\x01' * 32  # Replace with actual shared secret (32 bytes)
+        ticket_id = b'\x01' * 48  # Replace with actual ticket ID
+        material = self.manager.derive_tunnel_material(shared_secret, ticket_id)
+
+        # {
+        #     'key_payload': b'\x9a%\xd9\xb9\xb4\x87\x1f\xf0\xc2\x8e\x8f\xbb\xad\x05u\xf8{l,\xf1\x9f\x1b\x941\xeavr\xc0o\xb0\xb9\xdd',
+        #     'key_send': b"\xd0\xbb\xe0\x1d\xffK\xc9w\xd6\xec'\xf2~5L\xd7\xa6\xbf\xe7<(\x9d\xe7\xf2)\xaf\xb1\xd3\x1b\xee\xcdF",
+        #     'key_receive': b'W.\xdd\x97\xc2\x9c\xe9f\xe7`\xe7\xfa\x0c\x81\x1b\xe5\xca2,\xbf\x0f\xa1pW\x1a\x81\x8c\xacr\x9b\xb0\xa7',
+        #     'nonce_send': b"\xf9z\x82X>\x99\xf4\xfc\xa4'\x83\xc8",
+        #     'nonce_receive': b'M~\xe7_\x80\xf7\xf0\x04\xcdQ\xc8\x9c',
+        # }
+        self.assertIsInstance(material, types.crypto.TunnelMaterial)

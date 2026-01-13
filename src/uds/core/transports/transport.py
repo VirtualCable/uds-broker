@@ -1,7 +1,7 @@
 # pylint: disable=unused-argument  # this has a lot of "default" methods, so we need to ignore unused arguments most of the time
 
 #
-# Copyright (c) 2012-2022 Virtual Cable S.L.U.
+# Copyright (c) 2012-2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -83,7 +83,7 @@ class Transport(Module):
     # For allowing grouping transport on dashboard "new" menu, and maybe other places
     group: typing.ClassVar[types.transports.Grouping] = types.transports.Grouping.DIRECT
 
-    _db_obj: typing.Optional['models.Transport'] = None
+    _db_obj: 'models.Transport|None' = None
 
     def __init__(self, environment: 'Environment', values: types.core.ValuesType):
         super().__init__(environment, values)
@@ -127,7 +127,7 @@ class Transport(Module):
         self,
         userservice: 'models.UserService',
         ip: str,
-        port: typing.Union[str, int],
+        port: str | int,
         timeout: float = 4,
     ) -> bool:
         return net.test_connectivity(ip, int(port), timeout)
@@ -147,7 +147,7 @@ class Transport(Module):
         return f'Not accessible (using service ip {ip})'
 
     @classmethod
-    def is_protocol_supported(cls, protocol: typing.Union[collections.abc.Iterable[str], str]) -> bool:
+    def is_protocol_supported(cls, protocol: collections.abc.Iterable[str] | str) -> bool:
         if isinstance(protocol, str):
             return protocol.lower() == cls.PROTOCOL.lower()
         # Not string group of strings
@@ -173,7 +173,7 @@ class Transport(Module):
 
     def get_connection_info(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
         *,
@@ -242,7 +242,7 @@ class Transport(Module):
         return get_default_script(transport)
 
     def get_relative_script(
-        self, scriptname: str, params: collections.abc.Mapping[str, typing.Any]
+        self, scriptname: str, params: dict[str, typing.Any], associated_ticket: str | None = None
     ) -> types.transports.TransportScript:
         """Returns a script that will be executed on client, but will be downloaded from server
 
@@ -274,12 +274,14 @@ class Transport(Module):
         self,
         osname: str,
         type: typing.Literal['tunnel', 'direct'],
-        params: collections.abc.Mapping[str, typing.Any],
+        params: dict[str, typing.Any],
+        *,
+        associated_ticket: str | None = None,
     ) -> types.transports.TransportScript:
         """
         Returns a script for the given os and type
         """
-        return self.get_relative_script(f'scripts/{osname.lower()}/{type}.js', params)
+        return self.get_relative_script(f'scripts/{osname.lower()}/{type}.js', params, associated_ticket)
 
     def get_link(
         self,
@@ -303,8 +305,8 @@ class Transport(Module):
         *,
         on_same_window: bool = False,
         on_new_window: bool = False,
-        uuid: typing.Optional[str] = None,
-        default_uuid: typing.Optional[str] = None,
+        uuid: str | None = None,
+        default_uuid: str | None = None,
     ) -> str:
         uuid = uuid or self.get_uuid()
         default_uuid = default_uuid or self.get_uuid()

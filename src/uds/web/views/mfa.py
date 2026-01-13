@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2024 Virtual Cable S.L.U.
+# Copyright (c) 2024 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -152,7 +152,7 @@ def mfa(
                 # If mfaProvider requests to keep MFA code on client, create a mfacookie for this user
                 if mfa_provider.remember_device > 0 and form.cleaned_data['remember'] is True:
                     # Store also cookie locally, to check if remember_device is changed
-                    mfa_cookie = CryptoManager().random_string(96)
+                    mfa_cookie = CryptoManager.manager().random_string(96)
                     store.save_pickled(
                         mfa_cookie,
                         (mfa_user_id, now, request.ip),  # MFA will only be valid for this user and this ip

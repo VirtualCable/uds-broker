@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2022 Virtual Cable S.L.U.
+# Copyright (c) 2012-2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -146,12 +146,10 @@ class TRDPTransport(BaseRDPTransport):
         width, height = self.screen_size.value.split('x')
         depth = self.color_depth.value
 
-        key = self.generate_key()
         ticket = TicketStore.create_for_tunnel(
             userservice=userservice,
             port=self.rdp_port.as_int(),
             validity=self.startup_time.as_int() + 60,  # Ticket overtime
-            key=key,
         )
 
         tunnel_fields = fields.get_tunnel_from_field(self.tunnel)
@@ -241,4 +239,4 @@ class TRDPTransport(BaseRDPTransport):
             )
             return super().get_transport_script(userservice, transport, ip, os, user, password, request)
 
-        return self.get_script(os.os.os_name(), 'tunnel', sp)
+        return self.get_script(os.os.os_name(), 'tunnel', sp, associated_ticket=ticket)

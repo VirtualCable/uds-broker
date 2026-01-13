@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014-2021 Virtual Cable S.L.
+# Copyright (c) 2014-2026 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -212,7 +212,7 @@ class ActorV3Action(Handler):
 
             # ensure idsLists has upper and lower versions for case sensitive databases
 
-            service_id: typing.Optional[str] = service.get_valid_id(ids_list)
+            service_id: str | None = service.get_valid_id(ids_list)
 
             is_remote = self._params.get('session_type', '')[:4] in ('xrdp', 'RDP-')
 
@@ -292,7 +292,7 @@ class Register(ActorV3Action):
         # Look for a token for this mac. mac is "inside" data, so we must filter first by type and then ensure mac is inside data
         # and mac is the requested one
         found = False
-        actor_token: typing.Optional[Server] = Server.objects.filter(
+        actor_token: Server | None = Server.objects.filter(
             type=types.servers.ServerType.ACTOR, mac=self._params['mac']
         ).first()
 
@@ -411,16 +411,16 @@ class Initialize(ActorV3Action):
         """
         # First, validate token...
         logger.debug('Args: %s,  Params: %s', self._args, self._params)
-        service: typing.Optional[Service] = None
+        service: Service | None = None
         # alias_token will contain a new master token (or same alias if not a token) to allow change on unmanaged machines.
         # Managed machines will not use this field (will return None)
-        alias_token: typing.Optional[str] = None
+        alias_token: str | None = None
 
         def _initialization_result(
-            token: typing.Optional[str],
-            unique_id: typing.Optional[str],
+            token: str | None,
+            unique_id: str | None,
             os: typing.Any,
-            master_token: typing.Optional[str],
+            master_token: str | None,
         ) -> dict[str, typing.Any]:
             return ActorV3Action.actor_result(
                 {
@@ -643,8 +643,8 @@ class Login(ActorV3Action):
     #    }
 
     @staticmethod
-    def process_login(userservice: UserService, username: str) -> typing.Optional[osmanagers.OSManager]:
-        osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+    def process_login(userservice: UserService, username: str) -> osmanagers.OSManager | None:
+        osmanager = userservice.get_osmanager_instance()
         if not userservice.in_use:  # If already logged in, do not add a second login (windows does this i.e.)
             osmanagers.OSManager.logged_in(userservice, username)
         return osmanager
@@ -707,7 +707,7 @@ class Logout(ActorV3Action):
         """
         This method is static so can be invoked from elsewhere
         """
-        osmanager: typing.Optional[osmanagers.OSManager] = userservice.get_osmanager_instance()
+        osmanager = userservice.get_osmanager_instance()
 
         # Close session
         # For compat, we have taken '' as "all sessions"
@@ -846,11 +846,10 @@ class Unmanaged(ActorV3Action):
 
         # ensure idsLists has upper and lower versions for case sensitive databases
         list_of_ids = get_list_of_ids(self)
-        valid_id: typing.Optional[str] = service.get_valid_id(list_of_ids)
+        valid_id: str | None = service.get_valid_id(list_of_ids)
 
         # Check if there is already an assigned user service
         # To notify it logout
-        userservice: typing.Optional[UserService]
         try:
             userservice = next(
                 iter(

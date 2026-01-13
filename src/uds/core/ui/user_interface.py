@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012-2023 Virtual Cable S.L.U.
+# Copyright (c) 2012-2023 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -11,7 +11,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -1735,9 +1735,9 @@ class UserInterface(metaclass=UserInterfaceType):
                         if v.startswith(MULTIVALUE_FIELD):
                             val = pickle.loads(v[1:])
                         elif v.startswith(OLD_PASSWORD_FIELD):
-                            val = CryptoManager().aes_decrypt(v[1:], consts.ui.UDSB, True).decode()
+                            val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], consts.ui.UDSB, True).decode()
                         elif v.startswith(PASSWORD_FIELD):
-                            val = CryptoManager().aes_decrypt(v[1:], UDSK, True).decode()
+                            val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], UDSK, True).decode()
                         else:
                             val = v.decode('utf8')
                     except Exception:
@@ -1818,7 +1818,7 @@ def password_compat_field_decoder(value: str) -> str:
     Compatibility function to decode text fields converted to password fields
     """
     try:
-        value = CryptoManager.manager().aes_decrypt(value.encode('utf8'), UDSK, True).decode()
+        value = CryptoManager.manager().aes256_cbc_decrypt(value.encode('utf8'), UDSK, True).decode()
     except Exception:
         pass
     return value
@@ -1834,7 +1834,7 @@ FIELDS_ENCODERS: typing.Final[
     types.ui.FieldType.TEXT_AUTOCOMPLETE: lambda x: x.value,
     types.ui.FieldType.NUMERIC: lambda x: str(int(gui.as_int(x.value))),
     types.ui.FieldType.PASSWORD: lambda x: (
-        CryptoManager.manager().aes_crypt(x.value.encode('utf8'), UDSK, True).decode()
+        CryptoManager.manager().aes256_cbc_encrypt(x.value.encode('utf8'), UDSK, True).decode()
     ),
     types.ui.FieldType.HIDDEN: (lambda x: None if not x.is_serializable() else x.value),
     types.ui.FieldType.CHOICE: lambda x: x.value,

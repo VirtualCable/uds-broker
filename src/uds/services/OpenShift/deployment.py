@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2024 Virtual Cable S.L.U.
+# Copyright (c) 2024 Virtual Cable S.L.
 # All rights reserved.
 #
 '''

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2012-2019 Virtual Cable S.L.U.
+# Copyright (c) 2012-2019 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -39,6 +39,8 @@ import typing
 
 from django.utils.translation import gettext_noop as _, gettext
 
+from uds.models.ticket_store import TicketStore
+
 
 class Protocol(enum.StrEnum):
     NONE = ''
@@ -58,7 +60,7 @@ class Protocol(enum.StrEnum):
     OTHER = 'other'
 
     @staticmethod
-    def generic_vdi(*extra: 'Protocol') -> typing.Tuple['Protocol', ...]:
+    def generic_vdi(*extra: 'Protocol') -> tuple['Protocol', ...]:
         return (
             Protocol.RDP,
             Protocol.VNC,
@@ -110,13 +112,18 @@ class TransportScript:
         default_factory=dict[str, typing.Any]
     )
     log: TransportLog = dataclasses.field(default_factory=TransportLog)
+    associated_ticket: str | None = None  # Ticket associated with this script, if any
 
     @property
     def encoded_parameters(self) -> str:
         """
         Returns encoded parameters for transport script
         """
-        return codecs.encode(codecs.encode(json.dumps(self.parameters).encode(), 'bz2'), 'base64').decode().replace('\n', '')
+        return (
+            codecs.encode(codecs.encode(json.dumps(self.parameters).encode(), 'bz2'), 'base64')
+            .decode()
+            .replace('\n', '')
+        )
 
     @property
     def encoded_script(self) -> str:
@@ -133,4 +140,24 @@ class TransportScript:
             'signature': self.signature_b64,
             'params': self.encoded_parameters,
             'log': self.log.as_dict(),
+        }
+
+    def as_encrypted_dict(self, shared_secret: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
+        from uds.core.managers.crypto import CryptoManager  # Avoid circular import
+
+        cm = CryptoManager.manager()
+        material = cm.derive_tunnel_material(shared_secret, ticket_id.encode())
+
+        plaintext = json.dumps(self.as_dict()).encode()
+
+        encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
+        
+        # Associated ticket needs to have the shared secret to be accesed later
+        if self.associated_ticket is not None:
+            TicketStore.set_shared_secret(self.associated_ticket, shared_secret)
+
+        return {
+            'algorithm': 'AES-256-GCM',
+            'ciphertext': codecs.encode(ciphertext, 'base64').decode().replace('\n', ''),
+            'data': codecs.encode(encrypted, 'base64').decode().replace('\n', ''),
         }

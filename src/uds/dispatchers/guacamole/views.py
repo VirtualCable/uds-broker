@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -107,7 +107,7 @@ def guacamole(request: ExtendedHttpRequestWithUser, token: str, tunnelid: str) -
                 raise  # Let it be handled by the upper layers
 
         if 'password' in val:
-            val['password'] = CryptoManager().symmetric_decrypt(val['password'], scrambler)
+            val['password'] = CryptoManager.manager().symmetric_decrypt(val['password'], scrambler)
 
         response = dict2resp(val)
     except Exception:

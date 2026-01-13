@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2014-2021 Virtual Cable S.L.U.
+# Copyright (c) 2014-2021 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -92,7 +92,7 @@ class Tickets(Handler):
     ROLE = consts.UserRole.ADMIN
 
     @staticmethod
-    def result(result: str = '', error: typing.Optional[str] = None) -> dict[str, typing.Any]:
+    def result(result: str = '', error: str | None = None) -> dict[str, typing.Any]:
         """
         Returns a result for a Ticket request
         """
@@ -155,7 +155,7 @@ class Tickets(Handler):
         force: bool = self.get_param('force') in ('1', 'true', 'True', True)
 
         try:
-            service_pool_id: typing.Optional[str] = None
+            service_pool_id: str | None = None
 
             # First param is recommended, last ones are compatible with old versions
             auth_id = self.get_param('auth_id', 'authId')
@@ -205,7 +205,7 @@ class Tickets(Handler):
             if pool_uuid:
                 # Check if is pool or metapool
                 pool_uuid = process_uuid(pool_uuid)
-                pool: typing.Union[models.ServicePool, models.MetaPool]
+                pool: models.ServicePool | models.MetaPool
 
                 try:
                     pool = models.MetaPool.objects.get(
@@ -213,7 +213,9 @@ class Tickets(Handler):
                     )  # If not an metapool uuid, will process it as a servicePool
                     if force:
                         # First, add groups to metapool
-                        for group_to_add in set(groups_ids) - set(pool.assignedGroups.values_list('uuid', flat=True)):
+                        for group_to_add in set(groups_ids) - set(
+                            pool.assignedGroups.values_list('uuid', flat=True)
+                        ):
                             pool.assignedGroups.add(auth.groups.get(uuid=group_to_add))
                         # And now, to ALL metapool members, even those disabled
                         for meta_member in pool.members.all():
@@ -231,7 +233,9 @@ class Tickets(Handler):
 
                     # If forced that servicePool must honor groups
                     if force:
-                        for group_to_add in set(groups_ids) - set(pool.assignedGroups.values_list('uuid', flat=True)):
+                        for group_to_add in set(groups_ids) - set(
+                            pool.assignedGroups.values_list('uuid', flat=True)
+                        ):
                             pool.assignedGroups.add(auth.groups.get(uuid=group_to_add))
 
                     service_pool_id = 'F' + pool.uuid

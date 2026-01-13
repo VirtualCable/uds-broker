@@ -12,7 +12,7 @@
 #    * Redistributions in binary form must reproduce the above copyright notice,
 #      this list of conditions and the following disclaimer in the documentation
 #      and/or other materials provided with the distribution.
-#    * Neither the name of Virtual Cable S.L.U. nor the names of its contributors
+#    * Neither the name of Virtual Cable S.L. nor the names of its contributors
 #      may be used to endorse or promote products derived from this software
 #      without specific prior written permission.
 #
@@ -194,7 +194,7 @@ class HTML5VNCTransport(transports.Transport):
 
         logger.debug('VNC Params: %s', params)
 
-        scrambler = CryptoManager().random_string(32)
+        scrambler = CryptoManager.manager().random_string(32)
         ticket = models.TicketStore.create(params, validity=self.ticket_validity.as_int())
 
         onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={transport.uuid}'
