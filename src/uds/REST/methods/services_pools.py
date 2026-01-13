@@ -34,6 +34,7 @@ import dataclasses
 import datetime
 import logging
 import typing
+import collections.abc
 
 from django.utils.translation import gettext, gettext_lazy as _
 from django.db.models import Model, Count, Q, Case, When, Value, F, IntegerField, ExpressionWrapper, FloatField
@@ -65,7 +66,7 @@ class ServicePoolItem(types.rest.BaseRestItem):
     id: str
     name: str
     short_name: str
-    tags: typing.List[str]
+    tags: list[str]
     parent: str
     parent_type: str
     comments: str
@@ -234,7 +235,7 @@ class ServicesPools(ModelHandler[ServicePoolItem]):
 
     def get_items(
         self, *args: typing.Any, **kwargs: typing.Any
-    ) -> typing.Generator[ServicePoolItem, None, None]:
+    ) -> collections.abc.Generator[ServicePoolItem, None, None]:
         # Optimized query, due that there is a lot of info needed for theee
         d = sql_now() - datetime.timedelta(seconds=GlobalConfig.RESTRAINT_TIME.as_int())
         return super().get_items(

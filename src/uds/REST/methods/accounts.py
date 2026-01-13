@@ -56,9 +56,9 @@ logger = logging.getLogger(__name__)
 class AccountItem(types.rest.BaseRestItem):
     id: str
     name: str
-    tags: typing.List[str]
+    tags: list[str]
     comments: str
-    time_mark: typing.Optional[datetime.datetime]
+    time_mark: datetime.datetime | None
     permission: int
 
 

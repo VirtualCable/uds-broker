@@ -33,7 +33,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import dataclasses
 import datetime
 import logging
-import typing
 
 from django.utils.translation import gettext as _
 from django.db.models import Model
@@ -89,7 +88,7 @@ class AccountsUsage(DetailHandler[AccountItem]):  # pylint: disable=too-many-pub
             elapsed_timemark=item.elapsed_timemark,
             permission=perm,
         )
-        
+
     def get_item_position(self, parent: 'Model', item_uuid: str) -> int:
         parent = ensure.is_instance(parent, Account)
         return self.calc_item_position(item_uuid, parent.usages.all())
@@ -122,7 +121,7 @@ class AccountsUsage(DetailHandler[AccountItem]):  # pylint: disable=too-many-pub
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> AccountItem:
+    def save_item(self, parent: 'Model', item: str | None) -> AccountItem:
         raise exceptions.rest.RequestError('Accounts usage cannot be edited')
 
     def delete_item(self, parent: 'Model', item: str) -> None:
