@@ -51,7 +51,7 @@ NULL_MAC: typing.Final[str] = '00:00:00:00:00:00'
 OK: typing.Final[str] = 'ok'  # Constant to be returned when result is just "operation complete successfully"
 
 # For conversion to boolean
-BOOL_TRUE_VALUES: typing.Final[typing.Set[typing.Union[bool, str, bytes, int]]] = {
+BOOL_TRUE_VALUES: typing.Final[set[bool | str | bytes | int]] = {
     True,
     'TRUE',
     'True',
@@ -90,12 +90,12 @@ class UserRole(enum.StrEnum):
     STAFF = 'staff'
     USER = 'user'
     ANONYMOUS = 'anonymous'
-    
+
     @property
     def needs_authentication(self) -> bool:
         """
         Checks if this role needs authentication
-        
+
         Returns:
             True if this role needs authentication, False otherwise
         """
@@ -104,12 +104,12 @@ class UserRole(enum.StrEnum):
     def can_access(self, role: 'UserRole') -> bool:
         """
         Checks if this role can access to the requested role
-        
+
         That is, if this role is greater or equal to the requested role
-        
+
         Args:
             role: Role to check against
-            
+
         Returns:
             True if this role can access to the requested role, False otherwise
         """
@@ -121,11 +121,11 @@ class UserRole(enum.StrEnum):
         }
 
         return ROLE_PRECEDENCE[self] >= ROLE_PRECEDENCE[role]
-    
+
     def as_str(self) -> str:
         """
         Returns the string representation of the role
-        
+
         Returns:
             The string representation of the role
         """
@@ -135,4 +135,6 @@ class UserRole(enum.StrEnum):
             UserRole.STAFF: _('Staff member'),
             UserRole.USER: _('User'),
             UserRole.ANONYMOUS: _('Anonymous'),
-        }.get(self, _('Unknown role'))  # Default case, should not happen
+        }.get(
+            self, _('Unknown role')
+        )  # Default case, should not happen
