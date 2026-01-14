@@ -60,7 +60,7 @@ CACHE_TIME: typing.Final[int] = 60 * 60  # 1 hour
 
 
 def get_servicepools_counters(
-    servicepool: typing.Optional[models.ServicePool],
+    servicepool: models.ServicePool | None,
     counter_type: types.stats.CounterType,
     since_days: int = SINCE,
 ) -> list[dict[str, typing.Any]]:
@@ -71,7 +71,7 @@ def get_servicepools_counters(
         to = sql_now().replace(minute=0, second=0, microsecond=0)
         since: datetime.datetime = to - datetime.timedelta(days=since_days)
 
-        cached_value: typing.Optional[bytes] = cache.get(cache_key)
+        cached_value: bytes | None = cache.get(cache_key)
         if not cached_value:
             if not servicepool:
                 servicepool = models.ServicePool()
@@ -192,7 +192,7 @@ class System(Handler):
 
         if len(self.args) in (2, 3):
             # Extract pool if provided
-            pool: typing.Optional[models.ServicePool] = None
+            pool: models.ServicePool | None = None
             if len(self.args) == 3:
                 try:
                     pool = models.ServicePool.objects.get(uuid=process_uuid(self._args[2]))

@@ -54,10 +54,9 @@ use_logger = logging.getLogger('useLog')
 
 # Pattern for look for date and time in this format: 2023-04-20 04:03:08,776 (and trailing spaces)
 # This is the format used by python logging module
-DATETIME_PATTERN: typing.Final[typing.Pattern[str]] = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) *')
+DATETIME_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) *')
 # Pattern for removing the LOGLEVEL from the log line beginning
-LOGLEVEL_PATTERN: typing.Final[typing.Pattern[str]] = re.compile(r'^(DEBUG|INFO|WARNING|ERROR|CRITICAL) *')
-
+LOGLEVEL_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r'^(DEBUG|INFO|WARNING|ERROR|CRITICAL) *')
 
 
 def log_use(
@@ -65,14 +64,14 @@ def log_use(
     service_unique_id: str,
     service_ip: str,
     username: str,
-    src_ip: typing.Optional[str] = None,
-    src_user: typing.Optional[str] = None,
-    userservice_name: typing.Optional[str] = None,
-    servicepool_name: typing.Optional[str] = None,
+    src_ip: str | None = None,
+    src_user: str | None = None,
+    userservice_name: str | None = None,
+    servicepool_name: str | None = None,
 ) -> None:
     """
     Logs an "use service" event (logged from actors)
-    
+
     Args:
         type_: Type of event (login, logout, etc)
         service_unique_id: Unique id of the service
@@ -82,7 +81,7 @@ def log_use(
         src_user: Username of the source (if any)
         userservice_name: Name of the userservice (if any)
         servicepool_name: Name of the servicepool (if any)
-        
+
     """
     src_ip = 'unknown' if src_ip is None else src_ip
     src_user = 'unknown' if src_user is None else src_user
@@ -108,11 +107,11 @@ def log_use(
 
 
 def log(
-    db_object: typing.Optional['Model'],
+    db_object: 'Model|None',
     level: LogLevel,
     message: str,
     source: LogSource = LogSource.UNKNOWN,
-    log_name: typing.Optional[str] = None,
+    log_name: str | None = None,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from uds.core.managers.log import LogManager
@@ -120,7 +119,7 @@ def log(
     LogManager.manager().log(db_object, level, message, source, log_name)
 
 
-def get_logs(wichObject: typing.Optional['Model'], limit: int = -1) -> list[dict[str, typing.Any]]:
+def get_logs(wichObject: 'Model | None', limit: int = -1) -> list[dict[str, typing.Any]]:
     """
     Get the logs associated with "wichObject", limiting to "limit" (default is GlobalConfig.MAX_LOGS_PER_ELEMENT)
     """
@@ -130,7 +129,7 @@ def get_logs(wichObject: typing.Optional['Model'], limit: int = -1) -> list[dict
     return LogManager.manager().get_logs(wichObject, limit)
 
 
-def clear_logs(obj: typing.Optional['Model']) -> None:
+def clear_logs(obj: 'Model | None') -> None:
     """
     Clears the logs associated with the object using the log_manager
     """
@@ -196,6 +195,8 @@ class UDSLogHandler(logging.handlers.RotatingFileHandler):
             priority = 4 if record.levelno == logging.WARNING else 3 if record.levelno == logging.ERROR else 2
 
             if journal is not None:
-                journal.send(MESSAGE=msg, PRIORITY=priority, SYSLOG_IDENTIFIER=identificator)  # pyright: ignore[reportUnknownMemberType]
+                journal.send(  # pyright: ignore[reportUnknownMemberType]
+                    MESSAGE=msg, PRIORITY=priority, SYSLOG_IDENTIFIER=identificator
+                )
 
         return super().emit(record)

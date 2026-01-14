@@ -39,8 +39,6 @@ import typing
 
 from django.utils.translation import gettext_noop as _, gettext
 
-from uds.models.ticket_store import TicketStore
-
 
 class Protocol(enum.StrEnum):
     NONE = ''
@@ -144,6 +142,8 @@ class TransportScript:
 
     def as_encrypted_dict(self, shared_secret: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
         from uds.core.managers.crypto import CryptoManager  # Avoid circular import
+        from uds.models.ticket_store import TicketStore  # Avoid circular import
+
 
         cm = CryptoManager.manager()
         material = cm.derive_tunnel_material(shared_secret, ticket_id.encode())

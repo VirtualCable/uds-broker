@@ -185,7 +185,7 @@ class Services(DetailHandler[ServiceItem]):  # pylint: disable=too-many-public-m
         except Exception:  # nosec: This is a delete, we don't care about exceptions
             pass
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> ServiceItem:
+    def save_item(self, parent: 'Model', item: str | None) -> ServiceItem:
         parent = ensure.is_instance(parent, models.Provider)
         # Extract item db fields
         # We need this fields for all
@@ -209,8 +209,7 @@ class Services(DetailHandler[ServiceItem]):  # pylint: disable=too-many-public-m
             fields['max_services_count_type'] = types.services.ServicesCountingType.STANDARD
         tags = fields['tags']
         del fields['tags']
-        service: typing.Optional[models.Service] = None
-
+        service: models.Service | None = None
         try:
             if not item:  # Create new
                 service = parent.services.create(**fields)
@@ -294,7 +293,7 @@ class Services(DetailHandler[ServiceItem]):  # pylint: disable=too-many-public-m
             .build()
         )
 
-    def enum_types(self, parent: 'Model', for_type: typing.Optional[str]) -> list[types.rest.TypeInfo]:
+    def enum_types(self, parent: 'Model', for_type: str | None) -> list[types.rest.TypeInfo]:
         parent = ensure.is_instance(parent, models.Provider)
         logger.debug('get_types parameters: %s, %s', parent, for_type)
         offers: list[types.rest.TypeInfo] = []
