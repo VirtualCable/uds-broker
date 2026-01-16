@@ -268,6 +268,7 @@ class Transport(Module):
             signature_algorithm=types.transports.SignatureAlgorithm.MLDSA65,
             signature_b64=signature,
             parameters=params,
+            associated_ticket=associated_ticket,
         )
 
     def get_script(
