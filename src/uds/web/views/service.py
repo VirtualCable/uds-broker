@@ -64,10 +64,10 @@ logger = logging.getLogger(__name__)
 def transport_own_link(
     request: 'ExtendedHttpRequestWithUser', service_id: str, transport_id: str
 ) -> HttpResponse:
-    def _response(url: str = '', percent: int = 100, error: typing.Any = '') -> typing.Dict[str, typing.Any]:
+    def _response(url: str = '', percent: int = 100, error: typing.Any = '') -> dict[str, typing.Any]:
         return {'running': percent, 'url': url, 'error': str(error)}
     
-    response: collections.abc.MutableMapping[str, typing.Any] = {}
+    response: dict[str, typing.Any] = {}
 
     try:
         info = UserServiceManager.manager().get_user_service_info(
@@ -138,8 +138,8 @@ def user_service_status(
      'error' if error is found (for example, intancing user service)
     Note:
     '''
-    ip: typing.Union[str, None, bool]
-    userservice: typing.Optional['UserService'] = None
+    ip: str |  None | bool
+    userservice: 'UserService | None' = None
     status = 'running'
     # If service exists (meta or not)
     if UserServiceManager.manager().is_meta_service(service_id):

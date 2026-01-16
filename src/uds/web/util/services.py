@@ -70,17 +70,17 @@ def _service_info(
     description: str,
     group: collections.abc.Mapping[str, typing.Any],
     transports: list[collections.abc.Mapping[str, typing.Any]],
-    image: typing.Optional['Image'],
+    image: 'Image | None',
     show_transports: bool,
     allow_users_remove: bool,
     allow_users_reset: bool,
     maintenance: bool,
     not_accesible: bool,
     in_use: bool,
-    to_be_replaced: typing.Optional[str],
+    to_be_replaced: str | None,
     to_be_replaced_text: str,
     custom_calendar_text: str,
-    custom_message_text: typing.Optional[str],
+    custom_message_text: str | None,
     favorite: bool = False,
 ) -> collections.abc.Mapping[str, typing.Any]:
     return {
@@ -102,7 +102,7 @@ def _service_info(
         'to_be_replaced_text': to_be_replaced_text,
         'custom_calendar_text': custom_calendar_text,
         'custom_message_text': custom_message_text,
-        'favorite': favorite
+        'favorite': favorite,
     }
 
 
@@ -196,7 +196,7 @@ def get_services_info_dict(
         # Check that we have access to at least one transport on some of its children
         transports_in_meta: list[collections.abc.Mapping[str, typing.Any]] = []
         in_use: bool = typing.cast(typing.Any, meta).number_in_use > 0  # Anotated value
-        custom_message: typing.Optional[str] = None
+        custom_message: str | None = None
 
         # Fist member of the pool that has a custom message, and is enabled, will be used
         # Ordered by priority, using internal sort, to take advantage of prefetched data
@@ -244,8 +244,8 @@ def get_services_info_dict(
             )
         elif meta.transport_grouping == types.pools.TransportSelectionPolicy.LABEL:
             ltrans: collections.abc.MutableMapping[str, Transport] = {}
-            transports_in_all_pools_by_label: typing.Optional[typing.Set[str]] = None
-            temporary_transport_set_by_label: typing.Set[str]
+            transports_in_all_pools_by_label: set[str] | None = None
+            temporary_transport_set_by_label: set[str]
 
             for member in sorted_members:
                 temporary_transport_set_by_label = set()
