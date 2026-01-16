@@ -93,7 +93,7 @@ if not executable:
     logger.debug('No compatible executable found (Thincast, xfreerdp, MSRDC)')
     msrd = msrd_li = ''
     if sp['as_rdp_url']:  # type: ignore
-        msrd = ', Microsoft Remote Desktop'
+        msrd = 'Microsoft Remote Desktop'
         msrd_li = '<li><p><b>{}</b> from Apple Store</p></li>'.format(msrd)
 
     raise Exception(
