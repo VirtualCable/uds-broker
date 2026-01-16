@@ -102,7 +102,7 @@ if (thincastExecutable || xfreeRdpExecutable) {
     if (data.as_file) {
         let rdpFilePath = File.createTempFile(File.getHomeDirectory(), data.as_file, 'rdp');
         let password = data.password ? `/p:${data.password}` : '/p:';
-        params = [executablePath, '--args', rdpFilePath, password];
+        params = [executablePath, '--args', password, rdpFilePath];
         Tasks.addEarlyUnlinkableFile(rdpFilePath);
     } else {
         params = [
