@@ -92,10 +92,24 @@ class TicketTest(rest.test.RESTTestCase):
             self.get_url(
                 self.valid_ticket,
                 'invalid_token',
-                'does_not_matter',
+                '127.0.0.1',
             ),
         )
         self.assertEqual(response.status_code, 403)
+        
+    def test_request_invalid_ticket(self) -> None:
+        """
+        Test ticket request with invalid ticket
+        """
+        response = self.client.get(
+            self.get_url(
+                'invalid_ticket',
+                self.server_token,
+                '127.0.0.1',
+            ),
+        )
+        self.assertEqual(response.status_code, 403)
+
 
     def test_request_valid_ticket_start(self) -> None:
         """
