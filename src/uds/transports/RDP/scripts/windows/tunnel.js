@@ -14,13 +14,14 @@ const password = Utils.cryptProtectData(data.password);
 Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', '127.0.0.1', 255); // Register to allow redirection
 Logger.info(`Tunnel data: host=${data.tunnel.host}, port=${data.tunnel.port}, ticket=${data.tunnel.ticket}, verify_ssl=${data.tunnel.verify_ssl}, timeout=${data.tunnel.timeout}`);
 
-let tunnel = await Tasks.startTunnel(
-    data.tunnel.host,
-    data.tunnel.port,
-    data.tunnel.ticket,
-    data.tunnel.startup_time,
-    data.tunnel.verify_ssl,
-);
+
+const tunnel = await Tasks.startTunnel({
+    addr: data.tunnel.host,
+    port: data.tunnel.port,
+    ticket: data.tunnel.ticket,
+    startup_time_ms: data.tunnel.startup_time,
+    check_certificate: data.tunnel.verify_ssl
+});
 
 let content = data.as_file.replace(/\{password\}/g, password);
 content = content.replace(/\{address\}/g, `127.0.0.1:${tunnel.port}`);
