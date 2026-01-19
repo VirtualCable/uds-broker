@@ -798,7 +798,7 @@ class Ticket(ActorV3Action):
 
                 case 'userservice':
                     # Userservice also has owner, to increase security
-                    self.get_userservice()  # We just want to check that is valid
+                    self.get_userservice()  # We just want to check that is valid, do not need assignment
 
                     return ActorV3Action.actor_result(
                         TicketStore.get(
