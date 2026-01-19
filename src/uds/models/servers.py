@@ -141,7 +141,7 @@ class ServerGroup(UUIDModel, TaggingMixin, properties.PropertiesMixin):
     def __str__(self) -> str:
         return self.name
 
-    def search(self, ip_or_host_or_mac: str) -> Server | None:
+    def search(self, ip_or_host_or_mac: str) -> 'Server | None':
         """Locates a server by ip or hostname
 
         It uses reverse dns lookup if ip_or_host is an ip and not found on database
