@@ -28,8 +28,6 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-import typing
-
 from uds import models
 from uds.core import consts, types
 from uds.core.util import log
@@ -116,7 +114,7 @@ class RESTTestCase(test.UDSTransactionTestCase):
                 )
             )
 
-    def login(self, user: typing.Optional[models.User] = None, as_admin: bool = True) -> None:
+    def login(self, user: models.User|None = None, as_admin: bool = True) -> None:
         '''
         Login as specified and returns the auth token
         The token is inserted on the header of the client, so it can be used in the rest of the tests
@@ -151,7 +149,7 @@ class RESTActorTestCase(RESTTestCase):
         self.assertEqual(response.status_code, 200, 'Actor registration failed')
         return response.json()['result']
 
-    def register_data(self, chars: typing.Optional[str] = None) -> dict[str, str]:
+    def register_data(self, chars: str|None = None) -> dict[str, str]:
         # Data for registration
         return {
             'username': helpers.random_string(size=12, chars=chars)

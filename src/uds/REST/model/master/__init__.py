@@ -81,9 +81,9 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
     # Which model does this manage, must be a django model ofc
     MODEL: 'typing.ClassVar[type[models.Model]]'
     # If the model is filtered (for overviews)
-    FILTER: 'typing.ClassVar[typing.Optional[collections.abc.Mapping[str, typing.Any]]]' = None
+    FILTER: 'typing.ClassVar[dict[str, typing.Any]|None]' = None
     # Same, but for exclude
-    EXCLUDE: 'typing.ClassVar[typing.Optional[collections.abc.Mapping[str, typing.Any]]]' = None
+    EXCLUDE: 'typing.ClassVar[dict[str, typing.Any]|None]' = None
 
     # If this model respond to "custom" methods, we will declare them here
     # This is an array of tuples of two items, where first is method and second inticates if method needs parent id (normal behavior is it needs it)
@@ -93,7 +93,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
     # If this model has details, which ones
     # Dictionary containing detail routing
-    DETAIL: typing.ClassVar[typing.Optional[dict[str, type['DetailHandler[typing.Any]']]]] = None
+    DETAIL: typing.ClassVar[dict[str, type['DetailHandler[typing.Any]']] | None] = None
     # Fields that are going to be saved directly
     # * If a field is in the form "field:default" and field is not present in the request, default will be used
     # * If the "default" is the string "None", then the default will be None
@@ -118,7 +118,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         """
         return []
 
-    def enum_types(self) -> typing.Generator[types.rest.TypeInfo, None, None]:
+    def enum_types(self) -> collections.abc.Generator[types.rest.TypeInfo, None, None]:
         for type_ in self.possible_types():
             yield type(self).as_typeinfo(type_)
 
@@ -245,7 +245,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
     def get_items(
         self, *, sumarize: bool = False, query: QuerySet[T] | None = None
-    ) -> typing.Generator[types.rest.T_Item, None, None]:
+    ) -> collections.abc.Generator[types.rest.T_Item, None, None]:
         """
         Get items from the model.
         Args:
@@ -440,7 +440,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
             # Store associated object if requested (data_type)
             try:
                 if isinstance(item, ManagedObjectModel):
-                    data_type: typing.Optional[str] = self._params.get('data_type', self._params.get('type'))
+                    data_type: str | None = self._params.get('data_type', self._params.get('type'))
                     if data_type:
                         item.data_type = data_type
                         # TODO: Currently support parameters outside "instance". Will be removed after tests
