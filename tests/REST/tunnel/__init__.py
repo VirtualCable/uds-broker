@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2023 Virtual Cable S.L.
+# Copyright (c) 2022 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -25,35 +25,6 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-# pyright: reportUnusedImport=false
-from . import (
-    auth,
-    calendar,
-    connections,
-    crypto,
-    downloads,
-    errors,
-    osmanagers,
-    os,
-    permissions,
-    pools,
-    requests,
-    servers,
-    services,
-    states,
-    stats,
-    tickets,
-    transports,
-    ui,
-    core,
-    log,
-    net,
-    rest,
-)
-
-# Log is not imported here, as it is a special case with lots of dependencies
-# Preferences must be include explicitly, as it is not a "normal use" type

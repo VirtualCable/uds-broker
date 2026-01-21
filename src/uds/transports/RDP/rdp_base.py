@@ -415,7 +415,7 @@ class BaseRDPTransport(transports.Transport):
         user: 'models.User',
         password: str,
         *,
-        alt_username: typing.Optional[str],
+        alt_username: str | None,
     ) -> types.connections.ConnectionData:
         username: str = alt_username or user.get_username_for_auth()
 
@@ -466,7 +466,7 @@ class BaseRDPTransport(transports.Transport):
 
     def get_connection_info(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
         *,

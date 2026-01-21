@@ -120,7 +120,7 @@ class WindowsOsManager(osmanagers.OSManager):
         logger.debug('Checking state for service %s', userservice)
         return State.RUNNING
 
-    def max_idle(self) -> typing.Optional[int]:
+    def max_idle(self) -> int | None:
         if self.idle.as_int() <= 0:
             return None
 

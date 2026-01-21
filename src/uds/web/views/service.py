@@ -37,7 +37,7 @@ from django.utils.translation import gettext
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+
 from uds import models
 from uds.core import types
 from uds.core.auths import auth
@@ -67,7 +67,7 @@ def transport_own_link(
     def _response(url: str = '', percent: int = 100, error: typing.Any = '') -> dict[str, typing.Any]:
         return {'running': percent, 'url': url, 'error': str(error)}
     
-    response: collections.abc.MutableMapping[str, typing.Any] = {}
+    response: dict[str, typing.Any] = {}
 
     try:
         info = UserServiceManager.manager().get_user_service_info(
@@ -138,7 +138,7 @@ def user_service_status(
      'error' if error is found (for example, intancing user service)
     Note:
     '''
-    ip: str | None | bool
+    ip: str |  None | bool
     userservice: 'UserService | None' = None
     status = 'running'
     # If service exists (meta or not)
@@ -168,26 +168,6 @@ def user_service_status(
 
     return HttpResponse(json.dumps({'status': status}), content_type='application/json')
 
-
-@auth.deny_non_authenticated
-def favorites_dispatch(request: 'ExtendedHttpRequestWithUser') -> HttpResponse:
-    user = request.user
-    if request.method == 'GET':
-        return JsonResponse({'favorites': list(user.get_favorites())})
-    elif request.method == 'POST':
-        service_id = request.POST.get('service_id') or (json.loads(request.body).get('service_id') if request.body else None)
-        if service_id:
-            user.add_favorite(service_id)
-            return JsonResponse({'status': 'ok'})
-        return JsonResponse({'status': 'error', 'message': 'Missing service_id'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
-
-@require_http_methods(["DELETE"])
-@auth.deny_non_authenticated
-def remove_favorite(request: 'ExtendedHttpRequestWithUser', service_id: str) -> HttpResponse:
-    user = request.user
-    user.remove_favorite(service_id)
-    return JsonResponse({'status': 'ok'})
 
 @weblogin_required()
 @never_cache

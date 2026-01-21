@@ -64,10 +64,10 @@ class Handler(abc.ABC):
     REST requests handler base class
     """
 
-    NAME: typing.ClassVar[typing.Optional[str]] = (
+    NAME: typing.ClassVar[str | None] = (
         None  # If name is not used, name will be the class name in lower case
     )
-    PATH: typing.ClassVar[typing.Optional[str]] = (
+    PATH: typing.ClassVar[str | None] = (
         None  # Path for this method, so we can do /auth/login, /auth/logout, /auth/auths in a simple way
     )
 
@@ -86,8 +86,8 @@ class Handler(abc.ABC):
     _headers: dict[
         str, str
     ]  # Note: These are "output" headers, not input headers (input headers can be retrieved from request)
-    _session: typing.Optional[SessionStore]
-    _auth_token: typing.Optional[str]
+    _session: SessionStore | None
+    _auth_token: str | None
     _user: 'User'
     _odata: 'types.rest.api.ODataParams'  # OData parameters, if any
 
@@ -147,7 +147,7 @@ class Handler(abc.ABC):
         """
         return self._headers
 
-    def header(self, header_name: str) -> typing.Optional[str]:
+    def header(self, header_name: str) -> str | None:
         """
         Get's an specific header name from REST request
 
@@ -221,7 +221,7 @@ class Handler(abc.ABC):
         return self._session
 
     # Auth related
-    def get_auth_token(self) -> typing.Optional[str]:
+    def get_auth_token(self) -> str | None:
         """
         Returns the authentication token for this REST request
         """
