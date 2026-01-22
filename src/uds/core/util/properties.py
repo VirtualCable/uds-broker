@@ -32,6 +32,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import typing
 import logging
+import collections.abc
 
 from django.db.models import signals
 from django.db import transaction
@@ -49,7 +50,7 @@ class PropertyAccessor:
     Property accessor, used to access properties of an object
     """
 
-    transaction: 'typing.Optional[transaction.Atomic]'
+    transaction: 'transaction.Atomic|None'
     owner_id: str
     owner_type: str
 
@@ -83,7 +84,7 @@ class PropertyAccessor:
     def __contains__(self, key: str) -> bool:
         return bool(self._filter().filter(key=key).exists())
 
-    def __iter__(self) -> typing.Iterator[str]:
+    def __iter__(self) -> collections.abc.Iterator[str]:
         return iter(self._filter().values_list('key', flat=True))
 
     def __len__(self) -> int:
@@ -102,13 +103,13 @@ class PropertyAccessor:
             self[key] = default
             return default
 
-    def keys(self) -> typing.Iterator[str]:
+    def keys(self) -> collections.abc.Iterator[str]:
         return iter(self._filter().values_list('key', flat=True))
 
-    def values(self) -> typing.Iterator[typing.Any]:
+    def values(self) -> collections.abc.Iterator[typing.Any]:
         return iter(self._filter().values_list('value', flat=True))
 
-    def items(self) -> typing.Iterator[tuple[str, typing.Any]]:
+    def items(self) -> collections.abc.Iterator[tuple[str, typing.Any]]:
         return iter(self._filter().values_list('key', 'value'))
 
     def clear(self) -> None:
@@ -151,7 +152,9 @@ class PropertiesMixin:
         return PropertyAccessor(owner_id=owner_id, owner_type=owner_type)
 
     @staticmethod
-    def _pre_delete_properties_signal(sender: typing.Any, **kwargs: typing.Any) -> None:  # pylint: disable=unused-argument
+    def _pre_delete_properties_signal(
+        sender: typing.Any, **kwargs: typing.Any
+    ) -> None:  # pylint: disable=unused-argument
         to_delete: 'PropertiesMixin' = kwargs['instance']
         # We are deleting the object, so we delete the properties too
         # Remember that properties is a generic table, does not have any cascade delete
