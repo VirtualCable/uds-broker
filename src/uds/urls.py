@@ -63,9 +63,6 @@ urlpatterns = [
         RedirectView.as_view(pattern_name='page.index', permanent=False),
         name='page.index.placeholder',
     ),
-    # Service Favorites(API)
-    path('api/user/favorites/', service.favorites_dispatch, name='favorites_dispatch'),
-    path('api/user/favorites/<str:service_id>/', service.remove_favorite, name='remove_favorite'),
     # path(r'', RedirectView.as_view(url='https://www.udsenterprise.com', permanent=False), name='page.index.placeholder')
     # START COMPAT redirections & urls
     path(
