@@ -62,7 +62,7 @@ def uds_js(request: 'ExtendedHttpRequest') -> str:
     )  # Last one is a placeholder in case we can't locate host name
 
     role: str = 'user'
-    user: typing.Optional['User'] = request.user if request.authorized else None
+    user: 'User | None' = request.user if request.authorized else None
 
     if user:
         role = 'staff' if user.is_staff() and not user.is_admin else 'admin' if user.is_admin else 'user'
@@ -181,7 +181,7 @@ def uds_js(request: 'ExtendedHttpRequest') -> str:
         'enable_favorite_services': GlobalConfig.ENABLE_FAVORITE_SERVICES.as_bool(),
     }
 
-    info: typing.Optional[dict[str, typing.Any]] = None
+    info: dict[str, typing.Any] | None = None
     if user and user.is_staff():
         info = {
             'networks': [n.name for n in Network.get_networks_for_ip(request.ip)],
@@ -191,7 +191,7 @@ def uds_js(request: 'ExtendedHttpRequest') -> str:
             'groups': [g.name for g in user.groups.all()],
         }
 
-    plugins = udsclients_info.PLUGINS.copy()
+    plugins = [p.as_dict() for p in udsclients_info.PLUGINS]
     # We can add here custom downloads with something like this:
     # plugins.append({
     #     'url': 'http://www.google.com/coche.exe',
