@@ -227,9 +227,11 @@ class TicketStore(UUIDModel):
     @staticmethod
     def create_for_tunnel(
         userservice: 'UserService',
-        remotes: list[types.tickets.TunnelTicketRemote] | None = None,
         validity: int = 60 * 60 * 24,  # 24 Hours default validity for tunnel tickets
-        port: int | None = None,  # Legacy support for single remote
+        *,
+        remotes: list[types.tickets.TunnelTicketRemote] | None = None,
+        host: str | None = None,  # Easy single remote support
+        port: int | None = None,  # Easy single remote support
         tunnel_token: str = '',  # Tunnel identifier (tunnel token)
     ) -> str:
         owner = CryptoManager.manager().random_string(length=8)
@@ -241,19 +243,12 @@ class TicketStore(UUIDModel):
 
         if port is not None:
             remotes = [
-                types.tickets.TunnelTicketRemote(host='', port=port)
+                types.tickets.TunnelTicketRemote(host=host or '', port=port, channeld_id=1)
             ]  # Host will be filled with userservice IP later
             
         if remotes is None:
             raise ValueError('No remotes specified for tunnel ticket')
 
-        # data = {
-        #     'u': userservice.user.uuid if userservice.user else '',
-        #     's': userservice.uuid,
-        #     'h': host,
-        #     'p': port,
-        #     'e': extra,
-        # }
         data = types.tickets.TunnelTicket(
             userservice=userservice,
             remotes=remotes,
