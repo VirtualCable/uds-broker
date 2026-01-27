@@ -72,13 +72,16 @@ class TicketTest(rest.test.RESTTestCase):
         self.server_token = server.token
 
         userservice = self.user_services[0]
+        if not userservice.user:
+            userservice.user = self.users[0]
+            userservice.save()
 
         self.ip = userservice.get_instance().get_ip()
 
         # Create a valid ticket for testing
         self.valid_ticket = models.TicketStore.create_for_tunnel(
             userservice,
-            [
+            remotes=[
                 types.tickets.TunnelTicketRemote(
                     '',
                     1234,
