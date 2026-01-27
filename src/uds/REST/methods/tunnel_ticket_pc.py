@@ -48,92 +48,90 @@ MAX_SESSION_LENGTH = 60 * 60 * 24 * 7 * 2  # Two weeks is max session length for
 
 
 # Enclosed methods under /tunnel path
-class TunnelTicket(Handler):
+class TunnelTicketPC(Handler):
     """
     Processes tunnel requests
     """
 
     ROLE = consts.UserRole.ANONYMOUS
-    PATH = 'tunnel'
+    PATH = 'tunnelpc'
     NAME = 'ticket'
 
-    def get(self) -> typing.Any:
+    def post(self) -> typing.Any:
         """
         Processes get requests
         """
         logger.debug(
-            'Tunnel parameters for GET: %s (%s) from %s',
+            'Tunnel parameters for post: %s (%s) from %s',
             self._args,
             self._params,
             self._request.ip,
         )
 
-        if not is_trusted_source(self._request.ip) or len(self._args) != 3 or len(self._args[0]) != 48:
+        req = types.tickets.TunnelTicketRequest.from_dict(self._params)
+
+        if not is_trusted_source(self._request.ip):
             # Invalid requests
             raise exceptions.rest.AccessDenied()
 
         # Take token from url and validate it
         # Token is the "auth" of the tunnel server
-        token = self._args[2][:48]
-        if not models.Server.validate_token(token, server_type=types.servers.ServerType.TUNNEL):
+        if not models.Server.validate_token(req.token, server_type=types.servers.ServerType.TUNNEL):
             raise exceptions.rest.AccessDenied()
 
         # Try to get ticket from DB
         try:
-            ticket = models.TicketStore.get_for_tunnel(self._args[0])
-            if ticket.userservice is None or ticket.userservice.user is None or not ticket.remotes:
-                raise Exception('Ticket has no associated userservice or the userservice has no user (or no remotes)')
+            ticket = models.TicketStore.get_for_tunnel(req.ticket)
+            if ticket.userservice is None or ticket.userservice.user is None:
+                raise Exception('Ticket has no associated userservice or the userservice has no user')
 
             # response = types.tickets.TunnelTicketResponse.from_ticket(ticket)
-            if self._args[1][:4] == 'stop':
-                sent, recv = self._params['sent'], self._params['recv']
-                try:
-                    total_time = sql_now() - ticket.started
-                except Exception:  # DB may contain old not tz aware dates
-                    total_time = sql_now().replace(tzinfo=None) - ticket.started.replace(tzinfo=None)
+            if req.command == 'stop':
+                # This data will always be with tz info (from 5.0 onwards)
+                total_time = sql_now() - ticket.started
 
-                msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{sent}/d:{recv}/t:{total_time}.'
+                msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{req.sent}/d:{req.recv}/t:{total_time}.'
                 log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
                 log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
 
-                # Try to log Close event
+                # Try to log Close event. Note that the userservice may already be gone
                 if ticket.userservice:
                     # If pool does not exists, do not log anything
                     events.add_event(
-                        ticket.userservice.deployed_service,
+                        ticket.userservice.service_pool,
                         events.types.stats.EventType.TUNNEL_CLOSE,
                         duration=total_time,
-                        sent=sent,
-                        received=recv,
+                        sent=req.sent,
+                        received=req.recv,
                         tunnel=ticket.tunnel_token,
                     )
 
             else:  # New tunnel request
-                if net.ip_to_long(self._args[1][:32]).version == 0:
+                if net.ip_to_long(req.ip).version == 0:
                     raise Exception('Invalid from IP')
                 events.add_event(
-                    ticket.userservice.deployed_service,
+                    ticket.userservice.service_pool,
                     events.types.stats.EventType.TUNNEL_OPEN,
                     username=ticket.userservice.user.pretty_name,
-                    srcip=self._args[1],
+                    srcip=req.ip,
                     dstip=ticket.remotes_as_str(),
-                    tunnel=self._args[0],
+                    tunnel=req.token,
                 )
-                msg = f'User {ticket.userservice.user.name} started tunnel {self._args[0][:8]}... to {ticket.remotes_as_str()} from {self._args[1]}.'
+                msg = f'User {ticket.userservice.user.name} started tunnel {req.token[:8]}... to {ticket.remotes_as_str()} from {req.ip}.'
                 log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
                 log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
                 # Generate new, notify only, ticket, for the userservice to notify when done
                 notify_ticket = models.TicketStore.create_for_tunnel(
                     userservice=ticket.userservice,
                     remotes=ticket.remotes,
+                    tunnel_token=ticket.tunnel_token,
                     validity=MAX_SESSION_LENGTH,
                 )
 
-                return types.tickets.TunnelTicketLegacyResponse(
-                    host=ticket.remotes[0].host,
-                    port=ticket.remotes[0].port,
+                return types.tickets.TunnelTicketResponse(
+                    remotes=ticket.remotes,
                     notify=notify_ticket,
-                    shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else None,
+                    shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else '',
                 )
 
             return {}
@@ -142,20 +140,13 @@ class TunnelTicket(Handler):
             raise exceptions.rest.AccessDenied() from e
 
 
-class TunnelRegister(ServerRegisterBase):
+class TunnelRegisterPC(ServerRegisterBase):
     ROLE = consts.UserRole.ADMIN
 
-    PATH = 'tunnel'
+    PATH = 'tunnelpc'
     NAME = 'register'
 
     # Just a compatibility method for old tunnel servers
     def post(self) -> dict[str, typing.Any]:
         self._params['type'] = types.servers.ServerType.TUNNEL
-        self._params['os'] = self._params.get(
-            'os', types.os.KnownOS.LINUX.os_name()
-        )  # Legacy tunnels are always linux
-        self._params['version'] = ''  # No version for legacy tunnels, does not respond to API requests from UDS
-        self._params['certificate'] = (
-            ''  # No certificate for legacy tunnels, does not respond to API requests from UDS
-        )
         return super().post()

@@ -83,7 +83,7 @@ class UDSClientMixin:
     def add_header(self, name: str, value: str) -> None:
         self.uds_headers[name] = value
 
-    def set_user_agent(self, user_agent: typing.Optional[str] = None) -> None:
+    def set_user_agent(self, user_agent: str | None = None) -> None:
         user_agent = user_agent or ''
         # Add 'HTTP_USER_AGENT' header
         self.uds_headers['User-Agent'] = user_agent
@@ -223,8 +223,8 @@ class UDSAsyncClient(UDSClientMixin, AsyncClient):  # type: ignore   # Django st
 
 
 class UDSTestCaseMixin:
-    client_class: typing.Type[UDSClient] = UDSClient
-    async_client_class: typing.Type[UDSAsyncClient] = UDSAsyncClient
+    client_class: type[UDSClient] = UDSClient
+    async_client_class: type[UDSAsyncClient] = UDSAsyncClient
 
     client: UDSClient
     async_client: UDSAsyncClient
@@ -261,6 +261,6 @@ class UDSTransactionTestCase(UDSTestCaseMixin, TransactionTestCase):  # pyright:
 
 
 # pylint: disable=unused-argument
-def setupClass(cls: typing.Union[type[UDSTestCase], type[UDSTransactionTestCase]]) -> None:
+def setupClass(cls: type[UDSTestCase] | type[UDSTransactionTestCase]) -> None:
     # Nothing right now
     pass

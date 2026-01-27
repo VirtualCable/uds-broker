@@ -227,14 +227,25 @@ class TicketStore(UUIDModel):
     @staticmethod
     def create_for_tunnel(
         userservice: 'UserService',
-        port: int,
-        host: str | None = None,
-        extra: dict[str, typing.Any] | None = None,
+        remotes: list[types.tickets.TunnelTicketRemote] | None = None,
         validity: int = 60 * 60 * 24,  # 24 Hours default validity for tunnel tickets
+        port: int | None = None,  # Legacy support for single remote
+        tunnel_token: str = '',  # Tunnel identifier (tunnel token)
     ) -> str:
         owner = CryptoManager.manager().random_string(length=8)
         if not userservice.user:
             raise ValueError('User is not set in userservice')
+
+        if remotes and port:
+            raise ValueError('Cannot specify both remotes and port')
+
+        if port is not None:
+            remotes = [
+                types.tickets.TunnelTicketRemote(host='', port=port)
+            ]  # Host will be filled with userservice IP later
+            
+        if remotes is None:
+            raise ValueError('No remotes specified for tunnel ticket')
 
         # data = {
         #     'u': userservice.user.uuid if userservice.user else '',
@@ -245,9 +256,8 @@ class TicketStore(UUIDModel):
         # }
         data = types.tickets.TunnelTicket(
             userservice=userservice,
-            host=host if host else userservice.get_instance().get_ip(),
-            port=port,
-            extra=extra if extra else {},
+            remotes=remotes,
+            tunnel_token=tunnel_token,
             shared_secret=None,
         )
         return (
@@ -255,7 +265,7 @@ class TicketStore(UUIDModel):
             # Create will not store owner on DB, so unless the ticket is available, we can't decrypt it
             # This ensures that data is not available unless the ticket is available, so it can be considered secure
             TicketStore.create(
-                data=data.to_dict(),
+                data=data.as_dict(),
                 validity=validity,
                 owner=owner,
                 secure=True,

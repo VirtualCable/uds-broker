@@ -39,31 +39,42 @@ if typing.TYPE_CHECKING:
     from uds.models import UserService
 
 
-# TODO: Remove old format comments
-# 'u': userservice.user.uuid if userservice.user else '',
-# 's': userservice.uuid,
-# 'h': host,
-# 'p': port,
-# 'e': extra,
+@dataclasses.dataclass(frozen=True)
+class TunnelTicketRemote:
+    host: str
+    port: int
+    channeld_id: int = 1
+
+    def as_dict(self) -> dict[str, typing.Any]:
+        """Returns a dict representation of the remote"""
+        return {
+            'host': self.host,
+            'port': self.port,
+            'channeld_id': self.channeld_id,
+        }
+
+
 @dataclasses.dataclass(frozen=True)
 class TunnelTicket:
     """Dataclass that represents a tunnel ticket"""
 
     userservice: 'UserService | None'
-    host: str
-    port: int
-    extra: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
+    remotes: list[TunnelTicketRemote] = dataclasses.field(default_factory=list[TunnelTicketRemote])
     started: datetime.datetime = dataclasses.field(default_factory=sql_now)
+    tunnel_token: str = ''
     shared_secret: bytes | None = None
 
-    def to_dict(self) -> dict[str, str]:
+    def remotes_as_str(self) -> str:
+        """Returns a string representation of the remotes"""
+        return ', '.join(f'{r.host}:{r.port} ({r.channeld_id})' for r in self.remotes)
+
+    def as_dict(self) -> dict[str, str]:
         """Returns a dict representation of the ticket"""
         return {
             'userservice_uuid': self.userservice.uuid if self.userservice else '',
-            'host': self.host,
-            'port': str(self.port),
-            'extra': '' if not self.extra else ','.join(f'{k}={v}' for k, v in self.extra.items()),
-            'started': str(int(self.started.timestamp())),
+            'remotes': '#'.join(f'{r.host},{r.port},{r.channeld_id}' for r in self.remotes),
+            'started': self.started.isoformat(),
+            'tunnel_token': self.tunnel_token,
             'shared_secret': self.shared_secret.hex() if self.shared_secret else '',
         }
 
@@ -73,23 +84,95 @@ class TunnelTicket:
         from uds.models import UserService
 
         """Creates a ticket from a dict representation"""
-        userservice = (
-            UserService.objects.filter(uuid=data['userservice_uuid']).first()
-            if data['userservice_uuid']
-            else None
-        )
+        userservice = UserService.objects.filter(uuid=data['userservice_uuid']).first()
+        userservice_ip = userservice.get_instance().get_ip() if userservice else ''
+
+
+        def get_remote(part: str) -> TunnelTicketRemote:
+            host, port, *channeld_id = part.split(',')
+            return TunnelTicketRemote(
+                host=host or userservice_ip,
+                port=int(port),
+                channeld_id=int(channeld_id[0]) if channeld_id else 1,
+            )
+            
         return TunnelTicket(
             userservice=userservice,
-            host=data['host'],
-            port=int(data['port']),
-            extra=({} if data['extra'] == '' else dict(item.split('=') for item in data['extra'].split(','))),
-            started=datetime.datetime.fromtimestamp(int(data['started'])),
+            remotes=[get_remote(part) for part in data['remotes'].split('#') if part],
+            started=datetime.datetime.fromisoformat(data['started']),
+            tunnel_token=data['tunnel_token'],
             shared_secret=bytes.fromhex(data['shared_secret']) if data['shared_secret'] else None,
         )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
+class TunnelTicketRequest:
+    token: str  # Token provided by the server on registration
+    ticket: str  # Ticket string
+    command: str  # start/stop right now
+    ip: str  # Source IP address (who originates the connection request)
+    sent: int = 0  # Used only on stop command
+    recv: int = 0  # Used only on stop command
+
+    def as_dict(self) -> dict[str, str|int]:
+        """Returns a dict representation of the ticket request"""
+        return {
+            'token': self.token,
+            'ticket': self.ticket,
+            'command': self.command,
+            'ip': self.ip,
+            'sent': self.sent,
+            'recv': self.recv,
+        }
+
+    @staticmethod
+    def from_dict(data: dict[str, typing.Any]) -> 'TunnelTicketRequest':
+        """Creates a ticket request from a dict representation
+        Truncates fields to their maximum expected length
+        """
+        return TunnelTicketRequest(
+            token=data['token'][:48],
+            ticket=data['ticket'][:48],
+            command=data['command'][:16],
+            ip=data['ip'][:32],
+            sent=int(data.get('sent', 0)),
+            recv=int(data.get('recv', 0)),
+        )
+
+
+@dataclasses.dataclass(frozen=True)
 class TunnelTicketResponse:
+    remotes: list[TunnelTicketRemote]
+    notify: str
+    shared_secret: str  # Shared secret in hex
+
+    def as_dict(self) -> dict[str, typing.Any]:
+        """Returns a dict representation of the ticket response"""
+        return {
+            'remotes': [r.as_dict() for r in self.remotes],
+            'notify': self.notify,
+            'shared_secret': self.shared_secret,
+        }
+
+    @staticmethod
+    def from_dict(data: dict[str, typing.Any]) -> 'TunnelTicketResponse':
+        """Creates a ticket response from a dict representation"""
+        return TunnelTicketResponse(
+            remotes=[
+                TunnelTicketRemote(
+                    host=part['host'],
+                    port=int(part['port']),
+                    channeld_id=int(part['channeld_id']) if 'channeld_id' in part else 1,
+                )
+                for part in data['remotes']
+            ],
+            notify=data['notify'],
+            shared_secret=data['shared_secret'],
+        )
+
+
+@dataclasses.dataclass
+class TunnelTicketLegacyResponse:
     """Dataclass that represents a tunnel ticket response"""
 
     host: str
@@ -107,9 +190,9 @@ class TunnelTicketResponse:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, typing.Any]) -> 'TunnelTicketResponse':
+    def from_dict(data: dict[str, typing.Any]) -> 'TunnelTicketLegacyResponse':
         """Creates a ticket response from a dict representation"""
-        return TunnelTicketResponse(
+        return TunnelTicketLegacyResponse(
             host=data['host'],
             port=int(data['port']),
             notify=data['notify'],

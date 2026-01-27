@@ -49,6 +49,7 @@ class TicketTest(rest.test.RESTTestCase):
 
     server_token: str
     valid_ticket: str
+    ip: str
 
     def setUp(self) -> None:
         super().setUp()
@@ -70,39 +71,56 @@ class TicketTest(rest.test.RESTTestCase):
         server.groups.add(sg)
         self.server_token = server.token
 
+        userservice = self.user_services[0]
+
+        self.ip = userservice.get_instance().get_ip()
+
         # Create a valid ticket for testing
         self.valid_ticket = models.TicketStore.create_for_tunnel(
-            self.user_services[0], 1234, 'localhost', extra={'foo': 'bar'}
+            userservice,
+            [
+                types.tickets.TunnelTicketRemote(
+                    '',
+                    1234,
+                )
+            ],
         )
         # Store a shared secret (32 bytes)
         models.TicketStore.set_shared_secret(self.valid_ticket, b'\x01' * 32)
 
     @staticmethod
-    def get_url(ticket: str, token: str, msg: str) -> str:
+    def get_url_legacy(ticket: str, token: str, msg: str) -> str:
         """
         Returns the URL for ticket requests
         """
         return f'/uds/rest/tunnel/ticket/{ticket}/{msg}/{token}'
 
-    def test_request_invalid_token(self) -> None:
+    @staticmethod
+    def get_url() -> str:
+        """
+        Returns the URL for ticket requests
+        """
+        return f'/uds/rest/tunnelpc/ticket'
+
+    def test_legacy_request_invalid_token(self) -> None:
         """
         Test ticket request with invalid token
         """
         response = self.client.get(
-            self.get_url(
+            self.get_url_legacy(
                 self.valid_ticket,
                 'invalid_token',
                 '127.0.0.1',
             ),
         )
         self.assertEqual(response.status_code, 403)
-        
-    def test_request_invalid_ticket(self) -> None:
+
+    def test_legacy_request_invalid_ticket(self) -> None:
         """
         Test ticket request with invalid ticket
         """
         response = self.client.get(
-            self.get_url(
+            self.get_url_legacy(
                 'invalid_ticket',
                 self.server_token,
                 '127.0.0.1',
@@ -110,23 +128,116 @@ class TicketTest(rest.test.RESTTestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    def test_legacy_request_valid_ticket_start(self) -> None:
+        """
+        Test ticket request with valid ticket and start
+        """
+        response = self.client.get(
+            self.get_url_legacy(
+                self.valid_ticket,
+                self.server_token,
+                '127.0.0.1',  # Start message is the source IP, compat with 4.x
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        r = types.tickets.TunnelTicketLegacyResponse.from_dict(
+            data
+        )  # Just to check it can be created without errors
+
+        self.assertEqual(r.host, self.ip)  #
+        self.assertEqual(r.port, 1234)
+        self.assertIsInstance(r.notify, str)
+        self.assertEqual(r.shared_secret, '01' * 32)  # Hex representation
+
+    def test_legacy_request_valid_ticket_stop(self) -> None:
+        """
+        Test ticket request with valid ticket and stop
+        """
+        response = self.client.get(
+            self.get_url_legacy(
+                self.valid_ticket,
+                self.server_token,
+                'stop',  # Stop message
+            ),
+            query_params={
+                'sent': '1024',
+                'recv': '2048',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_request_invalid_token(self) -> None:
+        """
+        Test ticket request with invalid token
+        """
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token='invalid_token',
+                ticket=self.valid_ticket,
+                command='start',
+                ip='127.0.0.1',
+            ).as_dict(),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_request_invalid_ticket(self) -> None:
+        """
+        Test ticket request with invalid ticket
+        """
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token=self.server_token,
+                ticket='invalid_ticket',
+                command='start',
+                ip='127.0.0.1',
+            ).as_dict(),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_request_valid_ticket_start(self) -> None:
         """
         Test ticket request with valid ticket and start
         """
-        response = self.client.get(
-            self.get_url(
-                self.valid_ticket,
-                self.server_token,
-                '127.0.0.1', # Start message is the source IP, compat with 4.x
-            ),
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token=self.server_token,
+                ticket=self.valid_ticket,
+                command='start',
+                ip='127.0.0.1',
+            ).as_dict(),
+            content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
         r = types.tickets.TunnelTicketResponse.from_dict(data)  # Just to check it can be created without errors
 
-        self.assertEqual(r.host, 'localhost')
-        self.assertEqual(r.port, 1234)
+        self.assertEqual(r.remotes[0].host, self.ip)  #
+        self.assertEqual(r.remotes[0].port, 1234)
         self.assertIsInstance(r.notify, str)
         self.assertEqual(r.shared_secret, '01' * 32)  # Hex representation
+
+    def test_request_valid_ticket_stop(self) -> None:
+        """
+        Test ticket request with valid ticket and stop
+        """
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token=self.server_token,
+                ticket=self.valid_ticket,
+                command='stop',
+                ip='127.0.0.1',
+                sent=1024,
+                recv=2048,
+            ).as_dict(),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data, {})  # Stop returns empty response

@@ -111,7 +111,7 @@ class UserService(UUIDModel, properties.PropertiesMixin):
     sessions: 'models.manager.RelatedManager[UserServiceSession]'
     accounting: 'AccountUsage'
 
-    _cached_instance: typing.Optional['services.UserService'] = None
+    _cached_instance: 'services.UserService | None' = None
 
     class Meta(UUIDModel.Meta):  # pylint: disable=too-few-public-methods
         """
@@ -358,10 +358,10 @@ class UserService(UUIDModel, properties.PropertiesMixin):
             self.src_hostname or 'unknown',
         )
 
-    def get_osmanager(self) -> typing.Optional['OSManager']:
+    def get_osmanager(self) -> 'OSManager | None':  # Db os manager
         return self.deployed_service.osmanager
 
-    def get_osmanager_instance(self) -> typing.Optional['osmanagers.OSManager']:
+    def get_osmanager_instance(self) -> 'osmanagers.OSManager | None':  # Instance of os manager
         osmanager = self.get_osmanager()
         if osmanager:
             return osmanager.get_instance()
@@ -445,7 +445,7 @@ class UserService(UUIDModel, properties.PropertiesMixin):
             self.os_state = state
             self.save(update_fields=['os_state', 'state_date'])
 
-    def assign_to(self, user: typing.Optional[User]) -> None:
+    def assign_to(self, user: User | None) -> None:
         """
         Assigns this user deployed service to an user.
 
@@ -599,11 +599,11 @@ class UserService(UUIDModel, properties.PropertiesMixin):
 
         UserServiceManager.manager().move_to_level(self, cache_level)
 
-    def set_comms_info(self, comms_url: typing.Optional[str] = None, secret: str | None = None) -> None:
+    def set_comms_info(self, comms_url: str | None = None, secret: str | None = None) -> None:
         self.properties['comms_url'] = comms_url
         self.properties['comms_secret'] = secret
 
-    def get_comms_secret(self) -> typing.Optional[str]:
+    def get_comms_secret(self) -> str | None:
         # Try to get the secret. If not found, it's the last part of the comms_url (after the last /)
         return (
             self.properties.get('comms_secret', None)
@@ -611,8 +611,8 @@ class UserService(UUIDModel, properties.PropertiesMixin):
         )
 
     def get_comms_endpoint(
-        self, path: typing.Optional[str] = None
-    ) -> typing.Optional[str]:  # pylint: disable=unused-argument
+        self, path: str | None = None
+    ) -> str | None:  # pylint: disable=unused-argument
         # path is not used, but to keep compat with Server "getCommUrl" method
         return self.properties.get('comms_url', None)
 
@@ -623,7 +623,7 @@ class UserService(UUIDModel, properties.PropertiesMixin):
         """
         pass
 
-    def log_ip(self, ip: typing.Optional[str] = None) -> None:
+    def log_ip(self, ip: str | None = None) -> None:
         self.properties['ip'] = ip
 
     def get_log_ip(self) -> str:

@@ -55,7 +55,7 @@ class UniqueGenerator:
     # base name for filtering unique ids. (I.e. "mac", "ip", "ipv6" ....)
     _basename: str
 
-    def __init__(self, owner: str, basename: typing.Optional[str] = None) -> None:
+    def __init__(self, owner: str, basename: str | None = None) -> None:
         self._owner = owner
         self._basename = basename or 'uds'
 
@@ -70,7 +70,7 @@ class UniqueGenerator:
         objects = UniqueId.objects.select_for_update() if for_update else UniqueId.objects
         return objects.filter(basename=self._basename, seq__gte=range_start, seq__lte=range_end)
 
-    def _get(self, range_start: int = 0, range_end: typing.Optional[int] = None) -> int:
+    def _get(self, range_start: int = 0, range_end: int | None = None) -> int:
         """
         Tries to generate a new unique id in the range provided. This unique id
         is global to "unique ids' database
@@ -88,7 +88,7 @@ class UniqueGenerator:
                 # logger.debug('Creating new seq in range {}-{}'.format(rangeStart, rangeEnd))
                 with transaction.atomic():
                     range_filter = self._range_filter(range_start, range_end, for_update=True)
-                    item: typing.Optional[UniqueId] = None
+                    item: UniqueId | None = None
                     try:
                         item = range_filter.filter(assigned=False).order_by('seq')[0]
                         item.owner = self._owner
@@ -122,14 +122,14 @@ class UniqueGenerator:
                         seq=seq,
                         assigned=True,
                         stamp=stamp,
-                    ) 
+                    )
                     break
             except OperationalError:  # Locked, may ocurr for example on sqlite. We will wait a bit
                 # logger.exception('Got database locked')
                 if counter % 5 == 0:
                     connection.close()
                 time.sleep(1)
-            except IntegrityError:  
+            except IntegrityError:
                 # Concurrent creation, may fail, simply retry
                 pass
             except Exception:
@@ -157,7 +157,6 @@ class UniqueGenerator:
             self._purge()
 
     def _purge(self) -> None:
-        logger.debug('Purging UniqueID database')
         try:
             last: UniqueId = self._range_filter(0, for_update=False).filter(assigned=True)[0]
             logger.debug('Last: %s', last)
@@ -173,7 +172,7 @@ class UniqueGenerator:
         )
         self._purge()
 
-    def release_older_than(self, stamp: typing.Optional[int] = None) -> None:
+    def release_older_than(self, stamp: int | None = None) -> None:
         stamp = sql_stamp_seconds() if stamp is None else stamp
         UniqueId.objects.select_for_update().filter(owner=self._owner, stamp__lt=stamp).update(
             assigned=False, owner='', stamp=stamp
