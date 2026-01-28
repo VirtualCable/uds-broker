@@ -52,7 +52,7 @@ if typing.TYPE_CHECKING:
 bot = re.compile(r'bot|spider', re.IGNORECASE)
 
 
-def _process_request(request: 'ExtendedHttpRequest') -> typing.Optional['HttpResponse']:
+def _process_request(request: 'ExtendedHttpRequest') -> 'HttpResponse | None':
     ua = request.META.get('HTTP_USER_AGENT', '') or 'Unknown'
     # If bot, break now
     if bot.search(ua) or (ua == 'Unknown' and not is_trusted_source(request.ip)):
