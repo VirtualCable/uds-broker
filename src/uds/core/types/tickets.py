@@ -43,14 +43,12 @@ if typing.TYPE_CHECKING:
 class TunnelTicketRemote:
     host: str
     port: int
-    channeld_id: int = 1
 
     def as_dict(self) -> dict[str, typing.Any]:
         """Returns a dict representation of the remote"""
         return {
             'host': self.host,
             'port': self.port,
-            'channeld_id': self.channeld_id,
         }
 
 
@@ -66,13 +64,13 @@ class TunnelTicket:
 
     def remotes_as_str(self) -> str:
         """Returns a string representation of the remotes"""
-        return ', '.join(f'{r.host}:{r.port} ({r.channeld_id})' for r in self.remotes)
+        return ', '.join(f'{r.host}:{r.port}' for r in self.remotes)
 
     def as_dict(self) -> dict[str, str]:
         """Returns a dict representation of the ticket"""
         return {
             'userservice_uuid': self.userservice.uuid if self.userservice else '',
-            'remotes': '#'.join(f'{r.host},{r.port},{r.channeld_id}' for r in self.remotes),
+            'remotes': '#'.join(f'{r.host},{r.port}' for r in self.remotes),
             'started': self.started.isoformat(),
             'tunnel_token': self.tunnel_token,
             'shared_secret': self.shared_secret.hex() if self.shared_secret else '',
@@ -89,11 +87,10 @@ class TunnelTicket:
 
 
         def get_remote(part: str) -> TunnelTicketRemote:
-            host, port, *channeld_id = part.split(',')
+            host, port = part.split(',')
             return TunnelTicketRemote(
                 host=host or userservice_ip,
                 port=int(port),
-                channeld_id=int(channeld_id[0]) if channeld_id else 1,
             )
             
         return TunnelTicket(
@@ -162,7 +159,6 @@ class TunnelTicketResponse:
                 TunnelTicketRemote(
                     host=part['host'],
                     port=int(part['port']),
-                    channeld_id=int(part['channeld_id']) if 'channeld_id' in part else 1,
                 )
                 for part in data['remotes']
             ],
