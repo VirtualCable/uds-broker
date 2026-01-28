@@ -1,6 +1,7 @@
 // "Fake" javascript file for translations
 // Typescript
 gettext("Errors found");
+gettext("Favorites");
 gettext("Warning");
 gettext("Service is in maintenance and cannot be executed");
 gettext("Errors found");
