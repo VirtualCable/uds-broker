@@ -49,19 +49,19 @@ url_validator = dj_validators.URLValidator(['http', 'https'])
 
 
 def validate_numeric(
-    value: typing.Union[str, int],
-    min_value: typing.Optional[int] = None,
-    max_value: typing.Optional[int] = None,
-    field_name: typing.Optional[str] = None,
+    value: str | int,
+    min_value: int | None = None,
+    max_value: int | None = None,
+    field_name: str | None = None,
 ) -> int:
     """
     Validates that a numeric value is valid
 
     Args:
         value (typing.Union[str, int]): Numeric value to check
-        min_value (typing.Optional[int], optional): If not None, min value that must be the numeric or exception is thrown. Defaults to None.
-        max_value (typing.Optional[int], optional): If not None, max value that must be the numeric or exception is thrown. Defaults to None.
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions, defaults to "Numeric value". Defaults to None.
+        min_value (int | None, optional): If not None, min value that must be the numeric or exception is thrown. Defaults to None.
+        max_value (int | None, optional): If not None, max value that must be the numeric or exception is thrown. Defaults to None.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions, defaults to "Numeric value". Defaults to None.
 
     Returns:
         int: Value as integer
@@ -93,7 +93,7 @@ def validate_numeric(
 
 
 def validate_hostname(
-    hostname: str, max_length: int = 64, allow_domain: bool = False, field_name: typing.Optional[str] = None
+    hostname: str, max_length: int = 64, allow_domain: bool = False, field_name: str | None = None
 ) -> str:
     """
     Validates that a hostname is valid
@@ -102,7 +102,7 @@ def validate_hostname(
         hostname (str): Hostname to validate
         max_length (int, optional): Maximum length of the hostname. Defaults to 64.
         domain_allowed (bool, optional): If True, allows domains in the hostname. Defaults to False.
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid hostname". Defaults to None.
 
     Returns:
@@ -134,11 +134,11 @@ def validate_hostname(
     return hostname
 
 
-def validate_fqdn(fqdn: str, max_length: int = 255, field_name: typing.Optional[str] = None) -> str:
+def validate_fqdn(fqdn: str, max_length: int = 255, field_name: str | None = None) -> str:
     return validate_hostname(fqdn, max_length, allow_domain=True, field_name=field_name)
 
 
-def validate_url(url: str, max_length: int = 1024, field_name: typing.Optional[str] = None) -> str:
+def validate_url(url: str, max_length: int = 1024, field_name: str | None = None) -> str:
     field_name = f' (On field {field_name})' if field_name else ''
     if len(url) > max_length:
         raise exceptions.ui.ValidationError(
@@ -153,13 +153,13 @@ def validate_url(url: str, max_length: int = 1024, field_name: typing.Optional[s
     return url
 
 
-def validate_ipv4(ipv4: str, field_name: typing.Optional[str] = None) -> str:
+def validate_ipv4(ipv4: str, field_name: str | None = None) -> str:
     """
     Validates that a ipv4 address is valid
 
     Args:
         ipv4 (str): ipv4 address to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid IPv4 address". Defaults to None.
 
     Returns:
@@ -179,13 +179,13 @@ def validate_ipv4(ipv4: str, field_name: typing.Optional[str] = None) -> str:
     return ipv4
 
 
-def validate_ipv6(ipv6: str, field_name: typing.Optional[str] = None) -> str:
+def validate_ipv6(ipv6: str, field_name: str | None = None) -> str:
     """
     Validates that a ipv6 address is valid
 
     Args:
         ipv6 (str): ipv6 address to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid IPv6 address". Defaults to None.
 
     Returns:
@@ -204,13 +204,13 @@ def validate_ipv6(ipv6: str, field_name: typing.Optional[str] = None) -> str:
     return ipv6
 
 
-def validate_ip(ipv4_or_ipv6: str, field_name: typing.Optional[str] = None) -> str:
+def validate_ip(ipv4_or_ipv6: str, field_name: str | None = None) -> str:
     """
     Validates that a ipv4 or ipv6 address is valid
 
     Args:
         ipv4OrIpv6 (str): ipv4 or ipv6 address to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid IPv4 or IPv6 address". Defaults to None.
 
     Returns:
@@ -234,7 +234,7 @@ def validate_path(
     max_length: int = 1024,
     must_be_windows: bool = False,
     must_be_unix: bool = False,
-    field_name: typing.Optional[str] = None,
+    field_name: str | None = None,
 ) -> str:
     """
     Validates a path, if not "mustBe" is specified, it will be validated as either windows or unix.
@@ -274,10 +274,10 @@ def validate_path(
 
 
 def validate_port(
-    port: typing.Union[str, int],
+    port: str | int,
     *,
-    field_name: typing.Optional[str] = None,
-    valid_default: typing.Optional[int] = None,
+    field_name: str | None = None,
+    valid_default: int | None = None,
 ) -> int:
     """
     Validates that a port number is valid
@@ -296,7 +296,7 @@ def validate_port(
     return validate_numeric(port, min_value=1, max_value=65535, field_name=field_name or 'Port')
 
 
-def validate_host(host: str, field_name: typing.Optional[str] = None) -> str:
+def validate_host(host: str, field_name: str | None = None) -> str:
     """
     Validates that a host is valid
     :param host: host to validate
@@ -309,13 +309,13 @@ def validate_host(host: str, field_name: typing.Optional[str] = None) -> str:
         return validate_fqdn(host, field_name=field_name)
 
 
-def validate_host_port(host_port_pair: str, field_name: typing.Optional[str] = None) -> tuple[str, int]:
+def validate_host_port(host_port_pair: str, field_name: str | None = None) -> tuple[str, int | None]:
     """
     Validates that a host:port pair is valid
 
     Args:
         host_port_pair (str): host:port pair to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid host:port pair". Defaults to None.
 
     Returns:
@@ -343,13 +343,13 @@ def validate_host_port(host_port_pair: str, field_name: typing.Optional[str] = N
         ) from None
 
 
-def validate_timeout(timeout: 'str|int', field_name: typing.Optional[str] = None) -> int:
+def validate_timeout(timeout: 'str|int', field_name: str | None = None) -> int:
     """
     Validates that a timeout value is valid
 
     Args:
         timeout (str|int): timeout to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid timeout". Defaults to None.
 
     Returns:
@@ -361,13 +361,13 @@ def validate_timeout(timeout: 'str|int', field_name: typing.Optional[str] = None
     return validate_numeric(timeout, min_value=0, field_name=field_name or 'Timeout')
 
 
-def validate_mac(mac: str, field_name: typing.Optional[str] = None) -> str:
+def validate_mac(mac: str, field_name: str | None = None) -> str:
     """
     Validates that a mac address is valid
 
     Args:
         mac (str): mac address to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid MAC address". Defaults to None.
 
     Returns:
@@ -390,13 +390,13 @@ def validate_mac(mac: str, field_name: typing.Optional[str] = None) -> str:
     return mac
 
 
-def validate_mac_range(macrange: str, field_name: typing.Optional[str] = None) -> str:
+def validate_mac_range(macrange: str, field_name: str | None = None) -> str:
     """
     Corrects mac range (uppercase, without spaces), and checks that is range is valid
 
     Args:
         macrange (str): mac range to validate
-        field_name (typing.Optional[str], optional): If present, the name of the field for "Raising" exceptions.
+        field_name (str | None, optional): If present, the name of the field for "Raising" exceptions.
             If not present, the exception will be raised with the message "Invalid MAC range". Defaults to None.
 
     Returns:
@@ -476,12 +476,12 @@ def validate_basename(basename: str, length: int = -1) -> str:
     return basename
 
 
-def validate_json(json_data: typing.Optional[str]) -> typing.Any:
+def validate_json(json_data: str | None) -> typing.Any:
     """
     Validates that a json data is valid (or empty)
 
     Args:
-        json_data (typing.Optional[str]): Json data to validate
+        json_data (str | None): Json data to validate
 
     Raises:
         exceptions.ui.ValidationError: If json data is not valid
@@ -497,7 +497,7 @@ def validate_json(json_data: typing.Optional[str]) -> typing.Any:
         raise exceptions.ui.ValidationError(_('Invalid JSON data')) from None
 
 
-def validate_certificate(cert: typing.Optional[str]) -> str:
+def validate_certificate(cert: str | None) -> str:
     """
     Validates that a certificate is valid
 
@@ -517,7 +517,7 @@ def validate_certificate(cert: typing.Optional[str]) -> str:
     return cert
 
 
-def validate_private_key(key: typing.Optional[str]) -> str:
+def validate_private_key(key: str | None) -> str:
     """
     Validates that a private key is valid
 
@@ -544,7 +544,7 @@ def split_with_separator(text: str, separator: str) -> list[str]:
     return result
 
 
-def validate_server_certificate_multiple(value: typing.Optional[str]) -> str:
+def validate_server_certificate_multiple(value: str | None) -> str:
     """
     Validates the multi line fields refering to attributes
     """
