@@ -47,14 +47,14 @@ logger = logging.getLogger(__name__)
 MAX_SESSION_LENGTH = 60 * 60 * 24 * 7 * 2  # Two weeks is max session length for a tunneled connection
 
 
-# Enclosed methods under /tunnel path
-class TunnelTicketPC(Handler):
+# Enclosed methods under /tunnelpq path (post quantum tunnel)
+class TunnelTicketPQ(Handler):
     """
     Processes tunnel requests
     """
 
     ROLE = consts.UserRole.ANONYMOUS
-    PATH = 'tunnelpc'
+    PATH = 'tunnelpq'
     NAME = 'ticket'
 
     def post(self) -> typing.Any:
@@ -62,7 +62,7 @@ class TunnelTicketPC(Handler):
         Processes get requests
         """
         logger.debug(
-            'Tunnel parameters for post: %s (%s) from %s',
+            'TunnelPQ parameters for post: %s (%s) from %s',
             self._args,
             self._params,
             self._request.ip,
@@ -143,7 +143,7 @@ class TunnelTicketPC(Handler):
 class TunnelRegisterPC(ServerRegisterBase):
     ROLE = consts.UserRole.ADMIN
 
-    PATH = 'tunnelpc'
+    PATH = 'tunnelpq'
     NAME = 'register'
 
     # Just a compatibility method for old tunnel servers
