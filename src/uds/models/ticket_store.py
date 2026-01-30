@@ -243,7 +243,7 @@ class TicketStore(UUIDModel):
 
         if port is not None:
             remotes = [
-                types.tickets.TunnelTicketRemote(host=host or '', port=port, channeld_id=1)
+                types.tickets.TunnelTicketRemote(host=host or '', port=port)
             ]  # Host will be filled with userservice IP later
             
         if remotes is None:
