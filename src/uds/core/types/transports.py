@@ -30,12 +30,13 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-import codecs
 import collections.abc
 import dataclasses
 import enum
 import json
 import typing
+import base64
+import bz2
 
 from django.utils.translation import gettext_noop as _, gettext
 
@@ -117,18 +118,14 @@ class TransportScript:
         """
         Returns encoded parameters for transport script
         """
-        return (
-            codecs.encode(codecs.encode(json.dumps(self.parameters).encode(), 'bz2'), 'base64')
-            .decode()
-            .replace('\n', '')
-        )
+        return base64.b64encode(bz2.compress(json.dumps(self.parameters).encode())).decode()
 
     @property
     def encoded_script(self) -> str:
         """
         Returns encoded script
         """
-        return codecs.encode(codecs.encode(self.script.encode(), 'bz2'), 'base64').decode().replace('\n', '')
+        return base64.b64encode(bz2.compress(self.script.encode())).decode()
 
     def as_dict(self) -> dict[str, typing.Any]:
         return {
@@ -140,24 +137,18 @@ class TransportScript:
             'log': self.log.as_dict(),
         }
 
-    def as_encrypted_dict(self, shared_secret: bytes, ciphertext: bytes, ticket_id: str) -> dict[str, str]:
+    def as_encrypted_dict(self, kem_key: str, ticket_id: str) -> dict[str, str]:
         from uds.core.managers.crypto import CryptoManager  # Avoid circular import
         from uds.models.ticket_store import TicketStore  # Avoid circular import
 
+        (shared_secret, dct) = CryptoManager.manager().as_encrypted_dict(
+            self.as_dict(),
+            ticket_id,
+            kem_key=kem_key,
+        )
 
-        cm = CryptoManager.manager()
-        material = cm.derive_tunnel_material(shared_secret, ticket_id.encode())
-
-        plaintext = json.dumps(self.as_dict()).encode()
-
-        encrypted = cm.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
-        
         # Associated ticket needs to have the shared secret to be accesed later
         if self.associated_ticket is not None:
             TicketStore.set_shared_secret(self.associated_ticket, shared_secret)
 
-        return {
-            'algorithm': 'AES-256-GCM',
-            'ciphertext': codecs.encode(ciphertext, 'base64').decode().replace('\n', ''),
-            'data': codecs.encode(encrypted, 'base64').decode().replace('\n', ''),
-        }
+        return dct

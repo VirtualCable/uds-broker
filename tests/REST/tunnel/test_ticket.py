@@ -28,12 +28,14 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import typing
 import logging
 
 # from unittest import mock
 
 from uds.core import types
 from uds import models
+from uds.core.managers.crypto import CryptoManager, kem
 from uds.core.util.model import sql_now
 
 from tests.utils import rest
@@ -50,6 +52,15 @@ class TicketTest(rest.test.RESTTestCase):
     server_token: str
     valid_ticket: str
     ip: str
+    cm: typing.ClassVar[CryptoManager]
+    kyber_public_key: typing.ClassVar[str]  # Base 64 encoded
+    kyber_private_key: typing.ClassVar[str]  # Base 64 encoded
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.cm = CryptoManager.manager()
+        cls.kyber_public_key, cls.kyber_private_key = kem.generate_keypair()
 
     def setUp(self) -> None:
         super().setUp()
@@ -71,6 +82,7 @@ class TicketTest(rest.test.RESTTestCase):
         server.groups.add(sg)
         self.server_token = server.token
 
+        # Create a userservice
         userservice = self.user_services[0]
         if not userservice.user:
             userservice.user = self.users[0]
@@ -181,6 +193,39 @@ class TicketTest(rest.test.RESTTestCase):
                 ticket=self.valid_ticket,
                 command='start',
                 ip='127.0.0.1',
+                kem_kyber_key=self.kyber_public_key,
+            ).as_dict(),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_request_invalid_kem_key(self) -> None:
+        """
+        Test ticket request with invalid token
+        """
+        # Invalid base64 key
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token=self.server_token,
+                ticket=self.valid_ticket,
+                command='start',
+                ip='127.0.0.1',
+                kem_kyber_key='invalid_kem_key',
+            ).as_dict(),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 403)
+
+        # Valid key, but invalid for Kyber (basically, invalid length)
+        response = self.client.post(
+            self.get_url(),
+            data=types.tickets.TunnelTicketRequest(
+                token=self.server_token,
+                ticket=self.valid_ticket,
+                command='start',
+                ip='127.0.0.1',
+                kem_kyber_key='AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg==',
             ).as_dict(),
             content_type='application/json',
         )
@@ -197,6 +242,7 @@ class TicketTest(rest.test.RESTTestCase):
                 ticket='invalid_ticket',
                 command='start',
                 ip='127.0.0.1',
+                kem_kyber_key=self.kyber_public_key,
             ).as_dict(),
             content_type='application/json',
         )
@@ -206,6 +252,7 @@ class TicketTest(rest.test.RESTTestCase):
         """
         Test ticket request with valid ticket and start
         """
+
         response = self.client.post(
             self.get_url(),
             data=types.tickets.TunnelTicketRequest(
@@ -213,11 +260,19 @@ class TicketTest(rest.test.RESTTestCase):
                 ticket=self.valid_ticket,
                 command='start',
                 ip='127.0.0.1',
+                kem_kyber_key=self.kyber_public_key,
             ).as_dict(),
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
-        data = response.json()
+        encrypted_data = response.json()
+        # Decrytpt reponse to process it
+        data = self.cm.decrypted_dict(
+            encrypted_data,
+            self.valid_ticket,
+            self.kyber_private_key,
+        )
+
         r = types.tickets.TunnelTicketResponse.from_dict(data)  # Just to check it can be created without errors
 
         self.assertEqual(r.remotes[0].host, self.ip)  #
@@ -228,6 +283,7 @@ class TicketTest(rest.test.RESTTestCase):
     def test_request_valid_ticket_stop(self) -> None:
         """
         Test ticket request with valid ticket and stop
+        This response is not encrypted, just an empty dict is returned
         """
         response = self.client.post(
             self.get_url(),

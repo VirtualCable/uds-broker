@@ -132,11 +132,11 @@ class TunnelTicketPQ(Handler):
                     remotes=ticket.remotes,
                     notify=notify_ticket,
                     shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else '',
-                )
+                ).as_encrypted_dict(req.kem_kyber_key, ticket_id=req.ticket)
 
             return {}
         except Exception as e:
-            logger.info('Ticket ignored: %s', e)
+            logger.info('Ticket Request ignored: %s', e)
             raise exceptions.rest.AccessDenied() from e
 
 

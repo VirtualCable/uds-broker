@@ -31,6 +31,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import hashlib
 import array
+import json
 import uuid
 import codecs
 import struct
@@ -441,4 +442,66 @@ class CryptoManager(metaclass=singleton.Singleton):
         Returns a tuple of (shared_secret: bytes, ciphertext: bytes)
         """
         return kem.encrypt(kem_key_b64)
-        
+
+    def as_encrypted_dict(
+        self,
+        dct: dict[str, typing.Any],
+        ticket_id: str,
+        *,
+        kem_key: str | None = None,
+        shared_secret: bytes | None = None,
+        ciphertext: bytes | None = None,
+    ) -> tuple[bytes, dict[str, str]]:
+        """
+        Convert a dict to an encrypted dict using AES-256-GCM with keys derived from the shared_secret and ticket_id.
+
+        Returns:
+        A tuple of (shared_secret: bytes, encrypted_dict: dict[str, str])
+        """
+        if shared_secret is None or ciphertext is None:
+            if kem_key is None:
+                raise ValueError("Either kem_key or both shared_secret and ciphertext must be provided")
+            shared_secret, ciphertext = self.generate_kem_shared_ciphertext(kem_key)
+
+        material = self.derive_tunnel_material(shared_secret, ticket_id.encode())
+
+        plaintext = json.dumps(dct).encode()
+
+        encrypted = self.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
+
+        # used codecs instead of base64 to keep consistency with the use uf bz2 compression
+        return (
+            shared_secret,
+            {
+                'algorithm': 'AES-256-GCM',
+                'ciphertext': base64.b64encode(ciphertext).decode(),
+                'data': base64.b64encode(encrypted).decode(),
+            },
+        )
+
+    def decrypted_dict(
+        self,
+        encrypted_dict: dict[str, str],
+        ticket_id: str,
+        kem_private_key_b64: str,
+    ) -> dict[str, typing.Any]:
+        """
+        Decrypts an encrypted dict using AES-256-GCM with keys derived from the shared_secret and ticket_id.
+
+        Returns:
+        The decrypted dict.
+        """
+        # Ensure algorithm is correct
+        if encrypted_dict.get('algorithm') != 'AES-256-GCM':
+            raise ValueError("Unsupported encryption algorithm")
+
+        ciphertext = base64.b64decode(encrypted_dict['ciphertext'])
+        encrypted_data = base64.b64decode(encrypted_dict['data'])
+
+        shared_secret = kem.decrypt(kem_private_key_b64, ciphertext)
+
+        material = self.derive_tunnel_material(shared_secret, ticket_id.encode())
+
+        decrypted = self.aes256_gcm_decrypt(material.key_payload, material.nonce_payload, encrypted_data, b'')
+
+        return json.loads(decrypted.decode())

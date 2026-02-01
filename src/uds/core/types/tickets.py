@@ -85,14 +85,13 @@ class TunnelTicket:
         userservice = UserService.objects.filter(uuid=data['userservice_uuid']).first()
         userservice_ip = userservice.get_instance().get_ip() if userservice else ''
 
-
         def get_remote(part: str) -> TunnelTicketRemote:
             host, port = part.split(',')
             return TunnelTicketRemote(
                 host=host or userservice_ip,
                 port=int(port),
             )
-            
+
         return TunnelTicket(
             userservice=userservice,
             remotes=[get_remote(part) for part in data['remotes'].split('#') if part],
@@ -108,16 +107,18 @@ class TunnelTicketRequest:
     ticket: str  # Ticket string
     command: str  # start/stop right now
     ip: str  # Source IP address (who originates the connection request)
+    kem_kyber_key: str = ''  # KEM Kyber public key (base64 encoded, only for start command)
     sent: int = 0  # Used only on stop command
     recv: int = 0  # Used only on stop command
 
-    def as_dict(self) -> dict[str, str|int]:
+    def as_dict(self) -> dict[str, str | int]:
         """Returns a dict representation of the ticket request"""
         return {
             'token': self.token,
             'ticket': self.ticket,
             'command': self.command,
             'ip': self.ip,
+            'kem_kyber_key': self.kem_kyber_key,
             'sent': self.sent,
             'recv': self.recv,
         }
@@ -131,6 +132,7 @@ class TunnelTicketRequest:
             token=data['token'][:48],
             ticket=data['ticket'][:48],
             command=data['command'][:16],
+            kem_kyber_key=data.get('kem_kyber_key', '')[:16384],  # Kem keys can be large
             ip=data['ip'][:32],
             sent=int(data.get('sent', 0)),
             recv=int(data.get('recv', 0)),
@@ -150,6 +152,16 @@ class TunnelTicketResponse:
             'notify': self.notify,
             'shared_secret': self.shared_secret,
         }
+
+    def as_encrypted_dict(self, kem_key: str, ticket_id: str) -> dict[str, str]:
+        from uds.core.managers.crypto import CryptoManager  # Avoid circular import
+
+        (_shared_secret, dct) = CryptoManager.manager().as_encrypted_dict(
+            self.as_dict(),
+            ticket_id,
+            kem_key=kem_key,
+        )
+        return dct
 
     @staticmethod
     def from_dict(data: dict[str, typing.Any]) -> 'TunnelTicketResponse':
