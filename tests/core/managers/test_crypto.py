@@ -190,7 +190,7 @@ class CryptoManagerTest(UDSTestCase):
         (
             shared_secret,
             data,
-        ) = self.manager.as_encrypted_dict(
+        ) = self.manager.encrypted_dict(
             {'key': 'value', 'number': 42},
             'A' * 48,
             shared_secret=b'\x01' * 32,

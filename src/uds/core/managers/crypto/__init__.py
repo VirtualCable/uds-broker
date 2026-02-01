@@ -443,12 +443,12 @@ class CryptoManager(metaclass=singleton.Singleton):
         """
         return kem.encrypt(kem_key_b64)
 
-    def as_encrypted_dict(
+    def encrypted_dict(
         self,
         dct: dict[str, typing.Any],
         ticket_id: str,
         *,
-        kem_key: str | None = None,
+        kem_key_b64: str | None = None,
         shared_secret: bytes | None = None,
         ciphertext: bytes | None = None,
     ) -> tuple[bytes, dict[str, str]]:
@@ -459,9 +459,9 @@ class CryptoManager(metaclass=singleton.Singleton):
         A tuple of (shared_secret: bytes, encrypted_dict: dict[str, str])
         """
         if shared_secret is None or ciphertext is None:
-            if kem_key is None:
-                raise ValueError("Either kem_key or both shared_secret and ciphertext must be provided")
-            shared_secret, ciphertext = self.generate_kem_shared_ciphertext(kem_key)
+            if kem_key_b64 is None:
+                raise ValueError("Either kem_key_b64 or both shared_secret and ciphertext must be provided")
+            shared_secret, ciphertext = self.generate_kem_shared_ciphertext(kem_key_b64)
 
         material = self.derive_tunnel_material(shared_secret, ticket_id.encode())
 

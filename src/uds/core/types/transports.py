@@ -141,10 +141,10 @@ class TransportScript:
         from uds.core.managers.crypto import CryptoManager  # Avoid circular import
         from uds.models.ticket_store import TicketStore  # Avoid circular import
 
-        (shared_secret, dct) = CryptoManager.manager().as_encrypted_dict(
+        (shared_secret, dct) = CryptoManager.manager().encrypted_dict(
             self.as_dict(),
             ticket_id,
-            kem_key=kem_key,
+            kem_key_b64=kem_key,
         )
 
         # Associated ticket needs to have the shared secret to be accesed later

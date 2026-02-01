@@ -156,10 +156,10 @@ class TunnelTicketResponse:
     def as_encrypted_dict(self, kem_key: str, ticket_id: str) -> dict[str, str]:
         from uds.core.managers.crypto import CryptoManager  # Avoid circular import
 
-        (_shared_secret, dct) = CryptoManager.manager().as_encrypted_dict(
+        (_shared_secret, dct) = CryptoManager.manager().encrypted_dict(
             self.as_dict(),
             ticket_id,
-            kem_key=kem_key,
+            kem_key_b64=kem_key,
         )
         return dct
 
