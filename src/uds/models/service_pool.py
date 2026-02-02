@@ -181,7 +181,7 @@ class ServicePool(UUIDModel, TaggingMixin):
         """
         return Environment.environment_for_table_record(self._meta.verbose_name or self._meta.db_table, self.id)
 
-    def active_publication(self) -> typing.Optional['ServicePoolPublication']:
+    def active_publication(self) -> 'ServicePoolPublication | None':
         """
         Returns the current valid publication for this deployed service.
 
@@ -239,7 +239,7 @@ class ServicePool(UUIDModel, TaggingMixin):
         return ServicePool.objects.filter(pk__in=res)
 
     @staticmethod
-    def restrained_pools() -> typing.Iterator['ServicePool']:
+    def restrained_pools() -> collections.abc.Iterator['ServicePool']:
         return ServicePool.restraineds_queryset().iterator()
 
     @property
@@ -331,8 +331,8 @@ class ServicePool(UUIDModel, TaggingMixin):
             and not self.is_restrained()
         )
 
-    def when_will_be_replaced(self, for_user: 'User') -> typing.Optional[datetime]:
-        active_publication: typing.Optional['ServicePoolPublication'] = self.active_publication()
+    def when_will_be_replaced(self, for_user: 'User') -> datetime | None:
+        active_publication: 'ServicePoolPublication | None' = self.active_publication()
         # If no publication or current revision, it's not going to be replaced
         if active_publication is None:
             return None
@@ -359,7 +359,7 @@ class ServicePool(UUIDModel, TaggingMixin):
 
         return None
 
-    def is_access_allowed(self, check_datetime: typing.Optional[datetime] = None) -> bool:
+    def is_access_allowed(self, check_datetime: datetime | None = None) -> bool:
         """
         Checks if the access for a service pool is allowed or not (based esclusively on associated calendars)
         """
@@ -375,14 +375,14 @@ class ServicePool(UUIDModel, TaggingMixin):
 
         return access == types.states.State.ALLOW
 
-    def get_deadline(self, check_datetime: typing.Optional[datetime] = None) -> typing.Optional[int]:
+    def get_deadline(self, check_datetime: datetime | None = None) -> int | None:
         """Gets the deadline for an access on check_datetime in seconds
 
         Args:
-            check_datetime {typing.Optional[datetime]} -- [Gets the deadline for this date instead of current] (default: {None})
+            check_datetime {datetime | None} -- [Gets the deadline for this date instead of current] (default: {None})
 
         Returns:
-            typing.Optional[int] -- [Returns deadline in secods. If no deadline (forever), will return None]
+            int | None -- [Returns deadline in secods. If no deadline (forever), will return None]
         """
         if check_datetime is None:
             check_datetime = sql_now()
@@ -470,7 +470,7 @@ class ServicePool(UUIDModel, TaggingMixin):
 
     def mark_old_userservices_as_removable(
         self,
-        active_publication: typing.Optional['ServicePoolPublication'],
+        active_publication: 'ServicePoolPublication | None',
         skip_assigned: bool = False,
     ) -> None:
         """
@@ -558,7 +558,7 @@ class ServicePool(UUIDModel, TaggingMixin):
 
     @staticmethod
     def get_pools_for_groups(
-        groups: collections.abc.Iterable['Group'], user: typing.Optional['User'] = None
+        groups: collections.abc.Iterable['Group'], user: 'User | None' = None, *, visible_only: bool = True
     ) -> collections.abc.Iterable['ServicePool']:
         """
         Return deployed services with publications for the groups requested.
@@ -574,13 +574,14 @@ class ServicePool(UUIDModel, TaggingMixin):
         services_not_needing_publication = [
             t.mod_type() for t in services.factory().services_not_needing_publication()
         ]
+        visible_kwargs = { 'visible': True } if visible_only else {}
         # Get services that HAS publications
         query = (
             ServicePool.objects.filter(
                 assignedGroups__in=groups,
                 assignedGroups__state=types.states.State.ACTIVE,
                 state__in=types.states.State.PROCESABLE_STATES,
-                visible=True,
+                **visible_kwargs,
             )
             .annotate(
                 pubs_active=models.Count(
@@ -634,7 +635,7 @@ class ServicePool(UUIDModel, TaggingMixin):
             ):
                 yield servicepool
 
-    def publish(self, changelog: typing.Optional[str] = None) -> None:
+    def publish(self, changelog: str | None = None) -> None:
         """
         Launches the publication of this deployed service.
 
@@ -700,7 +701,7 @@ class ServicePool(UUIDModel, TaggingMixin):
 
         return types.pools.UsageInfo(cached_value, maxs)
 
-    def test_connectivity(self, host: str, port: typing.Union[str, int], timeout: float = 4) -> bool:
+    def test_connectivity(self, host: str, port: str | int, timeout: float = 4) -> bool:
         return bool(self.service) and self.service.test_connectivity(host, port, timeout)
 
     # Utility for logging
