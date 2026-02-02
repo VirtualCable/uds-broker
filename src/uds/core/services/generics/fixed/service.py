@@ -90,7 +90,6 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
         required=False,
         readonly=False,
     )
-
     machines = gui.MultiChoiceField(
         label=_("Machines"),
         order=30,
@@ -99,7 +98,6 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
         tab=types.ui.Tab.MACHINE,
         rows=10,
     )
-
     # Randomize machine assignation isntead of linear
     randomize = gui.CheckBoxField(
         label=_('Randomize machine assignation'),

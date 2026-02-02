@@ -214,7 +214,7 @@ class Operation(enum.IntEnum):
 
 @dataclasses.dataclass
 class ServicePoolStats:
-    servicepool: typing.Optional['models.ServicePool']
+    servicepool: 'models.ServicePool | None'
     l1_cache_count: int
     l2_cache_count: int
     assigned_count: int
@@ -283,6 +283,6 @@ class ServicePoolStats:
 @dataclasses.dataclass
 class UserServiceInfo:
     # Ip is unknown if not requested test
-    ip: typing.Optional[str]
+    ip: str | None
     userservice: 'models.UserService'
     transport: 'models.Transport'

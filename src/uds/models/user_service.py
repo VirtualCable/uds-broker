@@ -376,6 +376,9 @@ class UserService(UUIDModel, properties.PropertiesMixin):
     def allow_putting_back_to_cache(self) -> bool:
         return self.deployed_service.service.get_instance().allow_putting_back_to_cache()
 
+    def restore_snapshot_on_back_to_cache(self) -> bool:
+        return self.deployed_service.service.get_instance().restore_snapshot_on_back_to_cache()
+
     def transforms_user_or_password_for_service(self) -> bool:
         """
         If the os manager changes the username or the password, this will return True
@@ -610,9 +613,7 @@ class UserService(UUIDModel, properties.PropertiesMixin):
             or (self.properties.get('comms_url', None) or '').split('/')[-1]
         )
 
-    def get_comms_endpoint(
-        self, path: str | None = None
-    ) -> str | None:  # pylint: disable=unused-argument
+    def get_comms_endpoint(self, path: str | None = None) -> str | None:  # pylint: disable=unused-argument
         # path is not used, but to keep compat with Server "getCommUrl" method
         return self.properties.get('comms_url', None)
 

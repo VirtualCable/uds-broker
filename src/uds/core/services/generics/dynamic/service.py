@@ -102,7 +102,12 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     def allow_putting_back_to_cache(self) -> bool:
         if self.has_field('put_back_to_cache'):
-            return self.put_back_to_cache.value == 'yes'
+            return self.put_back_to_cache.value != 'no'
+        return False
+    
+    def restore_snapshot_on_back_to_cache(self) -> bool:
+        if self.has_field('put_back_to_cache'):
+            return self.put_back_to_cache.value == 'snapshot'
         return False
 
     def get_basename(self) -> str:

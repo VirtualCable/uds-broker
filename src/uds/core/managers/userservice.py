@@ -316,7 +316,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
         # Data will be serialized on makeUnique process
         UserServiceOpChecker.make_unique(cache, state)
 
-    def forced_move_assigned_to_cache_l1(self, user_service: UserService) -> None:
+    def forced_move_assigned_to_cache_l1(self, userservice: UserService) -> None:
         """
         Clones the record of a user service.
         For this, the original userservice will ve moved to cache, and a new one will be created
@@ -326,7 +326,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
         as usual
         """
         # Load again to get a copy of the object
-        user_service_copy = UserService.objects.get(id=user_service.id)
+        user_service_copy = UserService.objects.get(id=userservice.id)
         user_service_copy.pk = None
         user_service_copy.uuid = generate_uuid()
         user_service_copy.in_use = False
@@ -338,13 +338,16 @@ class UserServiceManager(metaclass=singleton.Singleton):
         user_service_copy.save()
 
         # Now, move the original to cache, but do it "hard" way, so we do not need to check for state
-        user_service.state = State.USABLE
-        user_service.os_state = State.USABLE
-        user_service.user = None
-        user_service.cache_level = types.services.CacheLevel.L1
-        user_service.in_use = False
-        user_service.src_hostname = user_service.src_ip = ''
-        user_service.save()
+        userservice.state = State.USABLE
+        userservice.os_state = State.USABLE
+        userservice.user = None
+        userservice.cache_level = types.services.CacheLevel.L1
+        userservice.in_use = False
+        userservice.src_hostname = userservice.src_ip = ''
+        userservice.save()
+        
+        # Execute back operations to move to level 1
+        userservice.move_to_level(types.services.CacheLevel.L1)
 
     def get_cache_servicepool_stats(
         self,
@@ -557,7 +560,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
 
     def get_existing_assignation_for_user(
         self, service_pool: ServicePool, user: User
-    ) -> typing.Optional[UserService]:
+    ) -> UserService | None:
         existing = service_pool.assigned_user_services().filter(
             user=user, state__in=State.VALID_STATES
         )  # , deployed_service__visible=True
@@ -568,7 +571,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
 
     def get_assignation_for_user(
         self, servicepool: ServicePool, user: User
-    ) -> typing.Optional[UserService]:  # pylint: disable=too-many-branches
+    ) -> UserService | None:  # pylint: disable=too-many-branches
         if servicepool.service.get_instance().spawns_new is False:  # Locate first if we have an assigned one
             assigned_userservice = self.get_existing_assignation_for_user(servicepool, user)
         else:
@@ -585,7 +588,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
             raise InvalidServiceException(_('Cannot create user services for this service'))
 
         if servicepool.uses_cache:
-            cache: typing.Optional[UserService] = None
+            cache: UserService | None = None
             # Now try to locate 1 from cache already "ready" (must be usable and at level 1)
             # First, a cached service that is "fully" ready
             with transaction.atomic():
@@ -904,7 +907,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
 
     def locate_user_service(
         self, user: User, userservice_id: str, create: bool = False
-    ) -> typing.Optional[UserService]:
+    ) -> UserService | None:
         """
         Locates a user service from a user and a service id
 
@@ -916,7 +919,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
         kind, uuid_userservice_pool = userservice_id[0], userservice_id[1:]
 
         logger.debug('Kind of service: %s, idservice: %s', kind, uuid_userservice_pool)
-        userservice: typing.Optional[UserService] = None
+        userservice: UserService | None = None
 
         if kind in 'A':  # This is an assigned service
             logger.debug('Getting assigned user service %s', uuid_userservice_pool)
@@ -956,9 +959,9 @@ class UserServiceManager(metaclass=singleton.Singleton):
         os: 'types.os.DetectedOsInfo',
         src_ip: str,
         user_service_id: str,
-        transport_id: typing.Optional[str],
+        transport_id: str | None,
         test_userservice_status: bool = True,
-        client_hostname: typing.Optional[str] = None,
+        client_hostname: str | None = None,
     ) -> types.services.UserServiceInfo:
         """
         Get service info from user service
@@ -1125,7 +1128,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
     def is_meta_service(self, meta_id: str) -> bool:
         return meta_id[0] == 'M'
 
-    def locate_meta_service(self, user: User, id_metapool: str) -> typing.Optional[UserService]:
+    def locate_meta_service(self, user: User, id_metapool: str) -> UserService | None:
         kind, uuid_metapool = id_metapool[0], id_metapool[1:]
         if kind != 'M':
             return None
@@ -1153,7 +1156,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
         os: 'types.os.DetectedOsInfo',
         id_metapool: str,
         id_transport: str,
-        client_hostname: typing.Optional[str] = None,
+        client_hostname: str | None = None,
     ) -> types.services.UserServiceInfo:
         logger.debug('This is meta')
         # We need to locate the service pool related to this meta, and also the transport
@@ -1202,12 +1205,12 @@ class UserServiceManager(metaclass=singleton.Singleton):
 
         logger.debug('Pools: %s/%s', pools, fully_occupied_pools)
 
-        usable: typing.Optional[tuple[ServicePool, Transport]] = None
+        usable: tuple[ServicePool, Transport] | None = None
         # Now, Lets find first if there is one assigned in ANY pool
 
         def _ensure_transport(
             pool: ServicePool,
-        ) -> typing.Optional[tuple[ServicePool, Transport]]:
+        ) -> tuple[ServicePool, Transport] | None:
             found = None
             t: Transport
             if id_transport == 'meta':  # Autoselected:
