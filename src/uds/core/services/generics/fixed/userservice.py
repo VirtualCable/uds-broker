@@ -123,7 +123,7 @@ class FixedUserService(services.UserService, autoserializable.AutoSerializable, 
             data['exec_count'] = 0
 
     @typing.final
-    def _inc_checks_counter(self, info: typing.Optional[str] = None) -> typing.Optional[types.states.TaskState]:
+    def _inc_checks_counter(self, info: str | None = None) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             count = data.get('exec_count', 0) + 1
             data['exec_count'] = count
@@ -137,7 +137,7 @@ class FixedUserService(services.UserService, autoserializable.AutoSerializable, 
             data['retries'] = 0
 
     @typing.final
-    def _inc_retries_counter(self) -> typing.Optional[types.states.TaskState]:
+    def _inc_retries_counter(self) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             retries = data.get('retries', 0) + 1
             data['retries'] = retries
@@ -148,7 +148,7 @@ class FixedUserService(services.UserService, autoserializable.AutoSerializable, 
         return None
 
     @typing.final
-    def error(self, reason: typing.Union[str, Exception]) -> types.states.TaskState:
+    def error(self, reason: str | Exception) -> types.states.TaskState:
         """
         Internal method to set object as error state
 
@@ -547,7 +547,9 @@ _EXECUTORS: typing.Final[
 
 # Same af before, but for check methods
 _CHECKERS: typing.Final[
-    collections.abc.Mapping[types.services.Operation, collections.abc.Callable[[FixedUserService], types.states.TaskState]]
+    collections.abc.Mapping[
+        types.services.Operation, collections.abc.Callable[[FixedUserService], types.states.TaskState]
+    ]
 ] = {
     types.services.Operation.CREATE: FixedUserService.op_create_checker,
     types.services.Operation.START: FixedUserService.op_start_checker,

@@ -51,7 +51,9 @@ logger = logging.getLogger(__name__)
 
 # Decorator that tests that _vmid is not empty
 # Used by some default methods that require a vmid to work
-def must_have_vmid(fnc: typing.Callable[[typing.Any], None]) -> typing.Callable[['DynamicUserService'], None]:
+def must_have_vmid(
+    fnc: collections.abc.Callable[[typing.Any], None],
+) -> collections.abc.Callable[['DynamicUserService'], None]:
     @functools.wraps(fnc)
     def wrapper(self: 'DynamicUserService') -> None:
         if self._vmid == '':
@@ -94,7 +96,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     _is_flagged_for_destroy = autoserializable.BoolField(default=False)
 
     # Extra info, not serializable, to keep information in case of exception and debug it
-    _error_debug_info: typing.Optional[str] = None
+    _error_debug_info: str | None = None
 
     _create_queue: typing.ClassVar[list[types.services.Operation]] = [
         types.services.Operation.INITIALIZE,
@@ -151,7 +153,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             data['exec_count'] = 0
 
     @typing.final
-    def _inc_checks_counter(self, op: types.services.Operation) -> typing.Optional[types.states.TaskState]:
+    def _inc_checks_counter(self, op: types.services.Operation) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             count = data.get('exec_count', 0) + 1
             data['exec_count'] = count
@@ -165,7 +167,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             data['retries'] = 0
 
     @typing.final
-    def _inc_retries_counter(self) -> typing.Optional[types.states.TaskState]:
+    def _inc_retries_counter(self) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             retries = data.get('retries', 0) + 1
             data['retries'] = retries
@@ -212,7 +214,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         return self.name_generator().get(self.service().get_basename(), self.service().get_lenname())
 
     @typing.final
-    def error(self, reason: typing.Union[str, Exception]) -> types.states.TaskState:
+    def error(self, reason: str | Exception) -> types.states.TaskState:
         """
         Internal method to set object as error state
 
@@ -283,7 +285,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             logger.exception('Unexpected DynamicUserService exception: %s', e)
             return self.error(e)
 
-    def _check_deferred_operations(self) -> typing.Optional[types.states.TaskState]:
+    def _check_deferred_operations(self) -> types.states.TaskState | None:
         """
         Checks if we have deferred operations to execute.
         Deferred operations are operations that are not executed immediately, but are stored in the queue

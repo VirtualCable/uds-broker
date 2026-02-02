@@ -116,5 +116,5 @@ class ProxmoxUserServiceFixed(FixedUserService, autoserializable.AutoSerializabl
 
     def get_console_connection(
         self,
-    ) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    ) -> types.services.ConsoleConnectionInfo | None:
         return self.service().get_console_connection(self._vmid)

@@ -261,20 +261,20 @@ class ProxmoxServiceLinked(DynamicService):
     def is_ha_enabled(self) -> bool:
         return self.ha.value != '__'
 
-    def get_console_connection(self, vmid: str) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    def get_console_connection(self, vmid: str) -> types.services.ConsoleConnectionInfo | None:
         return self.provider().api.get_console_connection(int(vmid))
 
     def is_available(self) -> bool:
         return self.provider().is_available()
 
     def get_ip(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> str:
         return self.provider().api.get_guest_ip_address(int(vmid))
 
     def get_mac(
         self,
-        caller_instance: typing.Optional['DynamicUserService | DynamicPublication'],
+        caller_instance: 'DynamicUserService | DynamicPublication | None',
         vmid: str,
         *,
         for_unique_id: bool = False,
@@ -287,7 +287,7 @@ class ProxmoxServiceLinked(DynamicService):
         return self.provider().api.get_vm_config(int(vmid)).networks[0].macaddr.lower()
 
     def start(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         if isinstance(caller_instance, ProxmoxUserserviceLinked):
             if self.is_running(caller_instance, vmid):  # If running, skip
@@ -298,7 +298,7 @@ class ProxmoxServiceLinked(DynamicService):
             self.provider().api.start_vm(int(vmid))
 
     def stop(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         if isinstance(caller_instance, ProxmoxUserserviceLinked):
             if self.is_running(caller_instance, vmid):
@@ -309,7 +309,7 @@ class ProxmoxServiceLinked(DynamicService):
             self.provider().api.stop_vm(int(vmid))
 
     def shutdown(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         if isinstance(caller_instance, ProxmoxUserserviceLinked):
             if self.is_running(caller_instance, vmid):
@@ -320,7 +320,7 @@ class ProxmoxServiceLinked(DynamicService):
             self.provider().api.shutdown_vm(int(vmid))  # Just shutdown it, do not stores anything
 
     def is_running(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> bool:
         # Raise an exception if fails to get machine info
         return self.get_vm_info(int(vmid)).validate().status.is_running()

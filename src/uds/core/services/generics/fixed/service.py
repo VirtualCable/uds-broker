@@ -155,7 +155,7 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
             self.token.value = self.token.value.strip()
 
     @contextlib.contextmanager
-    def _assigned_access(self) -> typing.Iterator[set[str]]:
+    def _assigned_access(self) -> collections.abc.Iterator[set[str]]:
         with self.storage.as_dict(atomic=True) as d:
             machines: set[str] = d.get('vms', set())
             initial_machines = machines.copy()  # for comparison later
