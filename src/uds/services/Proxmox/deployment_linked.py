@@ -212,19 +212,22 @@ class ProxmoxUserserviceLinked(DynamicUserService):
         provider = service.provider()
         api = provider.api
 
-        # Check if snapshot exists
-        snapshot = None
+        # Helper to ensure VM is powered off before snapshot operations
+        def ensure_powered_off():
+            if service.is_running(self, str(vmid)):
+                self._queue.insert(0, types.services.Operation.NOP)
+                self._queue.insert(0, types.services.Operation.SHUTDOWN)
+                return False
+            return True
+
         try:
             snapshot = api.get_current_vm_snapshot(vmid)
         except Exception as e:
             logger.warning(f'Error checking snapshot for VM {vmid}: {e}')
+            snapshot = None
 
-        # If no snapshot, create one
         if not snapshot:
-            # If running, shutdown first
-            if service.is_running(self, str(vmid)):
-                self._queue.insert(0, types.services.Operation.NOP)
-                self._queue.insert(0, types.services.Operation.SHUTDOWN)
+            if not ensure_powered_off():
                 return
             try:
                 exec_result = api.create_snapshot(vmid, name='UDS Snapshot')
@@ -232,12 +235,8 @@ class ProxmoxUserserviceLinked(DynamicUserService):
             except Exception as e:
                 logger.warning(f'Error creating snapshot for VM {vmid}: {e}')
                 self.error(str(e))
-                return
         else:
-            # Restore snapshot (must be powered off)
-            if service.is_running(self, str(vmid)):
-                self._queue.insert(0, types.services.Operation.NOP)
-                self._queue.insert(0, types.services.Operation.SHUTDOWN)
+            if not ensure_powered_off():
                 return
             try:
                 exec_result = api.restore_snapshot(vmid, name=snapshot.name)
@@ -245,7 +244,6 @@ class ProxmoxUserserviceLinked(DynamicUserService):
             except Exception as e:
                 logger.warning(f'Error restoring snapshot for VM {vmid}: {e}')
                 self.error(str(e))
-                return
 
     def op_custom_checker(self, operation: Operation) -> TaskState:
         # If the snapshot creation operation has finished, return FINISHED
