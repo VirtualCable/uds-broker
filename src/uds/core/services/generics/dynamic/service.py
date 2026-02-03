@@ -102,7 +102,12 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     def allow_putting_back_to_cache(self) -> bool:
         if self.has_field('put_back_to_cache'):
-            return self.put_back_to_cache.value == 'yes'
+            return self.put_back_to_cache.value != 'no'
+        return False
+    
+    def restore_snapshot_on_back_to_cache(self) -> bool:
+        if self.has_field('put_back_to_cache'):
+            return self.put_back_to_cache.value == 'snapshot'
         return False
 
     def get_basename(self) -> str:
@@ -164,7 +169,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     @abc.abstractmethod
     def get_ip(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> str:
         """
         Returns the ip of the machine
@@ -175,7 +180,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
     @abc.abstractmethod
     def get_mac(
         self,
-        caller_instance: typing.Optional['DynamicUserService | DynamicPublication'],
+        caller_instance: 'DynamicUserService | DynamicPublication | None',
         vmid: str,
         *,
         for_unique_id: bool = False,
@@ -202,7 +207,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     @abc.abstractmethod
     def is_running(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> bool:
         """
         Returns if the machine is ready and running
@@ -211,7 +216,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     @abc.abstractmethod
     def start(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         """
         Starts the machine
@@ -221,7 +226,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
 
     @abc.abstractmethod
     def stop(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         """
         Stops the machine
@@ -230,7 +235,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
         ...
 
     def shutdown(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         """
         Shutdowns the machine.  Defaults to stop
@@ -239,7 +244,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
         return self.stop(caller_instance, vmid)
 
     def reset(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         """
         Resets the machine
@@ -249,7 +254,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
         return self.stop(caller_instance, vmid)
 
     def delete(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> None:
         """
         Removes the machine, or queues it for removal, or whatever :)
@@ -296,7 +301,7 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
             storage[f'deleting_{vmid}'] = True
 
     def is_deletion_in_progress(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
+        self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str
     ) -> bool:
         """
         Checks if the deferred deletion of a machine is running

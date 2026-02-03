@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 def _server_group_values(
-    types_: collections.abc.Iterable[types.servers.ServerType], subtype: typing.Optional[str] = None
+    types_: collections.abc.Iterable[types.servers.ServerType], subtype: str | None = None
 ) -> list[types.ui.ChoiceItem]:
     fltr = models.ServerGroup.objects.filter(
         functools.reduce(
@@ -99,9 +99,9 @@ def get_tunnel_from_field(fld: ui.gui.ChoiceField) -> models.ServerGroup:
 
 # Server group field
 def server_group_field(
-    valid_types: typing.Optional[list[types.servers.ServerType]] = None,
-    subtype: typing.Optional[str] = None,
-    tab: typing.Optional[types.ui.Tab] = None,
+    valid_types: list[types.servers.ServerType] | None = None,
+    subtype: str | None = None,
+    tab: types.ui.Tab | None = None,
 ) -> ui.gui.ChoiceField:
     """Returns a field to select a server group
 
@@ -173,7 +173,7 @@ def tunnel_startup_time_secs(
 
 # Get certificates from field
 def get_certificates_from_field(
-    field: ui.gui.TextField, field_value: typing.Optional[str] = None
+    field: ui.gui.TextField, field_value: str | None = None
 ) -> list['Certificate']:
     # Get certificates in self.publicKey.value, encoded as PEM
     # Return a list of certificates in DER format
@@ -203,7 +203,7 @@ def timeout_field(
     default: int = 8,
     order: int = 90,
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ADVANCED,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.NumericField:
     return ui.gui.NumericField(
         length=3,
@@ -223,7 +223,7 @@ def verify_ssl_field(
     default: bool = True,
     order: int = 92,
     tab: 'types.ui.Tab|str|None|bool' = None,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.CheckBoxField:
     return ui.gui.CheckBoxField(
         label=_('Verify SSL'),
@@ -323,7 +323,7 @@ def services_limit_field(
 def remove_duplicates_field(
     order: int = 102,
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ADVANCED,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.CheckBoxField:
     return ui.gui.CheckBoxField(
         label=_('Remove found duplicates'),
@@ -338,7 +338,7 @@ def remove_duplicates_field(
 def soft_shutdown_field(
     order: int = 103,
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ADVANCED,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.CheckBoxField:
     return ui.gui.CheckBoxField(
         label=_('Try SOFT Shutdown first'),
@@ -355,7 +355,7 @@ def soft_shutdown_field(
 def soft_reset_field(
     order: int = 104,
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ADVANCED,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.ChoiceField:
     """
     Returns a field to select the type of reset to perform
@@ -379,7 +379,7 @@ def soft_reset_field(
 def maintain_on_error_field(
     order: int = 105,
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ADVANCED,
-    old_field_name: typing.Optional[str] = None,
+    old_field_name: str | None = None,
 ) -> ui.gui.CheckBoxField:
     return ui.gui.CheckBoxField(
         label=_('Keep on error'),
@@ -500,6 +500,7 @@ def put_back_to_cache_field(
         choices=[
             types.ui.ChoiceItem(id='no', text=_('No. Never put it back to cache')),
             types.ui.ChoiceItem(id='yes', text=_('Yes, try to put it back to cache')),
+            types.ui.ChoiceItem(id='snapshot', text=_('Yes, try to put it back to cache and recover snapshot')),
         ],
         tab=tab,
     )
@@ -507,7 +508,7 @@ def put_back_to_cache_field(
 
 def username_attr_field(
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ATTRIBUTES,
-    default: typing.Optional[str] = None,
+    default: str | None = None,
     order: int = 100,
 ) -> ui.gui.TextField:
     return ui.gui.TextField(
@@ -526,7 +527,7 @@ def username_attr_field(
 
 def groupname_attr_field(
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ATTRIBUTES,
-    default: typing.Optional[str] = None,
+    default: str | None = None,
     order: int = 101,
 ) -> ui.gui.TextField:
     return ui.gui.TextField(
@@ -545,7 +546,7 @@ def groupname_attr_field(
 
 def realname_attr_field(
     tab: 'types.ui.Tab|str|None' = types.ui.Tab.ATTRIBUTES,
-    default: typing.Optional[str] = None,
+    default: str | None = None,
     order: int = 102,
 ) -> ui.gui.TextField:
     return ui.gui.TextField(

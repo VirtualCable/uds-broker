@@ -120,18 +120,18 @@ class UserService(Environmentable, Serializable, abc.ABC):
     suggested_delay = 10
 
     _service: 'services.Service'
-    _publication: typing.Optional['services.Publication']
-    _osmanager: typing.Optional['osmanagers.OSManager']
+    _publication: 'services.Publication | None'
+    _osmanager: 'osmanagers.OSManager | None'
     _uuid: str
 
-    _db_obj: typing.Optional['models.UserService'] = None
+    _db_obj: 'models.UserService | None' = None
 
     def __init__(
         self,
         environment: 'Environment',
         service: 'services.Service',
-        publication: typing.Optional['services.Publication'] = None,
-        osmanager: typing.Optional['osmanagers.OSManager'] = None,
+        publication: 'services.Publication | None' = None,
+        osmanager: 'osmanagers.OSManager | None' = None,
         uuid: str = '',
     ):
         """
@@ -202,7 +202,7 @@ class UserService(Environmentable, Serializable, abc.ABC):
         """
         return self._service
 
-    def publication(self) -> typing.Optional['services.Publication']:
+    def publication(self) -> 'services.Publication | None':
         """
         Utility method to access publication. This doesn't need to be overriden.
 
@@ -213,7 +213,7 @@ class UserService(Environmentable, Serializable, abc.ABC):
         """
         return self._publication
 
-    def osmanager(self) -> typing.Optional['osmanagers.OSManager']:
+    def osmanager(self) -> 'osmanagers.OSManager | None':
         """
         Utility method to access os manager. This doesn't need to be overriden.
 
@@ -606,7 +606,7 @@ class UserService(Environmentable, Serializable, abc.ABC):
         """
         return types.states.TaskState.FINISHED
 
-    def get_connection_data(self) -> typing.Optional[types.services.ConnectionData]:
+    def get_connection_data(self) -> types.services.ConnectionData | None:
         """
         This method is only invoked on some user deployments that needs to provide
         Credentials based on deployment itself
@@ -614,7 +614,7 @@ class UserService(Environmentable, Serializable, abc.ABC):
         """
         return None
 
-    def get_console_connection(self) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    def get_console_connection(self) -> types.services.ConsoleConnectionInfo | None:
         """
         This method is invoked by any connection that needs special connection data
         to connenct to it using, for example, SPICE protocol. (that currently is the only one)

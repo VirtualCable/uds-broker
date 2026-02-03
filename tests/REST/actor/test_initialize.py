@@ -49,11 +49,11 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
 
     def invoke_success(
         self,
-        type_: typing.Union[typing.Literal['managed'], typing.Literal['unmanaged']],
+        type_: typing.Literal['managed'] | typing.Literal['unmanaged'],
         token: str,
         *,
-        mac: typing.Optional[str] = None,
-        ip: typing.Optional[str] = None,
+        mac: str | None = None,
+        ip: str | None = None,
     ) -> dict[str, typing.Any]:
         response = self.client.post(
             '/uds/rest/actor/v3/initialize',
@@ -72,11 +72,11 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
 
     def invoke_failure(
         self,
-        type_: typing.Union[typing.Literal['managed'], typing.Literal['unmanaged']],
+        type_: typing.Literal['managed'] | typing.Literal['unmanaged'],
         token: str,
         *,
-        mac: typing.Optional[str] = None,
-        ip: typing.Optional[str] = None,
+        mac: str | None = None,
+        ip: str | None = None,
         expect_forbidden: bool = False,
     ) -> dict[str, typing.Any]:
         response = self.client.post(
@@ -150,7 +150,7 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
             self.groups,
             'managed',
         )
-        
+
         # Set an IP as unique_id
         unique_id = '1.2.3.4'
         user_service.unique_id = unique_id
@@ -198,7 +198,7 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
         actor_token: str = (
             userservice.deployed_service.service.token if userservice.deployed_service.service else None
         ) or ''
-        
+
         if actor_token == '':
             self.fail('Service token not found')
 
@@ -233,20 +233,20 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
             mac=NONEXISTING_MAC,
         )
         self.assertEqual(result['master_token'], alias_token)
-        
+
         # Now, invoke with a correct mac (Exists os user services)
         result = success(
             actor_token,
             mac=USERSERVICE_MAC,
         )
-        
+
         # Note that due the change of mac, a new alias is created, not equal to the previous one
         self.assertNotEqual(alias_token, result['master_token'])
         alias_token = result['master_token']
         alias = models.ServiceTokenAlias.objects.get(alias=alias_token)
         self.assertEqual(alias.service, userservice.deployed_service.service)
         self.assertEqual(alias.unique_id, USERSERVICE_MAC.lower())
-        
+
         self.assertEqual(USERSERVICE_MAC, result['unique_id'])
         self.assertEqual(result['own_token'], result['token'])
         self.assertEqual(result['token'], userservice.uuid)
@@ -276,7 +276,7 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
         USERSERVICE_IP: typing.Final[str] = '1.2.3.4'
         userservice.unique_id = USERSERVICE_IP
         userservice.save()
-        
+
         actor_token: str = (
             userservice.deployed_service.service.token if userservice.deployed_service.service else None
         ) or ''
@@ -297,7 +297,6 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
         self.assertIsNone(result['own_token'])
         self.assertIsNone(result['token'])
 
-
         alias_token = result['master_token']
         # Ensure that the alias returned is on alias db, and it points to the same service as the one we belong to
         alias = models.ServiceTokenAlias.objects.get(alias=alias_token)
@@ -309,13 +308,13 @@ class ActorInitializeTest(rest.test.RESTActorTestCase):
             actor_token,
             mac=USERSERVICE_IP,
         )
-        
+
         # Note that due the change of mac, a new alias is created
         alias_token = result['master_token']
         alias = models.ServiceTokenAlias.objects.get(alias=alias_token)
         self.assertEqual(alias.service, userservice.deployed_service.service)
         self.assertEqual(alias.unique_id, USERSERVICE_IP.lower())
-        
+
         self.assertEqual(USERSERVICE_IP, result['unique_id'])
         self.assertEqual(result['own_token'], result['token'])
         self.assertEqual(result['token'], userservice.uuid)

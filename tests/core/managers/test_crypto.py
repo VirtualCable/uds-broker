@@ -37,6 +37,7 @@ from django.conf import settings
 
 from uds.core import types
 from uds.core.managers import crypto
+from uds.core.types.crypto import TunnelMaterial
 from ...utils.test import UDSTestCase
 
 TEST_STRING = 'abcdefghijklπερισσότεροήλιγότερομεγάλοκείμενογιαχαρακτήρεςmnopqrstuvwxyz或多或少的字符长文本ABCD'
@@ -66,7 +67,7 @@ class CryptoManagerTest(UDSTestCase):
         crypto.UDSK = UDSK  # type: ignore  # UDSK is final,
         return super().tearDown()
 
-    def test_RSA(self) -> None:
+    def test_rsa(self) -> None:
         testStr = 'Test string'
         cryptStr = self.manager.encrypt(testStr)
 
@@ -81,7 +82,7 @@ class CryptoManagerTest(UDSTestCase):
             'Decrypted test string failed!: {} vs {}'.format(decryptStr, testStr),
         )
 
-    def test_Xor(self) -> None:
+    def test_xor(self) -> None:
         testStr1a = 'Test String more or less with strange chars €@"áéöüìùòàäñÑ@æßðđŋħ←↓→þøŧ¶€ł@łĸµn”“«»“”nµłĸŋđðßææ@ł€¶ŧ←↓→øþ'
         testStr1b = 'Test String 2 with some ł€¶ŧ←↓→øþ'
 
@@ -95,7 +96,7 @@ class CryptoManagerTest(UDSTestCase):
                 xorxor = self.manager.xor(xor, s2)
                 self.assertEqual(xorxor.decode('utf-8'), s1)
 
-    def test_Symcrypt(self) -> None:
+    def test_symcrypt(self) -> None:
         testStr1a = 'Test String more or less with strange chars €@"áéöüìùòàäñÑ@æßðđŋħ←↓→þøŧ¶€ł@łĸµn”“«»“”nµłĸŋđðßææ@ł€¶ŧ←↓→øþ'
         testStr1b = 'Test String 2 with some ł€¶ŧ←↓→øþ'
 
@@ -109,14 +110,14 @@ class CryptoManagerTest(UDSTestCase):
                 symd = self.manager.symmetric_decrypt(sym, s2)
                 self.assertEqual(symd, s1)
 
-    def test_Certs(self) -> None:
+    def test_certs(self) -> None:
         # Right now, only tests that these methods do not fails
         self.manager.load_private_key(settings.RSA_KEY)
 
         self.manager.load_certificate(settings.CERTIFICATE)
         self.manager.load_certificate(settings.CERTIFICATE.encode('utf8'))
 
-    def test_Hash(self) -> None:
+    def test_hash(self) -> None:
         testStr = 'Test String for hash'
         # knownHashValue = '4e1311c1378993b34430988f4836b8e6b8beb219'
 
@@ -124,7 +125,7 @@ class CryptoManagerTest(UDSTestCase):
             hashValue = self.manager.hash(testStr)
             self.assertIsInstance(hashValue, str, 'Returned hash must be an string')
 
-    def test_Uuid(self) -> None:
+    def test_uuid(self) -> None:
         uuid = self.manager.uuid()
         # Ensure is an string
         self.assertIsInstance(uuid, str)
@@ -150,11 +151,11 @@ class CryptoManagerTest(UDSTestCase):
             # Ensure is a valid uuid
             uuid_type.UUID(uuid)
 
-    def testFastCrypt(self) -> None:
+    def test_fast_crypt(self) -> None:
         # Fast crypt uses random padding text, so the last block can be different
         self.assertEqual(self.manager.fast_crypt(TEST_STRING.encode())[:-16], CRYPTED_STRING[:-16])
 
-    def testFastDecrypt(self) -> None:
+    def test_fast_decrypt(self) -> None:
         self.assertEqual(self.manager.fast_decrypt(CRYPTED_STRING).decode(), TEST_STRING)
 
     def test_kem_module(self) -> None:
@@ -171,15 +172,36 @@ class CryptoManagerTest(UDSTestCase):
         )
 
     def test_derive_tunnel_material(self) -> None:
-        shared_secret = b'\x01' * 32  # Replace with actual shared secret (32 bytes)
-        ticket_id = b'\x01' * 48  # Replace with actual ticket ID
+        shared_secret = b'\x01' * 32
+        ticket_id = b'\x41' * 48
         material = self.manager.derive_tunnel_material(shared_secret, ticket_id)
 
-        # {
-        #     'key_payload': b'\x9a%\xd9\xb9\xb4\x87\x1f\xf0\xc2\x8e\x8f\xbb\xad\x05u\xf8{l,\xf1\x9f\x1b\x941\xeavr\xc0o\xb0\xb9\xdd',
-        #     'key_send': b"\xd0\xbb\xe0\x1d\xffK\xc9w\xd6\xec'\xf2~5L\xd7\xa6\xbf\xe7<(\x9d\xe7\xf2)\xaf\xb1\xd3\x1b\xee\xcdF",
-        #     'key_receive': b'W.\xdd\x97\xc2\x9c\xe9f\xe7`\xe7\xfa\x0c\x81\x1b\xe5\xca2,\xbf\x0f\xa1pW\x1a\x81\x8c\xacr\x9b\xb0\xa7',
-        #     'nonce_send': b"\xf9z\x82X>\x99\xf4\xfc\xa4'\x83\xc8",
-        #     'nonce_receive': b'M~\xe7_\x80\xf7\xf0\x04\xcdQ\xc8\x9c',
-        # }
+        # Expected values calculated with known-good implementation
+        EXPECTED = TunnelMaterial(
+            key_payload=b'T\x93\xcb\xb2O\x07\x8cq~\xbc\x1e\xddzX\x05\xadq\xa6\r\xf4\xfaz\xa1\r?<\xcc\xbf\xef\x97\x11!',
+            key_send=b'\xb0=\xbe\xe9\x9e\xf1A\xa1\x88\xc7\xc6\xfa\x8b\xdb\x0f\x07v\xeeu\xa47!J)G\xaa\xc4\x11\x81,\xd1\xe9',
+            key_receive=b'\x7f\xb6\xe0{\xf7\x9e\xe3\xd3\xf4\xe1\x11& Y7(\xbeh\xa01\xb1\xbe\x18\x04\xac\x17Ta\xbcp\xb9$',
+            nonce_payload=b'K\x96\xa7\x90\xce\x88\xb9\x96\xa1\xc8\xfc\xc3',
+        )
         self.assertIsInstance(material, types.crypto.TunnelMaterial)
+        self.assertEqual(material, EXPECTED)
+
+    def test_as_encrypted_dict(self) -> None:
+        (
+            shared_secret,
+            data,
+        ) = self.manager.encrypted_dict(
+            {'key': 'value', 'number': 42},
+            'A' * 48,
+            shared_secret=b'\x01' * 32,
+            ciphertext=b'\x02' * 64,  # will only be encoded on ciphertext, any value will do
+        )
+        EXPECTED = {
+            'algorithm': 'AES-256-GCM',
+            'ciphertext': 'AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg==',
+            'data': 'QwVXqUBTA76PxOQ5h/i4QBAi0p9u8OCvOWzJ9i0Q1ynYcFXIunJhRVmUjOxaZw==',
+        }
+        self.assertIsInstance(shared_secret, bytes)
+        self.assertEqual(shared_secret, b'\x01' * 32)
+        self.assertIsInstance(data, dict)
+        self.assertEqual(data, EXPECTED)

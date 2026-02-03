@@ -54,8 +54,8 @@ class Stats(Handler):
         """
         auths: dict[str, list[dict[str, typing.Any]]] = {}
         for a in models.Authenticator.objects.all():
-            services: typing.Optional[types.stats.AccumStat] = None
-            userservices: typing.Optional[types.stats.AccumStat] = None
+            services: types.stats.AccumStat | None = None
+            userservices: types.stats.AccumStat | None = None
             stats: list[dict[str, typing.Any]] = []
 
             services_counter_iterator = counters.enumerate_accumulated_counters(

@@ -63,7 +63,7 @@ class OSManager(ManagedObjectModel, TaggingMixin):
         ordering = ('name',)
         app_label = 'uds'
 
-    def get_instance(self, values: typing.Optional[dict[str, str]] = None) -> 'osmanagers.OSManager':
+    def get_instance(self, values: dict[str, str] | None = None) -> 'osmanagers.OSManager':
         return typing.cast('osmanagers.OSManager', super().get_instance(values=values))
 
     def get_type(self) -> type['osmanagers.OSManager']:

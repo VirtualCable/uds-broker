@@ -29,7 +29,6 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-import collections.abc
 import logging
 import typing
 
@@ -37,7 +36,7 @@ from uds import models
 from uds.core import consts, exceptions, types
 from uds.core.auths.auth import is_trusted_source
 from uds.core.util import log, net
-from uds.core.util.model import sql_stamp_seconds
+from uds.core.util.model import sql_now
 from uds.core.util.stats import events
 from uds.REST import Handler
 
@@ -58,7 +57,7 @@ class TunnelTicket(Handler):
     PATH = 'tunnel'
     NAME = 'ticket'
 
-    def get(self) -> collections.abc.MutableMapping[str, typing.Any]:
+    def get(self) -> typing.Any:
         """
         Processes get requests
         """
@@ -73,75 +72,71 @@ class TunnelTicket(Handler):
             # Invalid requests
             raise exceptions.rest.AccessDenied()
 
-        # Take token from url
+        # Take token from url and validate it
+        # Token is the "auth" of the tunnel server
         token = self._args[2][:48]
         if not models.Server.validate_token(token, server_type=types.servers.ServerType.TUNNEL):
-            if self._args[1][:4] == 'stop':
-                # "Discard" invalid stop requests, because Applications does not like them.
-                # RDS connections keep alive for a while after the application is finished,
-                # Also, same tunnel can be used for multiple applications, so we need to
-                # discard invalid stop requests. (because the data provided is also for "several" applications)")
-                return {}
-            logger.error('Invalid token %s from %s', token, self._request.ip)
             raise exceptions.rest.AccessDenied()
 
         # Try to get ticket from DB
         try:
-            user, user_service, host, port, extra, shared_secret = models.TicketStore.get_for_tunnel(self._args[0])
-            host = host or ''
-            data: dict[str, typing.Any] = {}
+            ticket = models.TicketStore.get_for_tunnel(self._args[0])
+            if ticket.userservice is None or ticket.userservice.user is None or not ticket.remotes:
+                raise Exception('Ticket has no associated userservice or the userservice has no user (or no remotes)')
+
+            # response = types.tickets.TunnelTicketResponse.from_ticket(ticket)
             if self._args[1][:4] == 'stop':
                 sent, recv = self._params['sent'], self._params['recv']
-                # Ensures extra exists...
-                extra = extra or {}
-                now = sql_stamp_seconds()
-                total_time = now - extra.get('b', now - 1)
-                msg = f'User {user.name} stopped tunnel {extra.get("t", "")[:8]}... to {host}:{port}: u:{sent}/d:{recv}/t:{total_time}.'
-                log.log(user.manager, types.log.LogLevel.INFO, msg)
-                log.log(user_service, types.log.LogLevel.INFO, msg)
+                try:
+                    total_time = sql_now() - ticket.started
+                except Exception:  # DB may contain old not tz aware dates
+                    total_time = sql_now().replace(tzinfo=None) - ticket.started.replace(tzinfo=None)
+
+                msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{sent}/d:{recv}/t:{total_time}.'
+                log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
+                log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
 
                 # Try to log Close event
-                try:
+                if ticket.userservice:
                     # If pool does not exists, do not log anything
                     events.add_event(
-                        user_service.deployed_service,
+                        ticket.userservice.deployed_service,
                         events.types.stats.EventType.TUNNEL_CLOSE,
                         duration=total_time,
                         sent=sent,
                         received=recv,
-                        tunnel=extra.get('t', 'unknown'),
+                        tunnel=ticket.tunnel_token,
                     )
-                except Exception as e:
-                    logger.warning('Error logging tunnel close event: %s', e)
 
-            else:
+            else:  # New tunnel request
                 if net.ip_to_long(self._args[1][:32]).version == 0:
                     raise Exception('Invalid from IP')
                 events.add_event(
-                    user_service.deployed_service,
+                    ticket.userservice.deployed_service,
                     events.types.stats.EventType.TUNNEL_OPEN,
-                    username=user.pretty_name,
+                    username=ticket.userservice.user.pretty_name,
                     srcip=self._args[1],
-                    dstip=host,
+                    dstip=ticket.remotes_as_str(),
                     tunnel=self._args[0],
                 )
-                msg = f'User {user.name} started tunnel {self._args[0][:8]}... to {host}:{port} from {self._args[1]}.'
-                log.log(user.manager, types.log.LogLevel.INFO, msg)
-                log.log(user_service, types.log.LogLevel.INFO, msg)
-                # Generate new, notify only, ticket
+                msg = f'User {ticket.userservice.user.name} started tunnel {self._args[0][:8]}... to {ticket.remotes_as_str()} from {self._args[1]}.'
+                log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
+                log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
+                # Generate new, notify only, ticket, for the userservice to notify when done
                 notify_ticket = models.TicketStore.create_for_tunnel(
-                    userservice=user_service,
-                    port=port,
-                    host=host,
-                    extra={
-                        't': self._args[0],  # ticket
-                        'b': sql_stamp_seconds(),  # Begin time stamp
-                    },
+                    userservice=ticket.userservice,
+                    remotes=ticket.remotes,
                     validity=MAX_SESSION_LENGTH,
                 )
-                data = {'host': host, 'port': port, 'notify': notify_ticket, 'shared_secret': shared_secret}
 
-            return data
+                return types.tickets.TunnelTicketLegacyResponse(
+                    host=ticket.remotes[0].host,
+                    port=ticket.remotes[0].port,
+                    notify=notify_ticket,
+                    shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else None,
+                )
+
+            return {}
         except Exception as e:
             logger.info('Ticket ignored: %s', e)
             raise exceptions.rest.AccessDenied() from e
@@ -149,7 +144,7 @@ class TunnelTicket(Handler):
 
 class TunnelRegister(ServerRegisterBase):
     ROLE = consts.UserRole.ADMIN
-    
+
     PATH = 'tunnel'
     NAME = 'register'
 

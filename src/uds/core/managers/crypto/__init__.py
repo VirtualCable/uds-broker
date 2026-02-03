@@ -31,6 +31,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import hashlib
 import array
+import json
 import uuid
 import codecs
 import struct
@@ -102,7 +103,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         return CryptoManager()  # Singleton pattern will return always the same instance
 
     @staticmethod
-    def ensure_aes_key(key: typing.Union[str, bytes], length: int) -> bytes:
+    def ensure_aes_key(key: str | bytes, length: int) -> bytes:
         """
         Generate an AES key of the specified length using the provided key.
 
@@ -223,7 +224,7 @@ class CryptoManager(metaclass=singleton.Singleton):
     def fast_decrypt(self, data: bytes) -> bytes:
         return self.aes256_cbc_decrypt(data, UDSK)
 
-    def xor(self, value: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> bytes:
+    def xor(self, value: str | bytes, key: str | bytes) -> bytes:
         if not key:
             return b''  # Protect against division by cero
 
@@ -238,7 +239,7 @@ class CryptoManager(metaclass=singleton.Singleton):
         # We must return binary in xor, because result is in fact binary
         return array.array('B', (value_array[i] ^ key_array[i] for i in range(len(value_array)))).tobytes()
 
-    def symmetric_encrypt(self, text: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> bytes:
+    def symmetric_encrypt(self, text: str | bytes, key: str | bytes) -> bytes:
         if isinstance(text, str):
             text = text.encode()
         if isinstance(key, str):
@@ -246,7 +247,7 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         return self.aes256_cbc_encrypt(text, key)
 
-    def symmetric_decrypt(self, encrypted_text: typing.Union[str, bytes], key: typing.Union[str, bytes]) -> str:
+    def symmetric_decrypt(self, encrypted_text: str | bytes, key: str | bytes) -> str:
         if isinstance(encrypted_text, str):
             encrypted_text = encrypted_text.encode()
 
@@ -263,16 +264,16 @@ class CryptoManager(metaclass=singleton.Singleton):
 
     def load_private_key(
         self, rsa_key: str
-    ) -> typing.Union['RSAPrivateKey', 'DSAPrivateKey', 'DHPrivateKey', 'EllipticCurvePrivateKey']:
+    ) -> 'RSAPrivateKey | DSAPrivateKey | DHPrivateKey | EllipticCurvePrivateKey':
         try:
             return typing.cast(
-                typing.Union['RSAPrivateKey', 'DSAPrivateKey', 'DHPrivateKey', 'EllipticCurvePrivateKey'],
+                'RSAPrivateKey | DSAPrivateKey | DHPrivateKey | EllipticCurvePrivateKey',
                 serialization.load_pem_private_key(rsa_key.encode(), password=None, backend=default_backend()),
             )
         except Exception as e:
             raise e
 
-    def load_certificate(self, certificate: typing.Union[str, bytes]) -> x509.Certificate:
+    def load_certificate(self, certificate: str | bytes) -> x509.Certificate:
         if isinstance(certificate, str):
             certificate = certificate.encode()
 
@@ -298,14 +299,14 @@ class CryptoManager(metaclass=singleton.Singleton):
         """
         return secrets.token_hex(length)
 
-    def hash(self, value: typing.Union[str, bytes]) -> str:
+    def hash(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode()
 
         # Argon2
         return '{ARGON2}' + PasswordHasher(type=ArgonType.ID).hash(value)
 
-    def check_hash(self, value: typing.Union[str, bytes], hash_value: str) -> bool:
+    def check_hash(self, value: str | bytes, hash_value: str) -> bool:
         if isinstance(value, str):
             value = value.encode()
 
@@ -397,7 +398,7 @@ class CryptoManager(metaclass=singleton.Singleton):
             (self.random_string(24, True) + timezone.localtime().strftime('%H%M%S%f')).encode()
         ).hexdigest()
 
-    def sha(self, value: typing.Union[str, bytes]) -> str:
+    def sha(self, value: str | bytes) -> str:
         if isinstance(value, str):
             value = value.encode()
 
@@ -441,4 +442,66 @@ class CryptoManager(metaclass=singleton.Singleton):
         Returns a tuple of (shared_secret: bytes, ciphertext: bytes)
         """
         return kem.encrypt(kem_key_b64)
-        
+
+    def encrypted_dict(
+        self,
+        dct: dict[str, typing.Any],
+        ticket_id: str,
+        *,
+        kem_key_b64: str | None = None,
+        shared_secret: bytes | None = None,
+        ciphertext: bytes | None = None,
+    ) -> tuple[bytes, dict[str, str]]:
+        """
+        Convert a dict to an encrypted dict using AES-256-GCM with keys derived from the shared_secret and ticket_id.
+
+        Returns:
+        A tuple of (shared_secret: bytes, encrypted_dict: dict[str, str])
+        """
+        if shared_secret is None or ciphertext is None:
+            if kem_key_b64 is None:
+                raise ValueError("Either kem_key_b64 or both shared_secret and ciphertext must be provided")
+            shared_secret, ciphertext = self.generate_kem_shared_ciphertext(kem_key_b64)
+
+        material = self.derive_tunnel_material(shared_secret, ticket_id.encode())
+
+        plaintext = json.dumps(dct).encode()
+
+        encrypted = self.aes256_gcm_encrypt(material.key_payload, material.nonce_payload, plaintext, b'')
+
+        # used codecs instead of base64 to keep consistency with the use uf bz2 compression
+        return (
+            shared_secret,
+            {
+                'algorithm': 'AES-256-GCM',
+                'ciphertext': base64.b64encode(ciphertext).decode(),
+                'data': base64.b64encode(encrypted).decode(),
+            },
+        )
+
+    def decrypted_dict(
+        self,
+        encrypted_dict: dict[str, str],
+        ticket_id: str,
+        kem_private_key_b64: str,
+    ) -> dict[str, typing.Any]:
+        """
+        Decrypts an encrypted dict using AES-256-GCM with keys derived from the shared_secret and ticket_id.
+
+        Returns:
+        The decrypted dict.
+        """
+        # Ensure algorithm is correct
+        if encrypted_dict.get('algorithm') != 'AES-256-GCM':
+            raise ValueError("Unsupported encryption algorithm")
+
+        ciphertext = base64.b64decode(encrypted_dict['ciphertext'])
+        encrypted_data = base64.b64decode(encrypted_dict['data'])
+
+        shared_secret = kem.decrypt(kem_private_key_b64, ciphertext)
+
+        material = self.derive_tunnel_material(shared_secret, ticket_id.encode())
+
+        decrypted = self.aes256_gcm_decrypt(material.key_payload, material.nonce_payload, encrypted_data, b'')
+
+        return json.loads(decrypted.decode())

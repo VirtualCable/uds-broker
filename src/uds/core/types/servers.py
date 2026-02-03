@@ -107,7 +107,7 @@ class ServerSubtype(metaclass=singleton.Singleton):
     def enum(self) -> collections.abc.Iterable[Info]:
         return self.registered.values()
 
-    def get(self, type: ServerType, subtype: str) -> typing.Optional[Info]:
+    def get(self, type: ServerType, subtype: str) -> Info|None:
         return self.registered.get((type, subtype))
 
 
@@ -296,8 +296,8 @@ class ServerCounter(typing.NamedTuple):
 
     @staticmethod
     def from_iterable(
-        data: typing.Optional[collections.abc.Iterable[typing.Any]],
-    ) -> typing.Optional['ServerCounter']:
+        data: collections.abc.Iterable[typing.Any]|None,
+    ) -> 'ServerCounter | None':
         if data is None:
             return None
 

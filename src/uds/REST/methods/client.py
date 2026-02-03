@@ -197,9 +197,8 @@ class Client(Handler):
             if not kem_key:
                 return Client.result(result=transport_script.as_dict())
             else:
-                shared_secret, ciphertext = CryptoManager.manager().generate_kem_shared_ciphertext(kem_key)
                 return Client.result(
-                    result=transport_script.as_encrypted_dict(shared_secret, ciphertext, ticket_id=ticket)
+                    result=transport_script.as_encrypted_dict(kem_key, ticket_id=ticket)
                 )
         except ServiceNotReadyError as e:
             # Refresh ticket and make this retrayable

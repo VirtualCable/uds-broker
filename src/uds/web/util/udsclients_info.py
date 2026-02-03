@@ -3,16 +3,17 @@ import typing
 from django.utils.translation import gettext
 from django.templatetags.static import static
 from uds.REST.methods.client import CLIENT_VERSION
+from uds.core import types
 
 
 # all plugins are under url clients...
-PLUGINS: typing.Final[list[dict[str, 'str|bool']]] = [
-    {
-        'url': static('clients/' + url.format(version=CLIENT_VERSION)),
-        'description': description,
-        'name': name,
-        'legacy': legacy,
-    }
+PLUGINS: typing.Final[list[types.plugins.UDSClientPlugin]] = [
+    types.plugins.UDSClientPlugin(
+        url=static('clients/' + url.format(version=CLIENT_VERSION)),
+        description=description,
+        name=name,
+        legacy=legacy,
+    )
     for url, description, name, legacy in (
         (
             'UDSClientSetup-{version}.exe',

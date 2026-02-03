@@ -136,7 +136,7 @@ class Service(Module):
     # :    overrided_fields = {
     # :        'max_services_count_type': ServicesCountingType.STANDARD,
     # : Note that overrided_fields will made the field not to be shown on service edition, so it will be "fixed" to the value provided
-    overrided_fields: typing.Optional[dict[str, typing.Any]] = None
+    overrided_fields: dict[str, typing.Any] | None = None
 
     # : If this item "has overrided fields", on deployed service edition, defined keys will overwrite defined ones
     # : That is, this Dicionary will OVERWRITE fields ON ServicePool (normally cache related ones) dictionary from a REST api save invocation!!
@@ -148,7 +148,7 @@ class Service(Module):
     # : This means that service pool will have cache_l2_srvs = 10 and cache_l1_srvs = 20, no matter what the user has provided
     # : on a save invocation to REST api for ServicePool
     # : Note that max_services_count_type is one of the variables of ServicesCountingType in this example
-    overrided_pools_fields: typing.Optional[dict[str, typing.Any]] = None
+    overrided_pools_fields: dict[str, typing.Any] | None = None
 
     # : If this class uses cache or not. If uses cache is true, means that the
     # : service can "prepare" some user deployments to allow quicker user access
@@ -178,14 +178,14 @@ class Service(Module):
     # : provide a publication type
     # : This refers to class that provides the logic for publication, you can see
     # : :py:class:uds.core.services.Publication
-    publication_type: typing.ClassVar[typing.Optional[type['Publication']]] = None
+    publication_type: typing.ClassVar[type['Publication'] | None] = None
 
     # : Types of deploys (services in cache and/or assigned to users)
     # : This is ALWAYS a MUST. You mast indicate the class responsible
     # : for managing the user deployments (user consumable services generated
     # : from this one). If this attribute is not set, the service will never work
     # : (core will not know how to handle the user deployments)
-    user_service_type: typing.ClassVar[typing.Optional[type['UserService']]] = None
+    user_service_type: typing.ClassVar[type['UserService'] | None] = None
 
     # : Restricted transports
     # : If this list contains anything else but emtpy, the only allowed protocol for transports
@@ -209,14 +209,14 @@ class Service(Module):
 
     _provider: 'services.ServiceProvider'  # Parent instance (not database object)
 
-    _db_obj: typing.Optional['models.Service'] = None  # Database object cache
+    _db_obj: 'models.Service | None' = None  # Database object cache
 
     def __init__(
         self,
         environment: 'environment.Environment',
         provider: 'services.ServiceProvider',
         values: types.core.ValuesType = None,
-        uuid: typing.Optional[str] = None,
+        uuid: str | None = None,
     ):
         """
         Do not forget to invoke this in your derived class using "super().__init__(environment, parent, values)".
@@ -285,6 +285,13 @@ class Service(Module):
         """
         Returns if this service can be put back to cache. This is used to check if a service can be put back to cache
         when the user logouts instead of being removed. By default, this method returns False.
+        """
+        return False
+    
+    def restore_snapshot_on_back_to_cache(self) -> bool:
+        """
+        Returns if this service must restore a snapshot when being put back to cache. This is used to check if a service
+        must be reverted to a snapshot when the user logouts and the service is put back to cache. By default, this method returns False.
         """
         return False
 
@@ -379,7 +386,7 @@ class Service(Module):
         """
         return types.states.TaskState.FINISHED
 
-    def get_token(self) -> typing.Optional[str]:
+    def get_token(self) -> str | None:
         """
         This method is to allow some kind of services to register a "token", so special actors
         (for example, those for static pool of machines) can communicate with UDS services for
@@ -388,7 +395,7 @@ class Service(Module):
         """
         return None
 
-    def get_vapp_launcher(self, userservice: 'models.UserService') -> typing.Optional[tuple[str, str]]:
+    def get_vapp_launcher(self, userservice: 'models.UserService') -> tuple[str, str] | None:
         """Returns the vapp launcher for this service, if any
 
         Args:
@@ -399,7 +406,7 @@ class Service(Module):
         """
         return None
 
-    def get_valid_id(self, ids: collections.abc.Iterable[str]) -> typing.Optional[str]:
+    def get_valid_id(self, ids: collections.abc.Iterable[str]) -> str | None:
         """
         Looks for an "owned" id in the provided list. If found, returns it, else return None
 
@@ -446,14 +453,14 @@ class Service(Module):
         """
         return
 
-    def notify_data(self, id: typing.Optional[str], data: str) -> None:
+    def notify_data(self, id: str | None, data: str) -> None:
         """
         Processes a custom data notification, that must be interpreted by the service itself.
         This allows "token actors" to communicate with service directly, what is needed for
         some kind of services (like LinuxApps)
 
         Args:
-            id (typing.Optional[str]): Id validated through "getValidId". May be None if not validated (or not provided)
+            id (str | None): Id validated through "getValidId". May be None if not validated (or not provided)
             data (str): Data to process
         """
         return

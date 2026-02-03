@@ -73,7 +73,7 @@ def get_groups_from_metagroup(groups: collections.abc.Iterable[Group]) -> collec
 def get_service_pools_for_groups(
     groups: collections.abc.Iterable[Group],
 ) -> collections.abc.Iterable[ServicePool]:
-    for servicepool in ServicePool.get_pools_for_groups(groups):
+    for servicepool in ServicePool.get_pools_for_groups(groups, visible_only=False):
         yield servicepool
 
 
@@ -174,7 +174,7 @@ class Users(DetailHandler[UserItem]):
 
         return log.get_logs(user)
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, Authenticator)
         logger.debug('Saving user %s / %s', parent, item)
         valid_fields = [
@@ -404,7 +404,7 @@ class Groups(DetailHandler[GroupItem]):
         ).build()
 
     def enum_types(
-        self, parent: 'Model', for_type: typing.Optional[str]
+        self, parent: 'Model', for_type: str | None
     ) -> collections.abc.Iterable[types.rest.TypeInfo]:
         ensure.is_instance(parent, Authenticator)  # Just ensures type
         types_dict: dict[str, dict[str, str]] = {
@@ -430,7 +430,7 @@ class Groups(DetailHandler[GroupItem]):
             logger.error('Type %s not found in %s', for_type, types_list)
             raise exceptions.rest.NotFound(_('Group type not found')) from None
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, Authenticator)
         group = None  # Avoid warning on reference before assignment
         try:
@@ -546,7 +546,7 @@ class Groups(DetailHandler[GroupItem]):
         if group.is_meta:
             # Get all users for everygroup and
             groups = get_groups_from_metagroup((group,))
-            users_set: typing.Optional[set['User']] = None
+            users_set: set['User'] | None = None
             for g in groups:
                 current_set: set['User'] = set((i for i in g.users.all()))
                 if users_set is None:

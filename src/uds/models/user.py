@@ -32,6 +32,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import logging
 import typing
+import collections.abc
 
 from django.db import models
 from django.db.models import Count, Q, signals
@@ -128,29 +129,30 @@ class User(UUIDModel, properties.PropertiesMixin):
 
     def get_favorites(self) -> set[str]:
         """
-        Returns a list of favorite user services for this user
+        Returns a set of favorite user services for this user
         """
         with self.properties as props:
-            return props.get('favorites', set())
+            favs = props.get('favorites', [])
+            return set(favs)
 
     def add_favorite(self, favorite: str) -> None:
         """
-        Sets a list of favorite user services for this user
+        Adds a favorite user service for this user
         """
         with self.properties as props:
-            favs: set[str] = props.get('favorites', set())
+            favs = set(props.get('favorites', []))
             favs.add(favorite)
-            props['favorites'] = favs
+            props['favorites'] = list(favs)
 
     def remove_favorite(self, favorite: str) -> None:
         """
-        Sets a list of favorite user services for this user
+        Removes a favorite user service for this user
         """
         with self.properties as props:
-            favs: set[str] = props.get('favorites', set())
+            favs = set(props.get('favorites', []))
             if favorite in favs:
                 favs.discard(favorite)
-                props['favorites'] = favs
+                props['favorites'] = list(favs)
 
     def is_staff(self) -> bool:
         """
@@ -192,7 +194,7 @@ class User(UUIDModel, properties.PropertiesMixin):
         """
         return self.get_manager().logout(request, self.name)
 
-    def get_groups(self) -> typing.Generator['Group', None, None]:
+    def get_groups(self) -> collections.abc.Generator['Group', None, None]:
         """
         returns the groups (and metagroups) this user belongs to
         """

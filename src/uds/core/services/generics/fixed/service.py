@@ -90,7 +90,6 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
         required=False,
         readonly=False,
     )
-
     machines = gui.MultiChoiceField(
         label=_("Machines"),
         order=30,
@@ -99,7 +98,6 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
         tab=types.ui.Tab.MACHINE,
         rows=10,
     )
-
     # Randomize machine assignation isntead of linear
     randomize = gui.CheckBoxField(
         label=_('Randomize machine assignation'),
@@ -155,7 +153,7 @@ class FixedService(services.Service, abc.ABC):  # pylint: disable=too-many-publi
             self.token.value = self.token.value.strip()
 
     @contextlib.contextmanager
-    def _assigned_access(self) -> typing.Iterator[set[str]]:
+    def _assigned_access(self) -> collections.abc.Iterator[set[str]]:
         with self.storage.as_dict(atomic=True) as d:
             machines: set[str] = d.get('vms', set())
             initial_machines = machines.copy()  # for comparison later

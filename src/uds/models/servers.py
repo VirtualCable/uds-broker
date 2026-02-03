@@ -141,7 +141,7 @@ class ServerGroup(UUIDModel, TaggingMixin, properties.PropertiesMixin):
     def __str__(self) -> str:
         return self.name
 
-    def search(self, ip_or_host_or_mac: str) -> typing.Optional['Server']:
+    def search(self, ip_or_host_or_mac: str) -> 'Server | None':
         """Locates a server by ip or hostname
 
         It uses reverse dns lookup if ip_or_host is an ip and not found on database
@@ -295,7 +295,7 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
         return 6 if ':' in self.ip else 4
 
     @property
-    def stats(self) -> typing.Optional[types.servers.ServerStats]:
+    def stats(self) -> types.servers.ServerStats | None:
         """Returns the current stats of this server, or None if not available"""
         stats_dict = self.properties.get('stats', None)
         if stats_dict:
@@ -303,7 +303,7 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
         return None
 
     @stats.setter
-    def stats(self, value: typing.Optional[types.servers.ServerStats]) -> None:
+    def stats(self, value: types.servers.ServerStats | None) -> None:
         """Sets the current stats of this server"""
         if value is None:
             del self.properties['stats']
@@ -313,7 +313,7 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
             stats_dict['stamp'] = sql_stamp()
             self.properties['stats'] = stats_dict
 
-    def lock(self, duration: typing.Optional[datetime.timedelta]) -> None:
+    def lock(self, duration: datetime.timedelta | None) -> None:
         """Locks this server for a duration
 
         Args:
@@ -354,7 +354,7 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
         restrained_until = timezone.make_aware(restrained_until)
         return restrained_until > sql_now()
 
-    def set_restrained_until(self, value: typing.Optional[datetime.datetime] = None) -> None:
+    def set_restrained_until(self, value: datetime.datetime | None = None) -> None:
         """Sets the availability of this server
         If value is None, it will be available right now
         """
@@ -383,8 +383,8 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
     def validate_token(
         token: str,
         *,
-        server_type: typing.Union[collections.abc.Iterable[types.servers.ServerType], types.servers.ServerType],
-        request: typing.Optional[ExtendedHttpRequest] = None,
+        server_type: collections.abc.Iterable[types.servers.ServerType] | types.servers.ServerType,
+        request: ExtendedHttpRequest | None = None,
     ) -> bool:
         """Ensures that a token is valid for a server type
 
@@ -419,7 +419,7 @@ class Server(UUIDModel, TaggingMixin, properties.PropertiesMixin):
         """Sets the actor version of this server to the userservice"""
         userservice.actor_version = f'Server {self.version or "unknown"}'
 
-    def get_comms_endpoint(self, *, path: typing.Optional[str] = None) -> typing.Optional[str]:
+    def get_comms_endpoint(self, *, path: str | None = None) -> str | None:
         """
         Returns the url for a path to this server
 

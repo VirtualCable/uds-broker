@@ -41,10 +41,11 @@ from uds.core.managers.crypto import CryptoManager
 
 from .uuid_model import UUIDModel
 from uds.core.util.model import sql_now
-from uds.core import consts
+from uds.core import consts, types
 
-from .user import User
-from .user_service import UserService
+# Not imported at runtime, just for type checking
+if typing.TYPE_CHECKING:
+    from .user_service import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -226,27 +227,40 @@ class TicketStore(UUIDModel):
     @staticmethod
     def create_for_tunnel(
         userservice: 'UserService',
-        port: int,
-        host: str | None = None,
-        extra: dict[str, typing.Any] | None = None,
         validity: int = 60 * 60 * 24,  # 24 Hours default validity for tunnel tickets
+        *,
+        remotes: list[types.tickets.TunnelTicketRemote] | None = None,
+        host: str | None = None,  # Easy single remote support
+        port: int | None = None,  # Easy single remote support
+        tunnel_token: str = '',  # Tunnel identifier (tunnel token)
     ) -> str:
         owner = CryptoManager.manager().random_string(length=8)
         if not userservice.user:
             raise ValueError('User is not set in userservice')
-        data = {
-            'u': userservice.user.uuid if userservice.user else '',
-            's': userservice.uuid,
-            'h': host,
-            'p': port,
-            'e': extra,
-        }
+
+        if remotes and port:
+            raise ValueError('Cannot specify both remotes and port')
+
+        if port is not None:
+            remotes = [
+                types.tickets.TunnelTicketRemote(host=host or '', port=port)
+            ]  # Host will be filled with userservice IP later
+            
+        if remotes is None:
+            raise ValueError('No remotes specified for tunnel ticket')
+
+        data = types.tickets.TunnelTicket(
+            userservice=userservice,
+            remotes=remotes,
+            tunnel_token=tunnel_token,
+            shared_secret=None,
+        )
         return (
             # Note that the ticket is the uuid + owner, so we can encrypt data without keeping the key
             # Create will not store owner on DB, so unless the ticket is available, we can't decrypt it
             # This ensures that data is not available unless the ticket is available, so it can be considered secure
             TicketStore.create(
-                data=data,
+                data=data.as_dict(),
                 validity=validity,
                 owner=owner,
                 secure=True,
@@ -258,14 +272,7 @@ class TicketStore(UUIDModel):
     @staticmethod
     def get_for_tunnel(
         ticket: str,
-    ) -> tuple[
-        'User',
-        'UserService',
-        str | None,
-        int,
-        dict[str, typing.Any] | None,
-        str,
-    ]:
+    ) -> types.tickets.TunnelTicket:
         """
         Returns the ticket for a tunneled connection
         The returned value is a tuple:
@@ -276,30 +283,21 @@ class TicketStore(UUIDModel):
                 raise Exception(f'Invalid ticket format: {ticket!r}')
 
             uuid, owner = ticket[:-8], ticket[-8:]
-            data = TicketStore.get(uuid, invalidate=False, owner=owner, secure=True)
-
-            # Now, ensure elements exists, onwership is fine
-            # if not found any, will raise an execption
-            user = User.objects.get(uuid=data['u'])
-            userservice = UserService.objects.get(uuid=data['s'], user=user)
-
-            host = data['h']
-
-            if not host:
-                host = userservice.get_instance().get_ip()
-
-            return (user, userservice, host, data['p'], data['e'], data.get('shared_secret', ''))
+            return types.tickets.TunnelTicket.from_dict(
+                TicketStore.get(uuid, invalidate=False, owner=owner, secure=True)
+            )
         except Exception as e:
             raise TicketStore.DoesNotExist(str(e))
 
     # Sets shared secret for a tunnel ticket
     @staticmethod
     def set_shared_secret(ticket: str, shared_secret: bytes) -> None:
+        # Just append shared secret to the ticket data, compatible with types.tickets.TunnelTicket
         TicketStore.update(
             uuid=ticket[:-8],
             owner=ticket[-8:],
             secure=True,
-            shared_secret=shared_secret,
+            shared_secret=shared_secret.hex(),
         )
 
     @staticmethod

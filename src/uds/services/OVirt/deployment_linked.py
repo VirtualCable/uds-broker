@@ -131,7 +131,7 @@ class OVirtLinkedUserService(services.UserService, autoserializable.AutoSerializ
         with self.storage.as_dict() as data:
             data['exec_count'] = 0
 
-    def _inc_checks_counter(self, info: typing.Optional[str] = None) -> typing.Optional[types.states.TaskState]:
+    def _inc_checks_counter(self, info: str | None = None) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             count = data.get('exec_count', 0)
             data['exec_count'] = count + 1
@@ -264,7 +264,7 @@ class OVirtLinkedUserService(services.UserService, autoserializable.AutoSerializ
 
     def get_console_connection(
         self,
-    ) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    ) -> types.services.ConsoleConnectionInfo | None:
         return self.service().get_console_connection(self._vmid)
 
     def desktop_login(
@@ -358,7 +358,7 @@ if sys.platform == 'win32':
     def _push_front_op(self, op: Operation) -> None:
         self._queue.insert(0, op)
 
-    def _error(self, reason: typing.Union[str, Exception]) -> types.states.TaskState:
+    def _error(self, reason: str | Exception) -> types.states.TaskState:
         """
         Internal method to set object as error state
 

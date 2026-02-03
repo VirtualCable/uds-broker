@@ -56,13 +56,13 @@ class StateUpdater(abc.ABC):
     ):
         self.userservice = userservice
     
-    def set_error(self, msg: typing.Optional[str] = None) -> None:
+    def set_error(self, msg: str | None = None) -> None:
         logger.error('Got error on processor: %s', msg)
         self.save(types.states.State.ERROR)
         if msg is not None:
             log.log(self.userservice, types.log.LogLevel.ERROR, msg, types.log.LogSource.INTERNAL)
 
-    def save(self, new_state: typing.Optional[str] = None) -> None:
+    def save(self, new_state: str | None = None) -> None:
         if new_state:
             self.userservice.set_state(new_state)
             

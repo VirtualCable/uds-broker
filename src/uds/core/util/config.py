@@ -604,6 +604,7 @@ class GlobalConfig:
         type=Config.FieldType.BOOLEAN,
         help=_('Notify user of existence of a new version of a service on new publication'),
     )
+
     # Allowed "trusted sources" for request
     TRUSTED_SOURCES: Config.Value = Config.section(Config.SectionType.SECURITY).value(
         'Trusted Hosts',
@@ -814,7 +815,12 @@ class GlobalConfig:
         type=Config.FieldType.TEXT,
         help=_('URL to leave cookies consent'),
     )
-        
+    ENABLE_FAVORITE_SERVICES: Config.Value = Config.section(Config.SectionType.CUSTOM).value(
+        'Enable favorite services',
+        '0',
+        type=Config.FieldType.BOOLEAN,
+        help=_('Enable or disable add favorite services feature'),
+    )        
 
     @staticmethod
     def is_initialized() -> bool:

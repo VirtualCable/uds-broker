@@ -55,13 +55,13 @@ class BaseRestItem(types.rest.BaseRestItem):
     field_str: str
     field_int: int
     field_float: float
-    field_list: typing.List[str] = dataclasses.field(default_factory=list[str])
+    field_list: list[str] = dataclasses.field(default_factory=list[str])
     field_list_2: list[str] = dataclasses.field(default_factory=list[str])
-    field_dict: typing.Dict[str, str] = dataclasses.field(default_factory=dict[str, str])
+    field_dict: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
     field_dict_2: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
     field_enum: MyEnum = MyEnum.VALUE1
-    field_optional: typing.Optional[str] = None
-    field_union: typing.Union[str, int] = "value"
+    field_optional: str | None = None
+    field_union: str | int = "value"
     field_union_2: str | int = 1
 
 
@@ -240,7 +240,7 @@ class TestApiGenBasic(UDSTestCase):
             ),
         )
         self.assertEqual(
-            util_api.python_type_to_openapi(typing.Union[int, str]),
+            util_api.python_type_to_openapi(int | str),
             types.rest.api.SchemaProperty(
                 type='not_used',
                 one_of=[
