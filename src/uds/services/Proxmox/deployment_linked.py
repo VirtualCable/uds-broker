@@ -202,6 +202,9 @@ class ProxmoxUserserviceLinked(DynamicUserService):
         self.service().provider().api.set_vm_net_mac(int(self._vmid), self.get_unique_id())
 
     def op_custom(self, operation: Operation) -> None:
+        """
+        If there is no snapshot, create a snapshot. If there is, restore the snapshot (always with the VM turned off).
+        """
         # Check if VMID is set
         if not getattr(self, '_vmid', None):
             self.error('No VMID set')
@@ -213,7 +216,7 @@ class ProxmoxUserserviceLinked(DynamicUserService):
         api = provider.api
 
         # Helper to ensure VM is powered off before snapshot operations
-        def ensure_powered_off():
+        def ensure_powered_off() -> bool:
             if service.is_running(self, str(vmid)):
                 self._queue.insert(0, types.services.Operation.NOP)
                 self._queue.insert(0, types.services.Operation.SHUTDOWN)
@@ -221,12 +224,14 @@ class ProxmoxUserserviceLinked(DynamicUserService):
             return True
 
         try:
-            snapshot = api.get_current_vm_snapshot(vmid)
+            snapshot_id = api.get_current_vm_snapshot(vmid)
         except Exception as e:
             logger.warning(f'Error checking snapshot for VM {vmid}: {e}')
-            snapshot = None
+            snapshot_id = None
 
-        if not snapshot:
+        # If there is no snapshot, create one
+        if not snapshot_id:
+            # If it is on, turn it off first
             if not ensure_powered_off():
                 return
             try:
@@ -236,19 +241,20 @@ class ProxmoxUserserviceLinked(DynamicUserService):
                 logger.warning(f'Error creating snapshot for VM {vmid}: {e}')
                 self.error(str(e))
         else:
+            # Restore snapshot (must be powered off)
             if not ensure_powered_off():
                 return
             try:
-                exec_result = api.restore_snapshot(vmid, name=snapshot.name)
+                exec_result = api.restore_snapshot(vmid, name=snapshot_id.name)
                 self._store_task(exec_result)
             except Exception as e:
                 logger.warning(f'Error restoring snapshot for VM {vmid}: {e}')
                 self.error(str(e))
 
     def op_custom_checker(self, operation: Operation) -> TaskState:
-        # If the snapshot creation operation has finished, return FINISHED
-        # If the snapshot restore operation has finished, return FINISHED
-        # Otherwise, return RUNNING until the task completes
+        """
+        Check if the snapshot or restore operation has finished.
+        """
         return self._check_task_finished()
 
     def get_console_connection(
