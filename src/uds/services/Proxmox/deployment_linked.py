@@ -180,7 +180,7 @@ class ProxmoxUserserviceLinked(DynamicUserService):
 
     # No need for op_reset_checker
 
-    def op_create(self) -> None:
+    def paint(self) -> None:
         template_id = int(self.publication().get_template_id())
         name = self.get_vmname()
 

@@ -102,6 +102,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         types.services.Operation.INITIALIZE,
         types.services.Operation.CREATE,
         types.services.Operation.CREATE_COMPLETED,
+        types.services.Operation.SNAPSHOT_CREATE,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.FINISH,
@@ -110,6 +111,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         types.services.Operation.INITIALIZE,
         types.services.Operation.CREATE,
         types.services.Operation.CREATE_COMPLETED,
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.FINISH,
@@ -119,6 +121,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         types.services.Operation.INITIALIZE,
         types.services.Operation.CREATE,
         types.services.Operation.CREATE_COMPLETED,
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.WAIT,
@@ -136,12 +139,14 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     ]
 
     _move_to_l1_queue: typing.ClassVar[list[types.services.Operation]] = [
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.FINISH,
     ]
 
     _move_to_l2_queue: typing.ClassVar[list[types.services.Operation]] = [
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER,
         types.services.Operation.SUSPEND,
         types.services.Operation.SUSPEND_COMPLETED,
         types.services.Operation.FINISH,
@@ -594,6 +599,22 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         # By default, get the MAC address if not set already by get_unique_id at start
         if self._mac == '' and self._vmid != '':
             self._mac = self.service().get_mac(self, self._vmid)
+            
+    def op_back_to_cache_snapshot_create(self) -> None:
+        """
+        This method is called to create a snapshot of the service
+        for caching purposes
+        """
+        if self.service().restore_snapshot_on_back_to_cache():
+            self.service().snapshot_creation(self)
+    
+    def op_back_to_cache_snapshot_recover(self) -> None:
+        """
+        This method is called to recover a snapshot of the service
+        for caching purposes
+        """
+        if self.service().restore_snapshot_on_back_to_cache():
+            self.service().snapshot_recovery(self)
 
     @must_have_vmid
     def op_start(self) -> None:
@@ -736,6 +757,18 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     def op_create_completed_checker(self) -> types.states.TaskState:
         """
         This method is called to check if the service creation is completed
+        """
+        return types.states.TaskState.FINISHED
+    
+    def op_back_to_cache_snapshot_create_checker(self) -> types.states.TaskState:
+        """
+        This method is called to check if the snapshot creation is completed
+        """
+        return types.states.TaskState.FINISHED
+    
+    def op_back_to_cache_snapshot_recover_checker(self) -> types.states.TaskState:
+        """
+        This method is called to check if the snapshot recovery is completed
         """
         return types.states.TaskState.FINISHED
 
@@ -911,6 +944,8 @@ _EXECUTORS: typing.Final[
     types.services.Operation.INITIALIZE: DynamicUserService.op_initialize,
     types.services.Operation.CREATE: DynamicUserService.op_create,
     types.services.Operation.CREATE_COMPLETED: DynamicUserService.op_create_completed,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE: DynamicUserService.op_back_to_cache_snapshot_create,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER: DynamicUserService.op_back_to_cache_snapshot_recover,
     types.services.Operation.START: DynamicUserService.op_start,
     types.services.Operation.START_COMPLETED: DynamicUserService.op_start_completed,
     types.services.Operation.STOP: DynamicUserService.op_stop,
@@ -938,6 +973,8 @@ _CHECKERS: typing.Final[
     types.services.Operation.INITIALIZE: DynamicUserService.op_initialize_checker,
     types.services.Operation.CREATE: DynamicUserService.op_create_checker,
     types.services.Operation.CREATE_COMPLETED: DynamicUserService.op_create_completed_checker,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE: DynamicUserService.op_back_to_cache_snapshot_create_checker,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER: DynamicUserService.op_back_to_cache_snapshot_recover_checker,
     types.services.Operation.START: DynamicUserService.op_start_checker,
     types.services.Operation.START_COMPLETED: DynamicUserService.op_start_completed_checker,
     types.services.Operation.STOP: DynamicUserService.op_stop_checker,
