@@ -102,7 +102,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         types.services.Operation.INITIALIZE,
         types.services.Operation.CREATE,
         types.services.Operation.CREATE_COMPLETED,
-        types.services.Operation.SNAPSHOT_CREATE,
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.FINISH,
