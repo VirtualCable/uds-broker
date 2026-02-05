@@ -214,6 +214,19 @@ class DynamicService(services.Service, abc.ABC):  # pylint: disable=too-many-pub
         """
         ...
 
+    def snapshot_creation(self, userservice_instance: 'DynamicUserService') -> None:
+        """
+        Creates a snapshot for the machine
+        """
+        return
+
+    def snapshot_recovery(self, userservice_instance: 'DynamicUserService') -> None:
+        """
+        Removes the snapshot for the machine
+        """
+        return
+
+
     @abc.abstractmethod
     def start(
         self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str

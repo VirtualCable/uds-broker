@@ -60,7 +60,7 @@ class TestUserService(services.UserService, autoserializable.AutoSerializable):
     # : Recheck every five seconds by default (for task methods)
     suggested_delay = 5
 
-    def service(self) -> typing.Union['TestServiceNoCache', 'TestServiceCache']:
+    def service(self) -> 'TestServiceNoCache | TestServiceCache':
         return typing.cast('TestServiceNoCache', super().service())
 
     def get_name(self) -> str:
@@ -78,7 +78,10 @@ class TestUserService(services.UserService, autoserializable.AutoSerializable):
     def get_unique_id(self) -> str:
         logger.info('Getting unique id of deployment %s', self)
         if not self.mac:
-            self.mac = self.mac_generator().get('00:00:00:00:00:00-00:FF:FF:FF:FF:FF')
+            if not self.db_obj().unique_id:
+                self.mac = self.mac_generator().get('00:00:00:00:00:00-00:FF:FF:FF:FF:FF')
+            else:
+                self.mac = self.db_obj().unique_id
         return self.mac
 
     def get_ip(self) -> str:
