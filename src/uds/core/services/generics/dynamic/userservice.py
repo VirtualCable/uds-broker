@@ -137,14 +137,12 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     ]
 
     _move_to_l1_queue: typing.ClassVar[list[types.services.Operation]] = [
-        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER,
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.FINISH,
     ]
 
     _move_to_l2_queue: typing.ClassVar[list[types.services.Operation]] = [
-        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER,
         types.services.Operation.SUSPEND,
         types.services.Operation.SUSPEND_COMPLETED,
         types.services.Operation.FINISH,
@@ -303,7 +301,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
 
         return None
 
-    def _insert_restore_snapshot_on_back_to_cache(self) -> None:
+    def _insert_restore_snapshot_on_back_to_cache(self, *, for_deploy: bool) -> None:
         """
         Inserts, if needed, the operations to create a snapshot after creation
         and restore it when going back to cache if required
@@ -312,8 +310,11 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         when not needed.
         """
         if self.service().restore_snapshot_on_back_to_cache():
-            self._queue.insert(-1, types.services.Operation.WAIT)
-            self._queue.insert(-1, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE)
+            if for_deploy:
+                self._queue.insert(-1, types.services.Operation.WAIT)
+                self._queue.insert(-1, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE)
+            else:
+                self._queue.insert(0, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER)
 
     @typing.final
     def retry_later(self) -> types.states.TaskState:
@@ -407,7 +408,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
 
         # if back to cache with snapshot, add wait and snapshot creation to queue, so we can create the snapshot before going to cache
         # before finish
-        self._insert_restore_snapshot_on_back_to_cache()
+        self._insert_restore_snapshot_on_back_to_cache(for_deploy=True)
 
         return self._execute_queue()
 
@@ -415,7 +416,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     def deploy_for_cache(self, level: types.services.CacheLevel) -> types.states.TaskState:
         if level == types.services.CacheLevel.L1:
             self._set_queue(self._create_queue_l1_cache.copy())
-            self._insert_restore_snapshot_on_back_to_cache()
+            self._insert_restore_snapshot_on_back_to_cache(for_deploy=True)
         else:
             self._set_queue(self._create_queue_l2_cache.copy())
         return self._execute_queue()
@@ -426,6 +427,9 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             self._set_queue(self._move_to_l1_queue.copy())
         else:
             self._set_queue(self._move_to_l2_queue.copy())
+
+        # Insert snapshot recovery if needed when going back to cache
+        self._insert_restore_snapshot_on_back_to_cache(for_deploy=False)
         return self._execute_queue()
 
     @typing.final
@@ -626,7 +630,8 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         # SNAP | START | FINISH   - If not started, just create snapshot and ensure it's started after it (as we stopped it)
         if self.service().restore_snapshot_on_back_to_cache():
             if self.service().is_running(self, vmid=self._vmid):
-                self._queue.insert(0, types.services.Operation.STOP)
+                self._queue.insert(0, types.services.Operation.SHUTDOWN_COMPLETED)
+                self._queue.insert(0, types.services.Operation.SHUTDOWN)
                 self._queue.insert(0, types.services.Operation.NOP)  # To be consumed by exec loop
                 return
 
