@@ -303,6 +303,18 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
 
         return None
 
+    def _insert_restore_snapshot_on_back_to_cache(self) -> None:
+        """
+        Inserts, if needed, the operations to create a snapshot after creation
+        and restore it when going back to cache if required
+
+        This is outside of main queues, to avoid adding more time for noop operations
+        when not needed.
+        """
+        if self.service().restore_snapshot_on_back_to_cache():
+            self._queue.insert(-1, types.services.Operation.WAIT)
+            self._queue.insert(-1, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE)
+
     @typing.final
     def retry_later(self) -> types.states.TaskState:
         """
@@ -384,18 +396,6 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
                     'Error obtaining IP for %s: %s', self.__class__.__name__, self._vmid  # , exc_info=True
                 )
         return self._ip
-    
-    def _insert_restore_snapshot_on_back_to_cache(self) -> None:
-        """
-        Inserts, if needed, the operations to create a snapshot after creation
-        and restore it when going back to cache if required
-        
-        This is outside of main queues, to avoid adding more time for noop operations
-        when not needed.
-        """
-        if self.service().restore_snapshot_on_back_to_cache():
-            self._queue.insert(-1, types.services.Operation.WAIT)
-            self._queue.insert(-1, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE)
 
     @typing.final
     def deploy_for_user(self, user: 'models.User') -> types.states.TaskState:
@@ -404,11 +404,11 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         """
         logger.debug('Deploying for user')
         self._set_queue(self._create_queue.copy())  # copy is needed to avoid modifying class var
-        
+
         # if back to cache with snapshot, add wait and snapshot creation to queue, so we can create the snapshot before going to cache
         # before finish
         self._insert_restore_snapshot_on_back_to_cache()
-        
+
         return self._execute_queue()
 
     @typing.final
