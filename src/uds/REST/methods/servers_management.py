@@ -29,22 +29,24 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import collections.abc
 import dataclasses
 import datetime
 import logging
 import typing
 
-from django.utils.translation import gettext, gettext_lazy as _
 from django.db.models import Model
+from django.utils.translation import gettext
+from django.utils.translation import gettext_lazy as _
 
 from uds import models
 from uds.core import consts, exceptions, types
-from uds.core.types.rest import TableInfo
-from uds.core.util import net, permissions, ensure, ui as ui_utils
-from uds.core.util.model import sql_now, process_uuid
 from uds.core.exceptions.rest import NotFound, RequestError
+from uds.core.types.rest import TableInfo
+from uds.core.util import ensure, net, permissions
+from uds.core.util import ui as ui_utils
+from uds.core.util.model import process_uuid, sql_now
 from uds.REST.model import DetailHandler, ModelHandler
-
 
 logger = logging.getLogger(__name__)
 
@@ -230,10 +232,10 @@ class ServersServers(DetailHandler[ServerItem]):
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, models.ServerGroup)
         # Item is the uuid of the server to add
-        server: typing.Optional['models.Server'] = None  # Avoid warning on reference before assignment
+        server: 'models.Server | None' = None  # Avoid warning on reference before assignment
         mac: str = ''
         if item is None:
             # Create new, depending on server type
@@ -455,7 +457,7 @@ class ServersGroups(ModelHandler[GroupItem]):
 
     def enum_types(
         self, *args: typing.Any, **kwargs: typing.Any
-    ) -> typing.Generator[types.rest.TypeInfo, None, None]:
+    ) -> collections.abc.Generator[types.rest.TypeInfo, None, None]:
         for i in types.servers.ServerSubtype.manager().enum():
             yield types.rest.TypeInfo(
                 name=i.description,
