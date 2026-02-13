@@ -376,6 +376,12 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
                 return self.test(self._args[1])
 
         raise exceptions.rest.InvalidMethodError(f'Invalid method {self._operation}') from None
+    
+    def is_new(self) -> bool:
+        """
+        Helper to check if the request is for a new item (no args) or for an existing one (has args)
+        """
+        return len(self._args) == 0
 
     def put(self) -> typing.Any:
         """
@@ -389,6 +395,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
         delete_on_error = False
 
+        # if /our_url/ID/DETAIL..., delegate to detail handler
         if len(self._args) > 1:  # Detail (1 arg means ID, more means detail/ID)?
             return self.process_detail()
 
@@ -401,7 +408,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
             # Extract fields
             args = self.fields_from_params(self.FIELDS_TO_SAVE)
             logger.debug('Args: %s', args)
-            self.pre_save(args)
+            self.pre_save(fields=args)
             # If tags is in save fields, treat it "specially"
             if 'tags' in self.FIELDS_TO_SAVE:
                 tags = args['tags']
@@ -411,7 +418,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
             delete_on_error = False
             item: models.Model
-            if not self._args:  # create new?
+            if self.is_new():  # create new?
                 item = self.MODEL.objects.create(**args)
                 delete_on_error = True
             else:  # Must have 1 arg
@@ -420,7 +427,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
                 for v in self.EXCLUDED_FIELDS:
                     if v in args:
                         del args[v]
-                # Upadte fields from args
+                # Update fields from args
                 for k, v in args.items():
                     setattr(item, k, v)
 
