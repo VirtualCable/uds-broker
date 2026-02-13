@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Decorator that tests that _vmid is not empty
 # Used by some default methods that require a vmid to work
-def must_have_vmid(fnc: typing.Callable[[typing.Any], None]) -> typing.Callable[['DynamicPublication'], None]:
+def must_have_vmid(fnc: collections.abc.Callable[[typing.Any], None]) -> collections.abc.Callable[['DynamicPublication'], None]:
     @functools.wraps(fnc)
     def wrapper(self: 'DynamicPublication') -> None:
         if self._vmid == '':
@@ -61,7 +61,7 @@ class DynamicPublication(services.Publication, autoserializable.AutoSerializable
     _is_flagged_for_destroy = autoserializable.BoolField(default=False)
 
     # Extra info, not serializable, to keep information in case of exception and debug it
-    _error_debug_info: typing.Optional[str] = None
+    _error_debug_info: str | None = None
 
     # Default queues for publication. Should be enough for most of the cases
     # but can be overrided if needed
@@ -84,7 +84,7 @@ class DynamicPublication(services.Publication, autoserializable.AutoSerializable
             data['exec_count'] = 0
 
     @typing.final
-    def _inc_checks_counter(self, op: Operation) -> typing.Optional[types.states.TaskState]:
+    def _inc_checks_counter(self, op: Operation) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             count = data.get('exec_count', 0) + 1
             data['exec_count'] = count
@@ -98,7 +98,7 @@ class DynamicPublication(services.Publication, autoserializable.AutoSerializable
             data['retries'] = 0
 
     @typing.final
-    def _inc_retries_counter(self) -> typing.Optional[types.states.TaskState]:
+    def _inc_retries_counter(self) -> types.states.TaskState | None:
         with self.storage.as_dict() as data:
             retries = data.get('retries', 0) + 1
             data['retries'] = retries
@@ -126,7 +126,7 @@ class DynamicPublication(services.Publication, autoserializable.AutoSerializable
         self._queue = queue
 
     @typing.final
-    def _error(self, reason: typing.Union[str, Exception]) -> types.states.TaskState:
+    def _error(self, reason: str | Exception) -> types.states.TaskState:
         """
         Internal method to set object as error state
 

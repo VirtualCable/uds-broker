@@ -792,6 +792,7 @@ class Ticket(ActorV3Action):
                             token=self._params['token'], type=types.servers.ServerType.ACTOR
                         )  # Not assigned, because only needs check
                     except Server.DoesNotExist:
+                        logger.error('Actor token not found (params: %s)', self._params)
                         raise exceptions.rest.BlockAccess() from None  # If too many blocks...
 
                     return ActorV3Action.actor_result(TicketStore.get(self._params['ticket'], invalidate=True))
@@ -809,6 +810,7 @@ class Ticket(ActorV3Action):
                 case _:
                     raise exceptions.rest.RequestError('Invalid request')
         except TicketStore.DoesNotExist:
+            logger.error('Actor ticket not found (params: %s)', self._params)
             return ActorV3Action.actor_result(error='Invalid ticket')
 
 
