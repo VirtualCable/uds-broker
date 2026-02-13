@@ -407,8 +407,9 @@ class ServicesPools(ModelHandler[ServicePoolItem]):
             .add_checkbox(
                 name='publish_on_save',
                 default=True,
+                readonly=True,
                 label=gettext('Publish on save'),
-                tooltip=gettext('If active, the service will be published when saved'),
+                tooltip=gettext('If active, the service will be published when saved (only for new service pools)'),
             )
             .new_tab(types.ui.Tab.DISPLAY)
             .add_checkbox(
@@ -593,11 +594,11 @@ class ServicesPools(ModelHandler[ServicePoolItem]):
             fields['account_id'] = None
             logger.debug('Account id: %s', account_id)
 
-            if account_id != '-1':
+            if account_id:
                 try:
                     fields['account_id'] = Account.objects.get(uuid=process_uuid(account_id)).id
                 except Exception:
-                    logger.exception('Getting account ID')
+                    logger.error('Getting account ID: "%s" (%s)', account_id, account_id.__class__)
 
             # **** IMAGE ***
             image_id = fields['image_id']
@@ -629,7 +630,7 @@ class ServicesPools(ModelHandler[ServicePoolItem]):
 
     def post_save(self, item: 'Model') -> None:
         item = ensure.is_instance(item, ServicePool)
-        if self._params.get('publish_on_save', False) is True:
+        if self.is_new() and self._params.get('publish_on_save', False) is True:
             try:
                 item.publish()
             except Exception as e:
