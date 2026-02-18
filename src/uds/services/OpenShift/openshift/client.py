@@ -54,9 +54,9 @@ class OpenshiftClient:
     _timeout: int
     _token_expiry: datetime.datetime
 
-    _session: typing.Optional[requests.Session] = None
+    _session: requests.Session | None = None
 
-    cache: typing.Optional['Cache']
+    cache: 'Cache | None'
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class OpenshiftClient:
         namespace: str = 'default',
         timeout: int = 5,
         verify_ssl: bool = False,
-        cache: typing.Optional['Cache'] = None,
+        cache: 'Cache | None' = None,
     ) -> None:
         self.cluster_url = cluster_url
         self.api_url = api_url
@@ -258,35 +258,19 @@ class OpenshiftClient:
 
     # * --- OpenShift resource Methods ---*
 
-    def get_vm_info_by_name(self, vm_name: str) -> types.VM | None:
+    def get_vm_info_by_name(self, vm_name: str) -> types.VM:
         """
         Get VM information by name.
         Returns the VM object if found, else None.
         """
-        path = f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachines/{vm_name}"
-        try:
-            response = self.do_request('GET', path)
-            return types.VM.from_dict(response)  # Convertir a VMDefinition aquí
-        except exceptions.OpenshiftNotFoundError:
-            return None
-        except Exception as e:
-            logger.info(f"Error getting VM {vm_name}: {e}")
-            return None
-
-    def get_vm_instance_info_by_name(self, vm_name: str) -> types.VMInstance | None:
-        """
-        Get VM instance information by name.
-        Returns the VMInstance object if found, else None.
-        """
-        path = f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachineinstances/{vm_name}"
-        try:
-            response = self.do_request('GET', path)
-            return types.VMInstance.from_dict(response)  # Convertir a VMInstanceInfo aquí
-        except exceptions.OpenshiftNotFoundError:
-            return None
-        except Exception as e:
-            logger.error(f"Error getting VM Instance {vm_name}: {e}")
-            return None
+        response: dict[str, typing.Any] = self.do_request(
+            'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachines/{vm_name}"
+        )
+        response_ins: dict[str, typing.Any] = self.do_request(
+            'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachineinstances/{vm_name}"
+        )
+        response.update(response_ins)  # Merge VM and VMInstance info, VMInstance has more up-to-date status
+        return types.VM.from_dict(response)  # Convertir a VMDefinition aquí
 
     def monitor_vm_clone(
         self, api_url: str, namespace: str, clone_name: str, polling_interval: int = 5
@@ -641,20 +625,12 @@ class OpenshiftClient:
         return list(self.enumerate_vms())
 
     @cached('vm_info', consts.CACHE_VM_INFO_DURATION)
-    def get_vm_info(self, vm_name: str, force: bool = False) -> types.VM | None:
+    def get_vm_info(self, vm_name: str, force: bool = False) -> types.VM:
         """
         Get a specific VM by name in the current namespace.
         Returns the VM dict if found, else None.
         """
         return self.get_vm_info_by_name(vm_name)
-
-    @cached('vm_instance_info', consts.CACHE_VM_INFO_DURATION)
-    def get_vm_instance_info(self, vm_name: str) -> types.VMInstance | None:
-        """
-        Get a specific VM Instance by name in the current namespace.
-        Returns the VM Instance info if found, else None.
-        """
-        return self.get_vm_instance_info_by_name(vm_name)
 
     def start_vm_instance(self, vm_name: str) -> bool:
         """

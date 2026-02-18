@@ -19,7 +19,7 @@ Reorganizado y corregido por GitHub Copilot
 
 import typing
 from unittest import mock
-from uds.services.OpenShift.openshift import exceptions as morph_exceptions
+from uds.services.OpenShift.openshift import exceptions as oshift_exceptions
 
 from tests.services.openshift import fixtures
 from tests.utils.test import UDSTransactionTestCase
@@ -179,7 +179,7 @@ class TestOpenshiftService(UDSTransactionTestCase):
         api.delete_vm_instance.assert_called_with('vm-1')
 
         # Check if deleted
-        api.get_vm_info.side_effect = morph_exceptions.OpenshiftNotFoundError('not found')
+        api.get_vm_info.side_effect = oshift_exceptions.OpenshiftNotFoundError('not found')
         self.assertTrue(service.is_deleted('vm-1'))
 
         # Simulate VM exists

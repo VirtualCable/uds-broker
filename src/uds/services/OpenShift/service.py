@@ -11,7 +11,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import logging
 import collections.abc
 import typing
-import time
 
 from django.utils.translation import gettext_lazy as _
 
@@ -25,7 +24,8 @@ from uds.core.util import validators, fields
 from .publication import OpenshiftTemplatePublication
 
 from .deployment import OpenshiftUserService
-from .openshift import exceptions as morph_exceptions
+from .openshift import exceptions as oshift_exceptions
+from .openshift import types as oshift_types
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class OpenshiftService(DynamicService):
 
     prov_uuid = gui.HiddenField(value=None)
 
-    _cached_api: typing.Optional['OpenshiftClient'] = None
+    _cached_api: 'OpenshiftClient | None' = None
 
     @property
     def api(self) -> 'OpenshiftClient':
@@ -143,29 +143,26 @@ class OpenshiftService(DynamicService):
         """
         return self.provider().is_available()
 
-    def get_ip(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
-    ) -> str:
+    def get_ip(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> str:
         """
         Returns the ip of the machine
         If cannot be obtained, MUST raise an exception
         Tries up to 3 times with 5 seconds delay if not found.
         """
         logger.debug('Getting IP for VM ID: %s', vmid)
-        for attempt in range(3):
-            vmi_info = self.api.get_vm_instance_info(vmid)
-            if vmi_info and vmi_info.interfaces:
-                logger.info(f"IP address found: {vmi_info.interfaces[0].ip_address}")
-                return vmi_info.interfaces[0].ip_address
-            logger.warning(
-                f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Retrying in 5 seconds...'
-            )
-            time.sleep(5)
-        raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
+        try:
+            vm_info = self.api.get_vm_info(vmid)
+            logger.debug(f"The vm info is:{vm_info}")
+            if vm_info.interfaces and vm_info.interfaces:
+                logger.info(f"IP address found: {vm_info.interfaces[0].ip_address}")
+                return vm_info.interfaces[0].ip_address
+        except oshift_exceptions.OpenshiftNotFoundError:
+            pass
+        return ''
 
     def get_mac(
         self,
-        caller_instance: typing.Optional['DynamicUserService | DynamicPublication'],
+        caller_instance: 'DynamicUserService | DynamicPublication | None',
         vmid: str,
         *,
         for_unique_id: bool = False,
@@ -181,54 +178,41 @@ class OpenshiftService(DynamicService):
         if vmid == '':
             return ''
         logger.debug('Getting MAC for VM ID: %s', vmid)
-        for attempt in range(3):
-            vmi_info = self.api.get_vm_instance_info(vmid)
-            logger.debug(f"The vm info is:{vmi_info}")
-            if vmi_info and vmi_info.interfaces:
-                logger.info(f"MAC address found: {vmi_info.interfaces[0].mac_address}")
-                return vmi_info.interfaces[0].mac_address
-            logger.warning(
-                f'Attempt {attempt+1}/3: No interfaces found for VM {vmid} yet. Details: {vmi_info}. Retrying in 5 seconds...'
-            )
-            time.sleep(5)
-        raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vmid}')
+        try:
+            vm_info = self.api.get_vm_info(vmid)
+            logger.debug(f"The vm info is:{vm_info}")
+            if vm_info.interfaces and vm_info.interfaces:
+                logger.info(f"MAC address found: {vm_info.interfaces[0].mac_address}")
+                return vm_info.interfaces[0].mac_address
+        except oshift_exceptions.OpenshiftNotFoundError:
+            pass
+        return ''
 
-    def is_running(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
-    ) -> bool:
+    def is_running(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> bool:
         """
         Checks if the VM instance is currently running.
         """
-        vmi_info = self.api.get_vm_instance_info(vmid)
-        if not vmi_info:
-            return False
+        vmi_info = self.api.get_vm_info(vmid)
         # Use both status and phase to determine if running
         return (
-            getattr(vmi_info.status, "name", "").lower() == "running"
-            or getattr(vmi_info.phase, "name", "").lower() == "running"
+            vmi_info.status == oshift_types.VMStatus.RUNNING or vmi_info.phase == oshift_types.VMStatus.RUNNING
         )
 
-    def start(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
-    ) -> None:
+    def start(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Starts the machine
         Can return a task, or None if no task is returned
         """
         self.api.start_vm_instance(vmid)
 
-    def stop(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
-    ) -> None:
+    def stop(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Stops the machine
         Can return a task, or None if no task is returned
         """
         self.api.stop_vm_instance(vmid)
 
-    def shutdown(
-        self, caller_instance: typing.Optional['DynamicUserService | DynamicPublication'], vmid: str
-    ) -> None:
+    def shutdown(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Shutdowns the machine, same as stop (both tries soft shutdown, it's a openshift thing)
         """
@@ -247,6 +231,6 @@ class OpenshiftService(DynamicService):
         """
         try:
             self.api.get_vm_info(vmid)
-        except morph_exceptions.OpenshiftNotFoundError:
+        except oshift_exceptions.OpenshiftNotFoundError:
             return True
         return False

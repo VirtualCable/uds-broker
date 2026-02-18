@@ -49,7 +49,7 @@ from uds.core.ui.user_interface import gui
 from uds.models.user import User
 
 from uds.services.OpenShift import service, service_fixed, provider, publication, deployment, deployment_fixed
-from uds.services.OpenShift.openshift import types as openshift_types, exceptions as openshift_exceptions
+from uds.services.OpenShift.openshift import types as openshift_types, exceptions as oshift_exceptions
 
 DEF_VMS: list[openshift_types.VM] = [
     openshift_types.VM(
@@ -105,7 +105,7 @@ def replace_vm_info(vm_name: str, **kwargs: typing.Any) -> None:
         for k, v in kwargs.items():
             setattr(vm, k, v)
     except Exception:
-        raise openshift_exceptions.OpenshiftNotFoundError(f'VM {vm_name} not found')
+        raise oshift_exceptions.OpenshiftNotFoundError(f'VM {vm_name} not found')
 
 
 def replacer_vm_info(**kwargs: typing.Any) -> typing.Callable[..., None]:
