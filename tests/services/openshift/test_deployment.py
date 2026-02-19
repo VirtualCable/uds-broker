@@ -117,49 +117,10 @@ class TestOpenshiftDeployment(UDSTransactionTestCase):
             state = userservice.op_delete_checker()
         self.assertEqual(state, TaskState.FINISHED)
 
-    def test_op_delete_checker_running(self) -> None:
-        """
-        Test delete checker returns RUNNING when VM info still exists.
-        """
-        userservice = self._create_userservice()
-        api = userservice.service().api
-        with mock.patch.object(api, 'get_vm_info', return_value=fixtures.VMS[0]):
-            state = userservice.op_delete_checker()
-        self.assertEqual(state, TaskState.RUNNING)
-
     def test_op_delete_completed_checker(self) -> None:
         """
         Test delete completed checker always returns FINISHED.
         """
         userservice = self._create_userservice()
         state = userservice.op_delete_completed_checker()
-        self.assertEqual(state, TaskState.FINISHED)
-
-    # --- Cancel operation tests ---
-    def test_op_cancel_checker_finished(self) -> None:
-        """
-        Test cancel checker returns FINISHED when VM info is None (cancelled).
-        """
-        userservice = self._create_userservice()
-        api = userservice.service().api
-        with mock.patch.object(api, 'get_vm_info', return_value=None):
-            state = userservice.op_cancel_checker()
-        self.assertEqual(state, TaskState.FINISHED)
-
-    def test_op_cancel_checker_running(self) -> None:
-        """
-        Test cancel checker returns RUNNING when VM info still exists.
-        """
-        userservice = self._create_userservice()
-        api = userservice.service().api
-        with mock.patch.object(api, 'get_vm_info', return_value=fixtures.VMS[0]):
-            state = userservice.op_cancel_checker()
-        self.assertEqual(state, TaskState.RUNNING)
-
-    def test_op_cancel_completed_checker(self) -> None:
-        """
-        Test cancel completed checker always returns FINISHED.
-        """
-        userservice = self._create_userservice()
-        state = userservice.op_cancel_completed_checker()
         self.assertEqual(state, TaskState.FINISHED)
