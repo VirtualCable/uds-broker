@@ -372,7 +372,6 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         if self.can_set_ip:
             logger.debug('Setting IP to %s', ip)
             self._ip = ip
-            self.db_obj().log_ip(ip)  # Store IP in database
         else:
             logger.debug('Setting IP to %s (ignored)', ip)
 
