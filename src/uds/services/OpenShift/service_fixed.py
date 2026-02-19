@@ -135,7 +135,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         servers = {
             str(server.name): server.name
             for server in self.api.list_vms()
-            if not server.name.startswith('UDS-') and server.is_usable()
+            if not server.name.startswith('uds-') and server.is_usable()
         }
 
         with self._assigned_access() as assigned_servers:
