@@ -534,8 +534,8 @@ class BaseReadyChange(ActorV3Action):
         # Stores known IP and notifies it to deployment
         # userservice.log_ip(self._params['ip'])
         userservice_instance = userservice.get_instance()
-        # If instance has an IP, do not change it, otherwise, set the new one 
-        ip = userservice_instance.get_ip() or self._params['ip']  
+        # If instance has an IP, do not change it, otherwise, set the new one
+        ip = userservice_instance.get_ip() or self._params['ip']
         userservice.log_ip(ip)  # Store IP in database
         userservice_instance.set_ip(self._params['ip'])
         userservice.update_data(userservice_instance)
