@@ -40,13 +40,15 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
 
     _waiting_name = autoserializable.BoolField(default=False)
 
+    can_set_ip = False  # We cannot set IP on Openshift, so we disable this option in the UI
+
     # Custom queue
     _create_queue = [
         types.services.Operation.INITIALIZE,  # Used in base class to remove duplicates
         types.services.Operation.CREATE,  # Creating already starts the vm
         # Starts the vm. If we include this, we will force to wait for the vm to be running
         # Note that while deploying, the vm is IN FACT already running, so we must not include this
-        # becoase the actor could call us before we are "ready"
+        # because the actor could call us before we are "ready"
         # types.services.Operation.START,
         types.services.Operation.FINISH,
     ]
@@ -89,6 +91,7 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         publication_vm_name = self.publication()._name
         namespace = api.namespace
         api_url = api.api_url
+        self._name = self.service().sanitized_name(self._name)
 
         logger.info(f"Getting template PVC/DataVolume '{publication_vm_name}'.")
         source_pvc_name, vol_type = api.get_vm_pvc_or_dv_name(api_url, namespace, publication_vm_name)
@@ -115,36 +118,48 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         else:
             logger.info(f"VM '{self._name}' creation initiated successfully.")
 
+    # In fact, we probably don't need to check task status, but this way we can include the error
+    def op_create_checker(self) -> types.states.TaskState:
+        """
+        Checks the state of a deploy for a user or cache, correctly waiting for the DataVolume and the VM.
+        If the VM is not found, consider it deleted and finish the operation.
+        """
+
+        api = self.service().api
+        new_pvc_name = f"{self._name}-disk"
+
         logger.info(f"Waiting for DataVolume '{new_pvc_name}' to be ready.")
-        if not api.wait_for_datavolume_clone_progress(api_url, namespace, new_pvc_name):
-            logger.error(f"Timeout waiting for DataVolume clone {new_pvc_name}.")
-            return
+        dv_status = api.get_datavolume_phase(new_pvc_name)
+        if dv_status == 'Succeeded':
+            logger.info(f"DataVolume '{new_pvc_name}' clone completed.")
+        elif dv_status == 'Failed':
+            logger.error(f"DataVolume clone {new_pvc_name} failed.")
+            return types.states.TaskState.ERROR
+        else:
+            logger.info(f"Waiting for DataVolume clone {new_pvc_name}, status: {dv_status}.")
+            return types.states.TaskState.RUNNING
 
         logger.info(f"VM '{self._name}' created successfully.")
         self._vmid = self._name  # Assign the VM identifier for future operations (deletion, etc.)
         self._waiting_name = False
 
-    # In fact, we probably don't need to check task status, but this way we can include the error
-    def op_create_checker(self) -> types.states.TaskState:
-        """
-        Checks the state of a deploy for a user or cache, esperando correctamente el DataVolume y la VM.
-        If the VM is not found, consider it deleted and finish the operation.
-        """
         api = self.service().api
         new_dv_name = f"{self._name}-disk"
-        # Esperar a que el DataVolume esté en Succeeded
+
+        # Wait for the DataVolume to be Succeeded
         dv_status = api.get_datavolume_phase(new_dv_name)
         if dv_status != 'Succeeded':
             return types.states.TaskState.RUNNING
-        # Buscar la VM por nombre
+
+        # Find the VM by name
         vm = api.get_vm_info(self._name)
         if not vm:
             # VM not found, consider it deleted and finish
             logger.info(f"VM '{self._name}' not found, considering as deleted. Finishing operation.")
             return types.states.TaskState.FINISHED
 
-        # Comprobar que la VM tiene interfaces y MAC address
-        vmi = api.get_vm_instance_info(self._name)
+        # Check that the VM has interfaces and MAC address
+        vmi = api.get_vm_info(self._name)
         if (
             not vmi
             or not getattr(vmi, 'interfaces', None)
@@ -155,10 +170,19 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
 
     def op_delete_checker(self) -> types.states.TaskState:
         """
-        Checks if the VM is deleted. If not found, consider it deleted and finish.
+        Checks if the VM is deleted. Si no se encuentra (OpenshiftNotFoundError), lo considera eliminado y termina.
         """
         api = self.service().api
-        vm = api.get_vm_info(self._name)
+        try:
+            vm = api.get_vm_info(self._name)
+        except Exception as e:
+            # Si es OpenshiftNotFoundError, lo consideramos eliminado
+            if e.__class__.__name__ == "OpenshiftNotFoundError":
+                logger.info(
+                    f"VM '{self._name}' not found (OpenshiftNotFoundError) during delete check, considering as deleted. Finishing operation."
+                )
+                return types.states.TaskState.FINISHED
+            raise
         if not vm:
             logger.info(
                 f"VM '{self._name}' not found during delete check, considering as deleted. Finishing operation."
@@ -174,10 +198,18 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
 
     def op_cancel_checker(self) -> types.states.TaskState:
         """
-        Checks if the VM is canceled. If not found, consider it canceled and finish.
+        Checks if the VM is canceled. Si no se encuentra (OpenshiftNotFoundError), lo considera cancelado y termina.
         """
         api = self.service().api
-        vm = api.get_vm_info(self._name)
+        try:
+            vm = api.get_vm_info(self._name)
+        except Exception as e:
+            if e.__class__.__name__ == "OpenshiftNotFoundError":
+                logger.info(
+                    f"VM '{self._name}' not found (OpenshiftNotFoundError) during cancel check, considering as canceled. Finishing operation."
+                )
+                return types.states.TaskState.FINISHED
+            raise
         if not vm:
             logger.info(
                 f"VM '{self._name}' not found during cancel check, considering as canceled. Finishing operation."

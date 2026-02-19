@@ -150,7 +150,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         """
         Gets an available machine from the fixed list and assigns it.
         """
-        found_vmid: typing.Optional[str] = None  #! DUDA
+        found_vmid: str | None = None
         try:
             with self._assigned_access() as assigned:
                 for checking_vmid in self.sorted_assignables_list():
@@ -220,7 +220,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         else:
             raise oshift_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
 
-        vmi_info = self.api.get_vm_instance_info(vm_name)
+        vmi_info = self.api.get_vm_info(vm_name)
         if not vmi_info or not vmi_info.interfaces:
             raise oshift_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
         return vmi_info.interfaces[0].ip_address
@@ -239,7 +239,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         else:
             raise oshift_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
 
-        vmi_info = self.api.get_vm_instance_info(vm_name)
+        vmi_info = self.api.get_vm_info(vm_name)
         if not vmi_info or not vmi_info.interfaces:
             raise oshift_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
         return vmi_info.interfaces[0].mac_address

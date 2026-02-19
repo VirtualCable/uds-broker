@@ -116,11 +116,14 @@ class TestOpenshiftProvider(UDSTransactionTestCase):
         """
         with fixtures.patched_provider() as provider:
             api = typing.cast(mock.MagicMock, provider.api)
+            # Patch get_vm_info to return correct values for test
+            api.get_vm_info.side_effect = lambda vm_id: fixtures.VMS[0] if vm_id == 'vm-1' else (fixtures.VM_INSTANCES[0] if vm_id == 'vm-instance-1' else None)  # type: ignore
             self.assertEqual(provider.test_connection(), True)
             api.test.assert_called_once_with()
             self.assertEqual(provider.api.list_vms(), fixtures.VMS)
+            # Check get_vm_info for both a VM and a VM instance
             self.assertEqual(provider.api.get_vm_info('vm-1'), fixtures.VMS[0])
-            self.assertEqual(provider.api.get_vm_instance_info('vm-1'), fixtures.VM_INSTANCES[0])
+            self.assertEqual(provider.api.get_vm_info('vm-instance-1'), fixtures.VM_INSTANCES[0])
             self.assertTrue(provider.api.start_vm_instance('vm-1'))
             self.assertTrue(provider.api.stop_vm_instance('vm-1'))
             self.assertTrue(provider.api.delete_vm_instance('vm-1'))

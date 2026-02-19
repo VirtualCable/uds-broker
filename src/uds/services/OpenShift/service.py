@@ -229,6 +229,7 @@ class OpenshiftService(DynamicService):
         """
         Checks if the VM is deleted.
         """
+        logger.debug('Checking if VM %s is deleted', vmid)
         try:
             self.api.get_vm_info(vmid)
         except oshift_exceptions.OpenshiftNotFoundError:
