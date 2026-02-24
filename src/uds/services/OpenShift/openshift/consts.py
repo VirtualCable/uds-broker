@@ -32,9 +32,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 
 from uds.core import consts
 
-
 import typing
-
 
 CACHE_DURATION: typing.Final[int] = consts.cache.DEFAULT_CACHE_TIMEOUT
 CACHE_INFO_DURATION: typing.Final[int] = consts.cache.SHORT_CACHE_TIMEOUT
