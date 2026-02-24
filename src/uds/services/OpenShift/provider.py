@@ -86,7 +86,7 @@ class OpenshiftProvider(ServiceProvider):
     concurrent_removal_limit = fields.concurrent_removal_limit_field()
     timeout = fields.timeout_field()
 
-    _cached_api: typing.Optional['client.OpenshiftClient'] = None  # Cached API client
+    _cached_api: 'client.OpenshiftClient | None' = None  # Cached API client
 
     def initialize(self, values: 'core_types.core.ValuesType') -> None:
         # No port validation needed, URLs are used

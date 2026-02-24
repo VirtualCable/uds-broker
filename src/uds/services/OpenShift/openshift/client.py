@@ -33,7 +33,6 @@ import datetime
 import urllib.parse
 import logging
 import requests
-import time
 
 from uds.core.util import security
 from uds.core.util.cache import Cache
@@ -270,40 +269,8 @@ class OpenshiftClient:
             'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachineinstances/{vm_name}"
         )
         response.update(response_ins)  # Merge VM and VMInstance info, VMInstance has more up-to-date status
-        return types.VM.from_dict(response)  # Convertir a VMDefinition aquí
-
-    def monitor_vm_clone(
-        self, api_url: str, namespace: str, clone_name: str, polling_interval: int = 5
-    ) -> None:
-        """
-        Monitor the clone process of a virtual machine.
-        """
-        path = f"/apis/clone.kubevirt.io/v1alpha1/namespaces/{namespace}/virtualmachineclones/{clone_name}"
-        logging.debug("Monitoring clone process for '%s'...", clone_name)
-        while True:
-            try:
-                response = self.do_request('GET', path)
-                status = response.get('status', {})
-                phase = status.get('phase', 'Unknown')
-                logging.debug("Phase: %s", phase)
-                for condition in status.get('conditions', []):
-                    ctype = condition.get('type', '')
-                    cstatus = condition.get('status', '')
-                    cmsg = condition.get('message', '')
-                    logging.debug("  %s: %s - %s", ctype, cstatus, cmsg)
-                if phase == 'Succeeded':
-                    logging.info("Clone '%s' completed successfully!", clone_name)
-                    break
-                elif phase == 'Failed':
-                    logging.error("Clone '%s' failed!", clone_name)
-                    break
-            except exceptions.OpenshiftNotFoundError:
-                logging.warning("Clone resource '%s' not found. May have been cleaned up.", clone_name)
-                break
-            except Exception as e:
-                logging.error("Monitoring exception: %s", e)
-            logging.debug("Waiting %d seconds before next check...", polling_interval)
-            time.sleep(polling_interval)
+        logger.debug(f"VM info for '{vm_name}': {response}")
+        return types.VM.from_dict(response)
 
     def get_vm_pvc_or_dv_name(self, api_url: str, namespace: str, vm_name: str) -> tuple[str, str]:
         """
@@ -492,43 +459,41 @@ class OpenshiftClient:
         """
         Delete a VM by name.
         Returns True if the VM was deleted successfully, else False.
+        Treats 404 (not found) as success (idempotent delete).
         """
-        path = f"/apis/kubevirt.io/v1/namespaces/{namespace}/virtualmachines/{vm_name}"
+        from . import exceptions as oshift_exceptions
         try:
+            path = f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachines/{vm_name}"
             self.do_request('DELETE', path)
-            logging.info(f"VM {vm_name} deleted successfully.")
+        except oshift_exceptions.OpenshiftNotFoundError:
+            logging.info(f"VM {vm_name} not found when deleting, treating as already deleted.")
             return True
         except Exception as e:
-            logging.error(f"Error deleting VM {vm_name}: {e}")
+            logging.error(f"Error deleting VM: {e}")
             return False
 
-    def wait_for_datavolume_clone_progress(
-        self, api_url: str, namespace: str, datavolume_name: str, timeout: int = 3000, polling_interval: int = 5
-    ) -> bool:
-        """
-        Wait for a DataVolume clone to complete.
-        Returns True if the clone completed successfully, else False.
-        """
-        path = f"/apis/cdi.kubevirt.io/v1beta1/namespaces/{namespace}/datavolumes/{datavolume_name}"
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                response = self.do_request('GET', path)
-                status = response.get('status', {})
-                phase = status.get('phase')
-                progress = status.get('progress', 'N/A')
-                logging.debug(f"DataVolume {datavolume_name} status: {phase}, progress: {progress}")
-                if phase == 'Succeeded':
-                    logging.info(f"DataVolume {datavolume_name} clone completed")
-                    return True
-                elif phase == 'Failed':
-                    logging.error(f"DataVolume {datavolume_name} clone failed")
-                    return False
-            except Exception as e:
-                logging.error(f"Error querying DataVolume {datavolume_name}: {e}")
-            time.sleep(polling_interval)
-        logging.error(f"Timeout waiting for DataVolume {datavolume_name} clone")
-        return False
+        # Delete persistent volume
+        pv_path = "/api/v1/persistentvolumes"
+        try: 
+            pvs_resp = self.do_request('GET', pv_path)
+            if pvs_resp.get("items", []):
+                for pv in pvs_resp.get("items", []):
+                    claim_ref = pv.get("spec", {}).get("claimRef", {})
+                    if (
+                        claim_ref.get("name") == f"{vm_name}-disk"
+                        and claim_ref.get("namespace") == self.namespace
+                        and pv.get('status', {}).get('phase') == 'Released'
+                    ):
+                        pv_name = pv.get("metadata", {}).get("name")
+                        pv_path = f"/api/v1/persistentvolumes/{pv_name}"
+                        try:
+                            self.do_request('DELETE', pv_path)
+                        except oshift_exceptions.OpenshiftNotFoundError:
+                            logger.info(f"PV {pv_name} not found when deleting, treating as already deleted.")
+        except Exception as e:
+            logger.warning(f"Could not delete associated PV for VM {vm_name}: {e}")
+
+        return True
 
     def start_vm(self, api_url: str, namespace: str, vm_name: str) -> bool:
         """
@@ -625,7 +590,7 @@ class OpenshiftClient:
         return list(self.enumerate_vms())
 
     @cached('vm_info', consts.CACHE_VM_INFO_DURATION)
-    def get_vm_info(self, vm_name: str, force: bool = False) -> types.VM:
+    def get_vm_info(self, vm_name: str) -> types.VM:
         """
         Get a specific VM by name in the current namespace.
         Returns the VM dict if found, else None.
@@ -650,11 +615,6 @@ class OpenshiftClient:
         """
         Delete a specific VM by name.
         Returns True if deleted successfully, False otherwise.
+        Treats 404 (not found) as success (idempotent delete).
         """
-        path = f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachines/{vm_name}"
-        try:
-            self.do_request('DELETE', path)
-            return True
-        except Exception as e:
-            logging.error(f"Error deleting VM: {e}")
-            return False
+        return self.delete_vm(self.api_url, self.namespace, vm_name)

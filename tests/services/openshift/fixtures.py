@@ -39,6 +39,7 @@ import copy
 import functools
 import random
 import typing
+from collections.abc import Callable, Generator
 
 from unittest import mock
 import uuid
@@ -60,14 +61,18 @@ DEF_VMS: list[openshift_types.VM] = [
         volume_template=openshift_types.VolumeTemplate(name=f'volume-{i}', storage='10Gi'),
         disks=[openshift_types.DeviceDisk(name=f'disk-{i}', boot_order=1)],
         volumes=[openshift_types.Volume(name=f'volume-{i}', data_volume=f'dv-{i}')],
+        interfaces=[openshift_types.Interface(name='eth0', mac_address=f'00:11:22:33:44:{i:02x}', ip_address=f'192.168.1.{i}')],
     )
     for i in range(1, 11)
 ]
-DEF_VM_INSTANCES: list[openshift_types.VMInstance] = [
-    openshift_types.VMInstance(
+DEF_VM_INSTANCES: list[openshift_types.VM] = [
+    openshift_types.VM(
         name=f'vm-{i}',
         namespace='default',
         uid=f'uid-instance-{i}',
+        volume_template=openshift_types.VolumeTemplate(name=f'volume-{i}', storage='10Gi'),
+        disks=[openshift_types.DeviceDisk(name=f'disk-{i}', boot_order=1)],
+        volumes=[openshift_types.Volume(name=f'volume-{i}', data_volume=f'dv-{i}')],
         interfaces=[
             openshift_types.Interface(
                 name='eth0',
@@ -83,12 +88,12 @@ DEF_VM_INSTANCES: list[openshift_types.VMInstance] = [
 
 # clone values to avoid modifying the original ones
 VMS: list[openshift_types.VM] = copy.deepcopy(DEF_VMS)
-VM_INSTANCES: list[openshift_types.VMInstance] = copy.deepcopy(DEF_VM_INSTANCES)
+VM_INSTANCES: list[openshift_types.VM] = copy.deepcopy(DEF_VM_INSTANCES)
 
 
 def clear() -> None:
     """
-    Reset all VM and VMInstance values to their default state.
+    Reset all VM and VM values to their default state.
     Use this before each test to ensure a clean environment.
     """
     VMS[:] = copy.deepcopy(DEF_VMS)
@@ -108,7 +113,7 @@ def replace_vm_info(vm_name: str, **kwargs: typing.Any) -> None:
         raise oshift_exceptions.OpenshiftNotFoundError(f'VM {vm_name} not found')
 
 
-def replacer_vm_info(**kwargs: typing.Any) -> typing.Callable[..., None]:
+def replacer_vm_info(**kwargs: typing.Any) -> Callable[..., None]:
     """
     Returns a partial function to update VM info with preset kwargs.
     Useful for patching or repeated updates in tests.
@@ -119,7 +124,7 @@ def replacer_vm_info(**kwargs: typing.Any) -> typing.Callable[..., None]:
 T = typing.TypeVar('T')
 
 
-def returner(value: T, *args: typing.Any, **kwargs: typing.Any) -> typing.Callable[..., T]:
+def returner(value: T, *args: typing.Any, **kwargs: typing.Any) -> Callable[..., T]:
     """
     Returns a function that always returns the given value.
     Useful for mocking return values in tests.
@@ -187,7 +192,7 @@ def create_client_mock() -> mock.Mock:
                 return vm
         return None
 
-    def get_vm_instance_info_side_effect(vm_name: str, **kwargs: typing.Any) -> openshift_types.VMInstance | None:
+    def get_vm_instance_info_side_effect(vm_name: str, **kwargs: typing.Any) -> openshift_types.VM | None:
         for inst in VM_INSTANCES:
             if inst.name == vm_name:
                 return inst
@@ -200,7 +205,7 @@ def create_client_mock() -> mock.Mock:
 
 
 @contextlib.contextmanager
-def patched_provider(**kwargs: typing.Any) -> typing.Generator[provider.OpenshiftProvider, None, None]:
+def patched_provider(**kwargs: typing.Any) -> Generator[provider.OpenshiftProvider, None, None]:
     """
     Context manager that yields a provider with a patched OpenshiftClient mock.
     Use this to ensure all API calls are intercepted and controlled in tests.
@@ -226,7 +231,7 @@ def create_provider(**kwargs: typing.Any) -> provider.OpenshiftProvider:
 
 
 def create_service(
-    provider: typing.Optional[provider.OpenshiftProvider] = None, **kwargs: typing.Any
+    provider: provider.OpenshiftProvider | None = None, **kwargs: typing.Any
 ) -> service.OpenshiftService:
     """
     Create an OpenshiftService instance (dynamic service).
@@ -245,7 +250,7 @@ def create_service(
 
 
 def create_service_fixed(
-    provider: typing.Optional[provider.OpenshiftProvider] = None, **kwargs: typing.Any
+    provider: provider.OpenshiftProvider | None  = None, **kwargs: typing.Any
 ) -> service_fixed.OpenshiftServiceFixed:
     """
     Create an OpenshiftServiceFixed instance (fixed service).
@@ -263,7 +268,7 @@ def create_service_fixed(
 
 
 def create_publication(
-    service: typing.Optional[service.OpenshiftService] = None,
+    service: service.OpenshiftService | None = None,
     **kwargs: typing.Any,
 ) -> publication.OpenshiftTemplatePublication:
     """
@@ -283,8 +288,8 @@ def create_publication(
 
 
 def create_userservice(
-    service: typing.Optional[service.OpenshiftService] = None,
-    publication: typing.Optional[publication.OpenshiftTemplatePublication] = None,
+    service: service.OpenshiftService | None = None,
+    publication: publication.OpenshiftTemplatePublication | None = None,
 ) -> deployment.OpenshiftUserService:
     """
     Create an OpenshiftUserService instance (dynamic user service).
@@ -300,7 +305,7 @@ def create_userservice(
 
 
 def create_userservice_fixed(
-    service: typing.Optional[service_fixed.OpenshiftServiceFixed] = None,
+    service: service_fixed.OpenshiftServiceFixed | None  = None,
 ) -> deployment_fixed.OpenshiftUserServiceFixed:
     """
     Create an OpenshiftUserServiceFixed instance (fixed user service).
@@ -323,9 +328,9 @@ def create_user(
     password: str = 'password',
     mfa_data: str = '',
     staff_member: bool = False,
-    last_access: typing.Optional[str] = None,
-    parent: typing.Optional[User] = None,
-    created: typing.Optional[str] = None,
+    last_access: str | None = None,
+    parent: User | None = None,
+    created: str | None = None,
     comments: str = '',
 ) -> User:
     """
