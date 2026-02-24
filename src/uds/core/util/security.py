@@ -126,6 +126,11 @@ def create_client_sslcontext(
 
     ssl_context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
 
+    # Disable strict X509 checks, as we may use self-signed certificates
+    # Kept here for reference, but should not be needed
+    # ssl_context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    # ssl_context.verify_flags &= ~ssl.VERIFY_X509_PARTIAL_CHAIN
+
     if not verify:
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.VerifyMode.CERT_NONE
