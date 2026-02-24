@@ -138,32 +138,34 @@ class TestOpenshiftService(UDSTransactionTestCase):
         provider_ctx.__exit__(None, None, None)
 
     # --- Exception handling ---
-    def test_get_ip_raises_exception_if_no_interfaces(self) -> None:
+
+    def test_get_ip_returns_empty_if_no_interfaces(self) -> None:
         """
-        Check that get_ip raises an exception if there are no interfaces.
+        Check that get_ip returns empty string if there are no interfaces.
         """
         service, _, provider_ctx = self._create_service_with_provider()
         def no_interfaces(_vmid: str):
             mock_vm = mock.Mock()
             mock_vm.interfaces = []
             return mock_vm
-        with mock.patch.object(service.api, 'get_vm_instance_info', side_effect=no_interfaces):
-            with self.assertRaises(Exception):
-                service.get_ip(None, 'vm-1')
+        with mock.patch.object(service.api, 'get_vm_info', side_effect=no_interfaces):
+            ip = service.get_ip(None, 'vm-1')
+            self.assertEqual(ip, '')
         provider_ctx.__exit__(None, None, None)
 
-    def test_get_mac_raises_exception_if_no_interfaces(self) -> None:
+
+    def test_get_mac_returns_empty_if_no_interfaces(self) -> None:
         """
-        Check that get_mac raises an exception if there are no interfaces.
+        Check that get_mac returns empty string if there are no interfaces.
         """
         service, _, provider_ctx = self._create_service_with_provider()
         def no_interfaces(_vmid: str):
             mock_vm = mock.Mock()
             mock_vm.interfaces = []
             return mock_vm
-        with mock.patch.object(service.api, 'get_vm_instance_info', side_effect=no_interfaces):
-            with self.assertRaises(Exception):
-                service.get_mac(None, 'vm-1')
+        with mock.patch.object(service.api, 'get_vm_info', side_effect=no_interfaces):
+            mac = service.get_mac(None, 'vm-1')
+            self.assertEqual(mac, '')
         provider_ctx.__exit__(None, None, None)
 
     # --- VM deletion ---

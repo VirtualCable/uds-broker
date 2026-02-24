@@ -99,7 +99,7 @@ class OpenshiftService(DynamicService):
             [
                 gui.choice_item(str(template.name), f'{template.name} ({template.namespace})')
                 for template in self.provider().api.list_vms()
-                if template.is_usable() and not template.name.startswith('UDS-')
+                if template.is_usable() and not template.name.startswith('uds-')
             ]
         )
 
@@ -229,6 +229,7 @@ class OpenshiftService(DynamicService):
         """
         Checks if the VM is deleted.
         """
+        logger.debug('Checking if VM %s is deleted', vmid)
         try:
             self.api.get_vm_info(vmid)
         except oshift_exceptions.OpenshiftNotFoundError:
