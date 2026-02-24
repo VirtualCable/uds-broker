@@ -145,7 +145,7 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         logger.info(f"Checking if VM '{self._name}' is stopped after publication.")
         vmi = self.service().api.get_vm_info(self._name)
         status = getattr(vmi, 'status', None)
-        if status and hasattr(status, 'is_running') and not status.is_running() and not status == None:
+        if status and hasattr(status, 'is_running') and not status.is_running():
             logger.info(f"VM '{self._name}' is stopped, publication finished.")
             return TaskState.FINISHED
         logger.info(f"VM '{self._name}' still running, waiting.")
