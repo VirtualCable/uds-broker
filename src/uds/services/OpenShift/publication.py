@@ -91,6 +91,7 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
 
         logger.info(f"Waiting for DataVolume '{new_pvc_name}' to be ready.")
         dv_status = api.get_datavolume_phase(new_pvc_name)
+        
         if dv_status == 'Succeeded':
             logger.info(f"DataVolume '{new_pvc_name}' clone completed.")
         elif dv_status == 'Failed':
@@ -108,17 +109,14 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         # If we are still waiting, we try to get the VM by name
         if self._waiting_name:
             logger.info(f"Waiting for VM '{self._name}' to be available.")
-            vmi = self.service().api.get_vm_info(self._name)
             # If get_vm_info never returns None, remove the check
             logger.info(f"VM '{self._name}' already exists.")
             self._waiting_name = False
 
-        vmi = self.service().api.get_vm_info(self._name)
-        # We consider the publication finished when the VM exists and is not in provisioning phase
-        status = getattr(vmi, 'status', None)
-        if status is None:
+        if not self.service().api.get_vm_info(self._name).is_usable():
             logger.info(f"Status of VM '{self._name}' not available.")
             return types.states.TaskState.RUNNING
+
         # If there is a is_ready method or similar, use it. If not, just finish if the VM exists.
         logger.info(f"VM '{self._name}' is ready.")
         return types.states.TaskState.FINISHED
@@ -129,9 +127,7 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         In this case, we ensure the VM is stopped.
         """
         logger.info(f"Checking if VM '{self._name}' is running to stop it.")
-        vmi = self.service().api.get_vm_info(self._name)
-        status = getattr(vmi, 'status', None)
-        if status and hasattr(status, 'is_running') and status.is_running():
+        if self.service().api.get_vm_info(self._name).is_running():
             logger.info(f"Stopping VM '{self._name}'.")
             self.service().api.stop_vm_instance(self._name)
         else:
@@ -143,9 +139,7 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         If the VM is stopped, we can consider the publication as completed.
         """
         logger.info(f"Checking if VM '{self._name}' is stopped after publication.")
-        vmi = self.service().api.get_vm_info(self._name)
-        status = getattr(vmi, 'status', None)
-        if status and hasattr(status, 'is_running') and not status.is_running():
+        if not self.service().api.get_vm_info(self._name).is_running():
             logger.info(f"VM '{self._name}' is stopped, publication finished.")
             return TaskState.FINISHED
         logger.info(f"VM '{self._name}' still running, waiting.")
