@@ -12,15 +12,17 @@ Logger.info(`Using RDP client at ${mstscPath}`);
 
 const password = Utils.cryptProtectData(data.password);
 Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', '127.0.0.1', 255); // Register to allow redirection
-Logger.info(`Tunnel data: host=${data.tunnel.host}, port=${data.tunnel.port}, ticket=${data.tunnel.ticket}, verify_ssl=${data.tunnel.verify_ssl}, timeout=${data.tunnel.timeout}`);
-
+Logger.info(
+    `Tunnel data: host=${data.tunnel.host}, port=${data.tunnel.port}, ticket=${data.tunnel.ticket}, verify_ssl=${data.tunnel.verify_ssl}, timeout=${data.tunnel.timeout}`,
+);
 
 const tunnel = await Tasks.startTunnel({
     addr: data.tunnel.host,
     port: data.tunnel.port,
     ticket: data.tunnel.ticket,
     startup_time_ms: data.tunnel.startup_time,
-    check_certificate: data.tunnel.verify_ssl
+    check_certificate: data.tunnel.verify_ssl,
+    shared_secret: data.shared_secret
 });
 
 let content = data.as_file.replace(/\{password\}/g, password);
@@ -36,4 +38,3 @@ Tasks.addEarlyUnlinkableFile(rdpFilePath);
 Logger.info(`Added early unlinkable file: ${rdpFilePath}`);
 Tasks.addWaitableApp(process);
 Logger.info(`Launched RDP client with file ${rdpFilePath}`);
-
