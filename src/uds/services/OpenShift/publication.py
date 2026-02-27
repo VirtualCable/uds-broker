@@ -91,7 +91,6 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
 
         logger.info(f"Waiting for DataVolume '{new_pvc_name}' to be ready.")
         dv_status = api.get_datavolume_phase(new_pvc_name)
-        
         if dv_status == 'Succeeded':
             logger.info(f"DataVolume '{new_pvc_name}' clone completed.")
         elif dv_status == 'Failed':
@@ -116,7 +115,6 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         if not self.service().api.get_vm_info(self._name).is_usable():
             logger.info(f"Status of VM '{self._name}' not available.")
             return types.states.TaskState.RUNNING
-
         # If there is a is_ready method or similar, use it. If not, just finish if the VM exists.
         logger.info(f"VM '{self._name}' is ready.")
         return types.states.TaskState.FINISHED
@@ -139,9 +137,21 @@ class OpenshiftTemplatePublication(DynamicPublication, autoserializable.AutoSeri
         Handles the case where the VM exists but the VMI does not (halted state).
         """
         logger.info(f"Checking if VM '{self._name}' is stopped after publication.")
-        if not self.service().api.get_vm_info(self._name).is_running():
+        try:
+            vmi = self.service().api.get_vm_info(self._name)
+        except Exception as e:
+            from uds.services.OpenShift.openshift import exceptions
+            # Handle OpenshiftNotFoundError for VMI
+            if isinstance(e, exceptions.OpenshiftNotFoundError) and "virtualmachineinstances" in str(e):
+                if self.service().api.vm_exists(self._name):
+                    logger.info(f"VM '{self._name}' halted (no VMI), publication finished.")
+                    return TaskState.FINISHED
+            raise
+
+        if not vmi.is_running():
             logger.info(f"VM '{self._name}' is stopped, publication finished.")
             return TaskState.FINISHED
+        
         logger.info(f"VM '{self._name}' still running, waiting.")
         return TaskState.RUNNING
 
