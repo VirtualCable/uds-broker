@@ -66,7 +66,7 @@ RT = typing.TypeVar('RT')
 # Local type only
 def uds_cookie(
     request: HttpRequest,
-    response: typing.Optional[HttpResponse] = None,
+    response: HttpResponse | None = None,
     force: bool = False,
 ) -> str:
     """
@@ -124,7 +124,7 @@ def root_user() -> models.User:
 
 # Decorator to make easier protect pages that needs to be logged in
 def weblogin_required(
-    role: typing.Optional[consts.UserRole] = None,
+    role: consts.UserRole | None = None,
 ) -> collections.abc.Callable[
     [collections.abc.Callable[..., HttpResponse]], collections.abc.Callable[..., HttpResponse]
 ]:
@@ -376,7 +376,7 @@ def authenticate_callback_url(authenticator: models.Authenticator) -> str:
     return reverse('page.auth.callback', kwargs={'authenticator_name': authenticator.small_name})
 
 
-def authenticate_info_url(authenticator: typing.Union[str, bytes, models.Authenticator]) -> str:
+def authenticate_info_url(authenticator: str | bytes | models.Authenticator) -> str:
     """
     Helper method, so we can get the info url for an authenticator
     """
@@ -392,7 +392,7 @@ def authenticate_info_url(authenticator: typing.Union[str, bytes, models.Authent
 
 def weblogin(
     request: 'types.requests.ExtendedHttpRequest',
-    response: typing.Optional[HttpResponse],
+    response: HttpResponse | None,
     user: models.User,
     password: str,
 ) -> bool:
@@ -449,12 +449,14 @@ def get_webpassword(request: HttpRequest) -> str:
             getattr(request, '_scrambler'),
         )
     passkey = base64.b64decode(request.session.get(consts.auth.SESSION_PASS_KEY, ''))
-    return CryptoManager.manager().symmetric_decrypt(passkey, uds_cookie(request))  # recover as original unicode string
+    return CryptoManager.manager().symmetric_decrypt(
+        passkey, uds_cookie(request)
+    )  # recover as original unicode string
 
 
 def weblogout(
     request: 'types.requests.ExtendedHttpRequest',
-    exit_url: typing.Optional[str] = None,
+    exit_url: str | None = None,
 ) -> HttpResponse:
     """
     Helper function to clear user related data from session. If this method is not used, the session we be cleaned anyway

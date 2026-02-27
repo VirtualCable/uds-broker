@@ -245,6 +245,10 @@ class VM:
 
     def is_usable(self) -> bool:
         return self.status.is_usable()
+    
+    def is_running(self) -> bool:
+        return self.status.is_running()
+
 
     @staticmethod
     def from_dict(dictionary: collections.abc.MutableMapping[str, typing.Any]) -> 'VM':
