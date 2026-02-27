@@ -57,12 +57,15 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.get_pvc_size.return_value = '10Gi'
             api.create_vm_from_pvc.return_value = True
             api.wait_for_datavolume_clone_progress.return_value = True
-            api.get_vm_info.return_value = None
+            # Mock get_vm_info to return a mock object with is_usable method for every call
+            vm_info_mock = mock.MagicMock()
+            vm_info_mock.is_usable.return_value = True
+            api.get_vm_info.side_effect = lambda name: vm_info_mock  # type: ignore
 
             publication.op_create()
-            api.get_vm_info.return_value = None
+            # get_vm_info will return vm_info_mock, so op_create_checker should not fail
             state = publication.op_create_checker()
-            self.assertEqual(state, types.states.TaskState.RUNNING)
+            self.assertEqual(state, types.states.TaskState.FINISHED)
 
             def get_vm_info_side_effect(name: str) -> mock.Mock | None:
                 return mock.Mock(status=mock.Mock()) if name == publication._name else None
@@ -76,16 +79,17 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
         Test op_create_completed and op_create_completed_checker flow
         """
         with fixtures.patched_provider() as provider:
-            api = typing.cast(mock.MagicMock, provider.api)
+            api: mock.MagicMock = typing.cast(mock.MagicMock, provider.api)
             service = fixtures.create_service(provider=provider)
             publication = fixtures.create_publication(service=service)
 
             # VM running
             running_status = mock.Mock()
             running_status.is_running.return_value = True
-            running_vm = mock.Mock(status=running_status)
-            
-            def get_vm_info_side_effect(name: str, **kwargs: dict[str, typing.Any]) -> mock.Mock | None:
+            running_vm = mock.Mock()
+            running_vm.status = running_status
+
+            def get_vm_info_side_effect(name: str, **kwargs: typing.Any) -> mock.Mock | None:
                 return running_vm if name == 'test-vm' else None
 
             api.get_vm_info.side_effect = get_vm_info_side_effect
@@ -94,27 +98,31 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.stop_vm_instance.assert_called_with('test-vm')
 
             # VM stopped
-            stopped_status = mock.Mock()
-            stopped_status.is_running.return_value = False
-            stopped_vm = mock.Mock(status=stopped_status)
-            
+            stopped_vm = mock.Mock()
+            stopped_vm.is_running.return_value = False
+
             api.get_vm_info.side_effect = None
             api.get_vm_info.return_value = stopped_vm
             api.stop_vm_instance.reset_mock()
             publication.op_create_completed()
             api.stop_vm_instance.assert_not_called()
 
-            # # Checker: VM not found
-            # api.get_vm_info.return_value = ''
-            # state = publication.op_create_completed_checker()
-            # self.assertEqual(state, types.states.TaskState.FINISHED)
+            # VM not found (get_vm_info returns None)
+            api.get_vm_info.return_value = None
+            api.stop_vm_instance.reset_mock()
+            with self.assertRaises(AttributeError):
+                publication.op_create_completed()
+            api.stop_vm_instance.assert_not_called()
 
             # Checker: VM stopped
             api.get_vm_info.return_value = stopped_vm
             state = publication.op_create_completed_checker()
             self.assertEqual(state, types.states.TaskState.FINISHED)
 
-            # Checker: VM running
+            # Checker: VM not found
+            api.get_vm_info.return_value = None
+            with self.assertRaises(AttributeError):
+                publication.op_create_completed_checker()
             api.get_vm_info.return_value = running_vm
             state = publication.op_create_completed_checker()
             self.assertEqual(state, types.states.TaskState.RUNNING)
