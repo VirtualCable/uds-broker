@@ -189,7 +189,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         if self.on_logout.value == 'stop':
             name = userservice_instance._name
             vmi_info = self.api.get_vm_info(name)
-            if vmi_info and (getattr(vmi_info.status, "name", "").lower() == "running"):
+            if vmi_info and vmi_info.is_running():
                 userservice_instance._queue.insert(0, types.services.Operation.NOP)
                 userservice_instance._queue.insert(1, types.services.Operation.SHUTDOWN)
                 self.do_log(types.log.LogLevel.INFO, f'Stopping machine {name} after logout')

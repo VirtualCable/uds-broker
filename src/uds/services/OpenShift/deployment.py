@@ -160,11 +160,7 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
 
         # Check that the VM has interfaces and MAC address
         vmi = api.get_vm_info(self._name)
-        if (
-            not vmi
-            or not getattr(vmi, 'interfaces', None)
-            or getattr(vmi.interfaces[0], 'mac_address', '') == ''
-        ):
+        if not vmi or not vmi.interfaces or not vmi.interfaces[0].mac_address:
             return types.states.TaskState.RUNNING
         return types.states.TaskState.FINISHED
 
