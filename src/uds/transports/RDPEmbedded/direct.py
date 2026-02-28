@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2012-2021 Virtual Cable S.L.
+# Copyright (c) 2026 Virtual Cable S.L.
 # All rights reservem.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -37,7 +37,7 @@ from django.utils.translation import gettext_noop as _
 
 from uds.core import types
 
-from .rdp_common import BaseRDPEmbeddedTransport, RDPConnectionParams
+from .common import BaseRDPEmbeddedTransport, RDPConnectionParams
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
@@ -60,6 +60,7 @@ class RDPEmbeddedTransport(BaseRDPEmbeddedTransport):
     type_name = _('Embedded RDP Client')
     type_type = 'RDPEmbeddedTransport'
     type_description = _('RDP Embedded Client. Direct connection.')
+    icon_file = 'rdp.png'
 
     force_empty_creds = BaseRDPEmbeddedTransport.force_empty_creds
     forced_username = BaseRDPEmbeddedTransport.forced_username
@@ -119,6 +120,14 @@ class RDPEmbeddedTransport(BaseRDPEmbeddedTransport):
                 'Os not valid for RDP Transport: %s',
                 request.META.get('HTTP_USER_AGENT', 'Unknown'),
             )
-            return super().get_transport_script(userservice, transport, ip, os, user, password, request)
+            return super().get_transport_script(
+                userservice,
+                transport,
+                ip,
+                os,
+                user,
+                password,
+                request,
+            )
 
         return self.get_script(os.os.os_name(), 'direct', data.as_dict())

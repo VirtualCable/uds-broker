@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c) 2012 Virtual Cable S.L.
+# Copyright (c) 2026 Virtual Cable S.L.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -62,6 +62,14 @@ READY_CACHE_TIMEOUT = 30
 
 
 @dataclasses.dataclass
+class RDPTunnelParams:
+    host: str
+    port: int
+    ticket: str
+    startup_time: int  # In milliseconds
+
+
+@dataclasses.dataclass
 class RDPConnectionParams:
     server: str
     port: int = 3389
@@ -72,11 +80,17 @@ class RDPConnectionParams:
     use_nla: bool | None = None
     screen_width: int | None = None
     screen_height: int | None = None
-    drives_to_redirect: typing.List[str] | None = None
+    drives_to_redirect: list[str] | None = None
+    tunnel: RDPTunnelParams | None = None
 
-    def as_dict(self) -> typing.Dict[str, typing.Any]:
+    def as_dict(self) -> dict[str, typing.Any]:
+        def _as_dct(v: typing.Any) -> typing.Any:
+            if dataclasses.is_dataclass(v) and not isinstance(v, type):
+                return dataclasses.asdict(v)
+            return v
+
         # Convert dataclass to dict and remove all empty values
-        return {k: v for k, v in dataclasses.asdict(self).items() if v is not None}
+        return {k: _as_dct(v) for k, v in dataclasses.asdict(self).items() if v is not None}
 
 
 class BaseRDPEmbeddedTransport(transports.Transport):
@@ -87,7 +101,6 @@ class BaseRDPEmbeddedTransport(transports.Transport):
 
     is_base = True
 
-    icon_file = 'rdp.png'
     PROTOCOL = types.transports.Protocol.RDP
     supported_oss = (types.os.KnownOS.WINDOWS, types.os.KnownOS.LINUX, types.os.KnownOS.MAC_OS)
 
@@ -225,7 +238,7 @@ class BaseRDPEmbeddedTransport(transports.Transport):
         user: 'models.User',
         password: str,
         *,
-        alt_username: typing.Optional[str],
+        alt_username: str | None,
     ) -> types.connections.ConnectionData:
         username: str = alt_username or user.get_username_for_auth()
 
@@ -276,7 +289,7 @@ class BaseRDPEmbeddedTransport(transports.Transport):
 
     def get_connection_info(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
         *,
