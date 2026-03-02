@@ -114,7 +114,7 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.get_vm_info.side_effect = get_vm_info_side_effect
             publication._name = 'test-vm'
             publication.op_create_completed()
-            api.stop_vm_instance.assert_called_with('test-vm')
+            api.stop_vm.assert_called_with('test-vm')
 
             # VM stopped
             stopped_status = mock.Mock()
@@ -124,16 +124,16 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
 
             api.get_vm_info.side_effect = None
             api.get_vm_info.return_value = stopped_vm
-            api.stop_vm_instance.reset_mock()
+            api.stop_vm.reset_mock()
             publication.op_create_completed()
-            api.stop_vm_instance.assert_called_with('test-vm')
+            api.stop_vm.assert_called_with('test-vm')
 
             # VM not found (get_vm_info returns None)
             api.get_vm_info.return_value = None
-            api.stop_vm_instance.reset_mock()
+            api.stop_vm.reset_mock()
             with self.assertRaises(AttributeError):
                 publication.op_create_completed()
-            api.stop_vm_instance.assert_not_called()
+            api.stop_vm.assert_not_called()
 
             # Checker: VM stopped
             api.get_vm_info.return_value = stopped_vm

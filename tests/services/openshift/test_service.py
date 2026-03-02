@@ -137,11 +137,11 @@ class TestOpenshiftService(UDSTransactionTestCase):
         service.is_running = mock.Mock(return_value=True)
         self.assertTrue(service.is_running(None, 'vm-1'))
         service.start(None, 'vm-1')
-        api.start_vm_instance.assert_called_with('vm-1')
+        api.start_vm.assert_called_with('vm-1')
         service.stop(None, 'vm-1')
-        api.stop_vm_instance.assert_called_with('vm-1')
+        api.stop_vm.assert_called_with('vm-1')
         service.shutdown(None, 'vm-1')
-        api.stop_vm_instance.assert_called_with('vm-1')
+        api.stop_vm.assert_called_with('vm-1')
         provider_ctx.__exit__(None, None, None)
 
     # --- Exception handling ---
@@ -177,7 +177,7 @@ class TestOpenshiftService(UDSTransactionTestCase):
 
         # Execute deletion
         service.execute_delete('vm-1')
-        api.delete_vm_instance.assert_called_with('vm-1')
+        api.delete_vm.assert_called_with('vm-1')
 
         # Check if deleted
         api.get_vm_info.side_effect = oshift_exceptions.OpenshiftNotFoundError('not found')

@@ -192,27 +192,27 @@ class OpenshiftService(DynamicService):
         Starts the machine
         Can return a task, or None if no task is returned
         """
-        self.api.start_vm_instance(vmid)
+        self.api.start_vm(vmid)
 
     def stop(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Stops the machine
         Can return a task, or None if no task is returned
         """
-        self.api.stop_vm_instance(vmid)
+        self.api.stop_vm(vmid)
 
     def shutdown(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Shutdowns the machine, same as stop (both tries soft shutdown, it's a openshift thing)
         """
-        self.api.stop_vm_instance(vmid)
+        self.api.stop_vm(vmid)
 
     def execute_delete(self, vmid: str) -> None:
         """
         Deletes the VM
         """
         logger.debug('Deleting Openshift VM %s', vmid)
-        self.api.delete_vm_instance(vmid)  # Force deletion, as we are not using soft delete
+        self.api.delete_vm(vmid)  # Force deletion, as we are not using soft delete
 
     def is_deleted(self, vmid: str) -> bool:
         """
