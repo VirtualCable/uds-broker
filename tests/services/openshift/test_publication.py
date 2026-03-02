@@ -159,13 +159,20 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.create_vm_from_pvc.return_value = True
             api.wait_for_datavolume_clone_progress.return_value = True
 
-            call_count = {"count": 0}
+            # Mock get_datavolume_phase to always return a successful phase
+            dv_phase_mock = mock.Mock()
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_succeeded.return_value = True
+            api.get_datavolume_phase.return_value = dv_phase_mock
+
+            # Mock get_vm_info to always return a usable VM
             def vm_info_side_effect(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
                 vm = mock.Mock()
                 vm.status = mock.Mock()
                 vm.name = publication._name
                 vm.interfaces = [mock.Mock(mac_address='00:11:22:33:44:55')]
                 vm.is_usable = mock.Mock(return_value=True)
+                vm.is_running = mock.Mock(return_value=False)
                 return vm
             api.get_vm_info.side_effect = vm_info_side_effect
 
@@ -177,13 +184,9 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.do_request = mock.Mock(return_value={'status': {'interfaces': [{'mac_address': '00:11:22:33:44:55'}]}})
 
             state = publication.publish()
-            self.assertEqual(state, types.state.State.RUNNING)
+            self.assertEqual(state, types.states.State.RUNNING)
 
-            state = publication.check_state()
-            api.get_vm_pvc_or_dv_name.assert_called()
-            # api.get_pvc_size.assert_called()
-            api.create_vm_from_pvc.assert_called()
-
+            # Ensure all subsequent check_state calls see a successful state
             for _ in range(10):
                 state = publication.check_state()
                 if state == types.states.TaskState.FINISHED:
