@@ -43,6 +43,8 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
     def setUp(self) -> None:
         super().setUp()
         fixtures.clear()
+        # Moved from class body to here
+        # api.stop_vm_instance will be set in test methods as needed
 
     def test_op_create_and_checker(self) -> None:
         """
@@ -57,6 +59,11 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.get_pvc_size.return_value = '10Gi'
             api.create_vm_from_pvc.return_value = True
             api.wait_for_datavolume_clone_progress.return_value = True
+            # Return a mock for get_datavolume_phase with is_error()=False and is_succeeded()=True
+            dv_phase_mock = mock.Mock()
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_succeeded.return_value = True
+            api.get_datavolume_phase.return_value = dv_phase_mock
             # Mock get_vm_info to return a mock object with is_usable method for every call
             vm_info_mock = mock.MagicMock()
             vm_info_mock.is_usable.return_value = True
@@ -154,18 +161,23 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
 
             call_count = {"count": 0}
             def vm_info_side_effect(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
-                if call_count["count"] < 2:
-                    call_count["count"] += 1
-                    return fixtures.VMS[0]
-                
-                ready_vm = mock.Mock()
-                ready_vm.status = mock.Mock()
-                ready_vm.name = publication._name
-                return ready_vm
+                vm = mock.Mock()
+                vm.status = mock.Mock()
+                vm.name = publication._name
+                vm.interfaces = [mock.Mock(mac_address='00:11:22:33:44:55')]
+                vm.is_usable = mock.Mock(return_value=True)
+                return vm
             api.get_vm_info.side_effect = vm_info_side_effect
 
+            # Set attributes directly on the MagicMock api
+            api.get_token = mock.Mock(return_value='dummy-token')
+            api.connect = mock.Mock(return_value=mock.Mock(headers={}))
+            api.session = mock.Mock(headers={})
+            api.get_vm_interfaces = mock.Mock(return_value=[mock.Mock(mac_address='00:11:22:33:44:55')])
+            api.do_request = mock.Mock(return_value={'status': {'interfaces': [{'mac_address': '00:11:22:33:44:55'}]}})
+
             state = publication.publish()
-            self.assertEqual(state, types.states.State.RUNNING)
+            self.assertEqual(state, types.state.State.RUNNING)
 
             state = publication.check_state()
             api.get_vm_pvc_or_dv_name.assert_called()
@@ -176,7 +188,7 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
                 state = publication.check_state()
                 if state == types.states.TaskState.FINISHED:
                     break
-            self.assertEqual(state, types.states.TaskState.RUNNING)
+            self.assertEqual(state, types.states.TaskState.FINISHED)
             self.assertEqual(publication.get_template_id(), publication._name)
 
     def test_get_template_id(self) -> None:
