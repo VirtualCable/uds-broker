@@ -65,7 +65,8 @@ class TestOpenshiftDeployment(UDSTransactionTestCase):
              mock.patch.object(api, 'get_pvc_size', return_value='10Gi'), \
              mock.patch.object(api, 'create_vm_from_pvc', return_value=True), \
              mock.patch.object(api, 'get_datavolume_phase', return_value='Succeeded'), \
-             mock.patch.object(api, 'get_vm_info', return_value=mock.Mock(interfaces=[mock.Mock(mac_address='00:11:22:33:44:55')])):
+             mock.patch.object(api, 'get_vm_info', return_value=mock.Mock(interfaces=[mock.Mock(mac_address='00:11:22:33:44:55')])), \
+             mock.patch.object(api, 'get_vm_interfaces', return_value=[mock.Mock(mac_address='00:11:22:33:44:55')]):
             userservice.op_create()
             userservice.op_create_checker()
         self.assertFalse(userservice._waiting_name)

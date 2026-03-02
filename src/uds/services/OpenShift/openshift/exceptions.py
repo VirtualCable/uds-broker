@@ -48,7 +48,6 @@ class OpenshiftPermissionError(OpenshiftError, exceptions.services.generics.Fata
     """
     Raised when the user does not have permission to perform an action
     """
-
     pass
 
 

@@ -127,7 +127,7 @@ class TestOpenshiftUserServiceFixed(UDSTransactionTestCase):
         api = userservice.service().provider().api
         vm_mock = mock.Mock()
         from uds.services.OpenShift.openshift import types as opensh_types
-        vm_mock.status = opensh_types.VMStatus.RUNNING
+        vm_mock.status = opensh_types.State.RUNNING
         with mock.patch.object(api, 'get_vm_info', return_value=vm_mock):
             state = userservice.op_start_checker()
             self.assertEqual(state, TaskState.FINISHED)
@@ -155,7 +155,7 @@ class TestOpenshiftUserServiceFixed(UDSTransactionTestCase):
         api = userservice.service().provider().api
         vm_mock = mock.Mock()
         from uds.services.OpenShift.openshift import types as opensh_types
-        vm_mock.status = opensh_types.VMStatus.STOPPED
+        vm_mock.status = opensh_types.State.STOPPED
         with mock.patch.object(api, 'get_vm_info', return_value=vm_mock):
             state = userservice.op_stop_checker()
             self.assertEqual(state, TaskState.FINISHED)

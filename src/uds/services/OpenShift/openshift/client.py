@@ -316,8 +316,8 @@ class OpenshiftClient:
         try:
             response = self.do_request('GET', path)
             return types.State.from_string(response.get('status', {}).get('phase', ''))
-        except Exception:
-            pass
+        except exceptions.OpenshiftNotFoundError:
+            return types.State.ERROR
         return types.State.UNKNOWN
 
     def get_datavolume_size(self, namespace: str, datavolume_name: str) -> str:

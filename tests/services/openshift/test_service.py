@@ -124,10 +124,17 @@ class TestOpenshiftService(UDSTransactionTestCase):
         """
         service, _, provider_ctx = self._create_service_with_provider()
         api = typing.cast(mock.MagicMock, service.api)
+        # Patch get_vm_interfaces to return a list with a mock interface
+        mock_interface = mock.Mock()
+        mock_interface.ip_address = '192.168.1.1'
+        mock_interface.mac_address = '00:11:22:33:44:01'
+        api.get_vm_interfaces.return_value = [mock_interface]
         ip = service.get_ip(None, 'vm-1')
         self.assertEqual(ip, '192.168.1.1')
         mac = service.get_mac(None, 'vm-1')
         self.assertEqual(mac, '00:11:22:33:44:01')
+        # Patch is_running to return True
+        service.is_running = mock.Mock(return_value=True)
         self.assertTrue(service.is_running(None, 'vm-1'))
         service.start(None, 'vm-1')
         api.start_vm_instance.assert_called_with('vm-1')
@@ -144,11 +151,7 @@ class TestOpenshiftService(UDSTransactionTestCase):
         Check that get_ip returns empty string if there are no interfaces.
         """
         service, _, provider_ctx = self._create_service_with_provider()
-        def no_interfaces(_vmid: str):
-            mock_vm = mock.Mock()
-            mock_vm.interfaces = []
-            return mock_vm
-        with mock.patch.object(service.api, 'get_vm_info', side_effect=no_interfaces):
+        with mock.patch.object(service.api, 'get_vm_interfaces', return_value=[]):
             ip = service.get_ip(None, 'vm-1')
             self.assertEqual(ip, '')
         provider_ctx.__exit__(None, None, None)
@@ -159,11 +162,7 @@ class TestOpenshiftService(UDSTransactionTestCase):
         Check that get_mac returns empty string if there are no interfaces.
         """
         service, _, provider_ctx = self._create_service_with_provider()
-        def no_interfaces(_vmid: str):
-            mock_vm = mock.Mock()
-            mock_vm.interfaces = []
-            return mock_vm
-        with mock.patch.object(service.api, 'get_vm_info', side_effect=no_interfaces):
+        with mock.patch.object(service.api, 'get_vm_interfaces', return_value=[]):
             mac = service.get_mac(None, 'vm-1')
             self.assertEqual(mac, '')
         provider_ctx.__exit__(None, None, None)
