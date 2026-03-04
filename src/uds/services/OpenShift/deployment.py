@@ -40,7 +40,8 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
 
     _waiting_name = autoserializable.BoolField(default=False)
 
-    can_set_ip = False  # We cannot set IP on Openshift, so we disable this option in the UI
+    can_set_ip = False  # We cannot set IP on Openshift
+    can_cache_ip = False  # We cannot cache IP on Openshift
 
     # Custom queue
     _create_queue = [
@@ -168,13 +169,3 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
             return types.states.TaskState.RUNNING
         return types.states.TaskState.FINISHED
 
-    def get_ip(self) -> str:
-        try:
-            if self._vmid:
-                # Provide self to the service, so it can use some of our methods for whaterever it needs
-                self._ip = self.service().get_ip(self, self._vmid)
-        except Exception:
-            logger.warning(
-                'Error obtaining IP for %s: %s', self.__class__.__name__, self._vmid  # , exc_info=True
-            )
-        return self._ip
