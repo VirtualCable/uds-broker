@@ -385,7 +385,6 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             self._mac = self.service().get_mac(self, self._vmid, for_unique_id=True) or ''
         return self._mac
 
-    @typing.final
     def get_ip(self) -> str:
         if self._ip == '':
             try:
