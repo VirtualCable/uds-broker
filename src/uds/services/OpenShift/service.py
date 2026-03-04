@@ -216,11 +216,46 @@ class OpenshiftService(DynamicService):
 
     def is_deleted(self, vmid: str) -> bool:
         """
-        Checks if the VM is deleted.
+        Checks if the VM and its associated DataVolume/PVC are deleted.
         """
         logger.debug('Checking if VM %s is deleted', vmid)
+        # 1. Check if VM exists
         try:
             self.api.get_vm_info(vmid)
+            logger.debug('VM %s still exists', vmid)
+            return False
         except oshift_exceptions.OpenshiftNotFoundError:
-            return True
-        return False
+            pass  # VM not found, continue
+
+        # 2. Try to get associated DataVolume or PVC
+        try:
+            # get_vm_pvc_or_dv_name(api_url, namespace, vm_name) -> (name, type)
+            # api_url is not used in the implementation, so pass empty string
+            namespace = self.api.namespace if hasattr(self.api, 'namespace') else 'default'
+            name, typ = self.api.get_vm_pvc_or_dv_name('', namespace, vmid)
+            logger.debug('Associated storage for VM %s: %s (%s)', vmid, name, typ)
+        except Exception as e:
+            logger.debug('No associated DataVolume/PVC for VM %s or already deleted: %s', vmid, e)
+            return True  # If can't find storage, consider deleted
+
+        # 3. Check if DataVolume or PVC exists
+        if typ == 'dv':
+            try:
+                phase = self.api.get_datavolume_phase(name)
+                logger.debug('DataVolume %s for VM %s still exists (phase: %s)', name, vmid, phase)
+                return False
+            except Exception as e:
+                logger.debug('DataVolume %s for VM %s not found: %s', name, vmid, e)
+                return True
+        elif typ == 'pvc':
+            try:
+                # get_pvc_size(api_url, namespace, pvc_name)
+                self.api.get_pvc_size('', namespace, name)
+                logger.debug('PVC %s for VM %s still exists', name, vmid)
+                return False
+            except Exception as e:
+                logger.debug('PVC %s for VM %s not found: %s', name, vmid, e)
+                return True
+        # If unknown type, be conservative
+        logger.debug('Unknown storage type for VM %s: %s', vmid, typ)
+        return True
