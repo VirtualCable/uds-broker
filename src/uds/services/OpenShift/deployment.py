@@ -143,3 +143,14 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         if not interfaces or not interfaces[0].mac_address:
             return types.states.TaskState.RUNNING
         return types.states.TaskState.FINISHED
+
+    def get_ip(self) -> str:
+        try:
+            if self._vmid:
+                # Provide self to the service, so it can use some of our methods for whaterever it needs
+                self._ip = self.service().get_ip(self, self._vmid)
+        except Exception:
+            logger.warning(
+                'Error obtaining IP for %s: %s', self.__class__.__name__, self._vmid  # , exc_info=True
+            )
+        return self._ip
