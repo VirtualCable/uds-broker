@@ -62,17 +62,29 @@ class IPMachinesUserService(services.UserService, autoserializable.AutoSerializa
             if userservice:
                 userservice.set_in_use(True)
 
+    def update_ip(self) -> None:
+        # Update ip & mac, as they can be changed
+        # i.e. hostname instead of an ip and ip changed
+        # or mac changed (this last one is not expected, but just in case...)
+        try:
+            self._ip, self._mac = self.service().get_host_mac(self._vmid)
+        except Exception:
+            pass  # Maybe the server is already unassigned, so just ignore errors here
+
     def set_ip(self, ip: str) -> None:
         logger.debug('Setting IP to %s (ignored)', ip)
 
     def get_ip(self) -> str:
+        self.update_ip()
         return self._ip
 
     def get_name(self) -> str:
-        return self.get_ip()
+        return self.get_unique_id()
 
     def get_unique_id(self) -> str:
-        # Generate a 16 chars string mixing up all _vmid chars
+        # Note: Unique id must be unique.
+        # If a hostname is used, it will be resolved first. so If it is a dynamic IP
+        # you MUST provide a mac so it can be used as unique id, or this will cause problems.
         return self._mac if self._mac and self._mac != consts.NULL_MAC else self._ip
 
     def set_ready(self) -> types.states.TaskState:
@@ -83,8 +95,7 @@ class IPMachinesUserService(services.UserService, autoserializable.AutoSerializa
         logger.debug("Starting deploy of %s for user %s", self._ip, user)
         self._vmid = self.service().get_unassigned()
 
-        self._ip, self._mac = self.service().get_host_mac(self._vmid)
-
+        self.update_ip()
         self._set_in_use()
 
         return types.states.TaskState.FINISHED
@@ -96,8 +107,7 @@ class IPMachinesUserService(services.UserService, autoserializable.AutoSerializa
         logger.debug('Assigning from assignable with id %s', vmid)
         self._vmid = vmid
         # Update ip & mac
-        self._ip, self._mac = self.service().get_host_mac(vmid)
-
+        self.update_ip()
         self._set_in_use()
 
         return types.states.TaskState.FINISHED

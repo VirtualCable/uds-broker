@@ -134,8 +134,8 @@ class TunnelTicketRequest:
             command=data['command'][:16],
             kem_kyber_key=data.get('kem_kyber_key', '')[:16384],  # Kem keys can be large
             ip=data['ip'][:32],
-            sent=int(data.get('sent', 0)),
-            recv=int(data.get('recv', 0)),
+            sent=int(data.get('sent') or 0),
+            recv=int(data.get('recv') or 0),
         )
 
 

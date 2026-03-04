@@ -105,17 +105,11 @@ class gui:
     """
 
     # Values dict type
-    ValuesType = typing.Optional[dict[str, str]]
+    ValuesType = dict[str, str] | None
 
     ValuesDictType = dict[
         str,
-        typing.Union[
-            str,
-            int,
-            bool,
-            list[str],
-            types.ui.ChoiceItem,
-        ],
+        str | int | bool | list[str] | types.ui.ChoiceItem,
     ]
 
     # Static Callbacks simple registry
@@ -131,7 +125,7 @@ class gui:
     ] = {}
 
     @staticmethod
-    def choice_item(id_: 'str|int', text: 'str|Promise|typing.Any') -> 'types.ui.ChoiceItem':
+    def choice_item(id_: 'str|int', text: 'str | Promise | typing.Any') -> 'types.ui.ChoiceItem':
         """
         Helper method to create a single choice item.
         """
@@ -140,7 +134,7 @@ class gui:
         return types.ui.ChoiceItem(id=id_, text=typing.cast(str, text))
 
     @staticmethod
-    def choice_image(id_: typing.Union[str, int], text: str, img: str) -> types.ui.ChoiceItem:
+    def choice_image(id_: str | int, text: str, img: str) -> types.ui.ChoiceItem:
         """
         Helper method to create a single choice item with image.
         """
@@ -156,7 +150,7 @@ class gui:
             | collections.abc.Iterable[str | types.ui.ChoiceItem]
             | None
         ) = None,
-    ) -> typing.Union[collections.abc.Callable[[], list['types.ui.ChoiceItem']], list['types.ui.ChoiceItem']]:
+    ) -> collections.abc.Callable[[], list['types.ui.ChoiceItem']] | list['types.ui.ChoiceItem']:
         """
         Helper to convert from array of strings (or dictionaries) to the same dict used in choice,
         multichoice, ..
@@ -189,7 +183,7 @@ class gui:
         *,
         by_id: bool = False,
         reverse: bool = False,
-        key: typing.Optional[collections.abc.Callable[[types.ui.ChoiceItem], typing.Any]] = None,
+        key: collections.abc.Callable[[types.ui.ChoiceItem], typing.Any] | None = None,
     ) -> list[types.ui.ChoiceItem]:
         if by_id:
             key = lambda item: item.id
@@ -198,7 +192,7 @@ class gui:
         return sorted(choices, key=key, reverse=reverse)
 
     @staticmethod
-    def as_bool(value: typing.Union[str, bytes, bool, int]) -> bool:
+    def as_bool(value: str | bytes | bool | int) -> bool:
         """
         Converts the string "true" (case insensitive) to True (boolean).
         Anything else is converted to false
@@ -226,7 +220,7 @@ class gui:
         return consts.TRUE_STR if bol else consts.FALSE_STR
 
     @staticmethod
-    def as_int(value: typing.Union[str, bytes, bool, int], default: int = 0) -> int:
+    def as_int(value: str | bytes | bool | int, default: int = 0) -> int:
         """
         Converts the string "true" (case insensitive) to True (boolean).
         Anything else is converted to false
@@ -304,12 +298,12 @@ class gui:
             old_field_name: types.ui.OldFieldNameType,
             order: int = 0,
             tooltip: str = '',
-            length: typing.Optional[int] = None,
-            required: typing.Optional[bool] = None,
-            default: typing.Union[collections.abc.Callable[[], typing.Any], typing.Any] = None,
-            readonly: typing.Optional[bool] = None,
+            length: int | None = None,
+            required: bool | None = None,
+            default: collections.abc.Callable[[], typing.Any] | typing.Any = None,
+            readonly: bool | None = None,
             value: typing.Any = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
+            tab: str | types.ui.Tab | None = None,
             **kwargs: typing.Any,
         ) -> None:
             # Length is not used on some kinds of fields, but present in all anyway
@@ -524,11 +518,11 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], str], str] = '',
-            value: typing.Optional[str] = None,
-            pattern: typing.Union[str, types.ui.FieldPatternType] = types.ui.FieldPatternType.NONE,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | str = '',
+            value: str | None = None,
+            pattern: str | types.ui.FieldPatternType = types.ui.FieldPatternType.NONE,
             lines: int = 0,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
@@ -635,10 +629,10 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], str], str] = '',
-            value: typing.Optional[str] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | str = '',
+            value: str | None = None,
             choices: _ChoicesParamType = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
@@ -689,16 +683,16 @@ class gui:
         def __init__(
             self,
             label: str,
-            length: typing.Optional[int] = None,
+            length: int | None = None,
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], int], int] = 0,
-            value: typing.Optional[int] = None,
-            min_value: typing.Optional[int] = None,
-            max_value: typing.Optional[int] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], int] | int = 0,
+            value: int | None = None,
+            min_value: int | None = None,
+            max_value: int | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
             super().__init__(
@@ -741,16 +735,14 @@ class gui:
         def __init__(
             self,
             label: str,
-            length: typing.Optional[int] = None,
+            length: int | None = None,
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Optional[
-                typing.Union[collections.abc.Callable[[], datetime.date], datetime.date]
-            ] = None,
-            value: typing.Optional[typing.Union[str, datetime.date]] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], datetime.date] | datetime.date | None = None,
+            value: str | datetime.date | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
             super().__init__(
@@ -844,10 +836,10 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], str], str] = '',
-            value: typing.Optional[str] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | str = '',
+            value: str | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ):
             super().__init__(
@@ -979,10 +971,10 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], bool], bool] = False,
-            value: typing.Optional[bool] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], bool] | bool = False,
+            value: bool | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ):
             super().__init__(
@@ -998,7 +990,7 @@ class gui:
                 type=types.ui.FieldType.CHECKBOX,
             )
 
-        def _set_value(self, value: typing.Union[str, bytes, bool]) -> None:
+        def _set_value(self, value: str | bytes | bool) -> None:
             """
             Override to set value to True or False (bool)
             """
@@ -1108,12 +1100,12 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
+            required: bool | None = None,
             choices: _ChoicesParamType = None,
-            fills: typing.Optional[types.ui.Filler] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], str], str, None] = None,
-            value: typing.Optional[str] = None,
+            fills: types.ui.Filler | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | str | None = None,
+            value: str | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
             super().__init__(
@@ -1172,11 +1164,11 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
+            required: bool | None = None,
             choices: _ChoicesParamType = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[collections.abc.Callable[[], str], str, None] = None,
-            value: typing.Optional[str] = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | str | None = None,
+            value: str | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ):
             super().__init__(
@@ -1255,16 +1247,14 @@ class gui:
             self,
             label: str,
             readonly: bool = False,
-            rows: typing.Optional[int] = None,
+            rows: int | None = None,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
+            required: bool | None = None,
             choices: _ChoicesParamType = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[
-                collections.abc.Callable[[], str], collections.abc.Callable[[], list[str]], list[str], str, None
-            ] = None,
-            value: typing.Optional[collections.abc.Iterable[str]] = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | collections.abc.Callable[[], list[str]] | list[str] | str | None = None,
+            value: collections.abc.Iterable[str] | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ):
             super().__init__(
@@ -1351,12 +1341,10 @@ class gui:
             readonly: bool = False,
             order: int = 0,
             tooltip: str = '',
-            required: typing.Optional[bool] = None,
-            tab: typing.Optional[typing.Union[str, types.ui.Tab]] = None,
-            default: typing.Union[
-                collections.abc.Callable[[], str], collections.abc.Callable[[], list[str]], list[str], str, None
-            ] = None,
-            value: typing.Optional[collections.abc.Iterable[str]] = None,
+            required: bool | None = None,
+            tab: str | types.ui.Tab | None = None,
+            default: collections.abc.Callable[[], str] | collections.abc.Callable[[], list[str]] | list[str] | str | None = None,
+            value: collections.abc.Iterable[str] | None = None,
             old_field_name: types.ui.OldFieldNameType = None,
         ) -> None:
             super().__init__(
@@ -1735,7 +1723,9 @@ class UserInterface(metaclass=UserInterfaceType):
                         if v.startswith(MULTIVALUE_FIELD):
                             val = pickle.loads(v[1:])
                         elif v.startswith(OLD_PASSWORD_FIELD):
-                            val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], consts.ui.UDSB, True).decode()
+                            val = (
+                                CryptoManager.manager().aes256_cbc_decrypt(v[1:], consts.ui.UDSB, True).decode()
+                            )
                         elif v.startswith(PASSWORD_FIELD):
                             val = CryptoManager.manager().aes256_cbc_decrypt(v[1:], UDSK, True).decode()
                         else:
@@ -1827,7 +1817,7 @@ def password_compat_field_decoder(value: str) -> str:
 # Dictionaries used to encode/decode fields to be stored on database
 FIELDS_ENCODERS: typing.Final[
     collections.abc.Mapping[
-        types.ui.FieldType, collections.abc.Callable[[gui.InputField], typing.Optional[str]]
+        types.ui.FieldType, collections.abc.Callable[[gui.InputField], str | None]
     ]
 ] = {
     types.ui.FieldType.TEXT: lambda x: x.value,

@@ -32,6 +32,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import copy
 import typing
+import collections.abc
 from unittest import mock
 
 from uds.core import types, ui
@@ -75,7 +76,7 @@ class TestProxmoxFixedService(UDSTransactionTestCase):
             # is_available is already tested, so we will skip it
 
             # Enumerate assignables
-            locate_vm: typing.Callable[[str], typing.Any] = lambda vmid: next(
+            locate_vm: collections.abc.Callable[[str], typing.Any] = lambda vmid: next(
                 (x for x in fixtures.VMINFO_LIST if x.id == int(vmid)), fixtures.VMINFO_LIST[0]
             )
 
@@ -152,7 +153,7 @@ class TestProxmoxFixedService(UDSTransactionTestCase):
             fixtures.SNAPSHOTS_INFO.clear()
             service.snapshot_creation(userservice_instance)
             api.get_current_vm_snapshot.assert_called_with(int(vmid))
-            api.create_snapshot.assert_called_with(int(vmid), name='UDS Snapshot')
+            api.create_snapshot.assert_called_with(int(vmid), name='UDS_Snapshot')
 
             # Skip snapshot creation
             api.reset_mock()

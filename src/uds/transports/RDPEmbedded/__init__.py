@@ -31,6 +31,5 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 # pyright: reportUnusedImport=false
-from .rdp import RDPEmbeddedTransport
-# TODO: Re-enable when tunnel is implemented
-# from .rdptunnel import TRDPTransport
+from .direct import RDPEmbeddedTransport
+from .tunnel import TRDPEmbeddedTransport

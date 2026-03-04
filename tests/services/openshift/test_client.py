@@ -43,7 +43,7 @@ class TestOpenshiftClient(UDSTransactionTestCase):
     """Tests for operations with OpenShiftClient."""
 
     os_client: openshift_client.OpenshiftClient
-    test_vm: str = ''
+    test_vm: str = 'xubu-temp'
     test_pool: str = ''
     test_storage: str = ''
 
@@ -99,7 +99,7 @@ class TestOpenshiftClient(UDSTransactionTestCase):
         vms = self.os_client.list_vms()
         self.assertIsInstance(vms, list)
         if vms:
-            info = self.os_client.get_vm_info(vms[0].name)
+            info = self.os_client.get_vm_info(vms[2].name)
             self.assertIsNotNone(info)
 
     def test_list_vms_and_check_fields(self):
@@ -134,14 +134,14 @@ class TestOpenshiftClient(UDSTransactionTestCase):
         """
         if not self.test_vm:
             self.skipTest('No test_vm specified')
-        info = self.os_client.get_vm_instance_info(self.test_vm)
-        self.assertTrue(info is None or hasattr(info, 'name'))
+        info = self.os_client.get_vm_info(self.test_vm)
+        self.assertTrue(hasattr(info, 'name'))
 
     def test_get_vm_instance_info_invalid(self):
         """
         Test that get_vm_instance_info returns None for an invalid VM name.
         """
-        info = self.os_client.get_vm_instance_info('nonexistent-vm')
+        info = self.os_client.get_vm_info('nonexistent-vm')
         self.assertIsNone(info)
 
     # --- VM Lifecycle and Actions ---

@@ -53,7 +53,9 @@ class IPSingleMachineService(services.Service):
     # Description of service
     type_name = _('Static Single IP')
     type_type = 'IPSingleMachineService'
-    type_description = _('This service provides access to POWERED-ON Machine by IP. (You can configure WOL to power on the machine)')
+    type_description = _(
+        'This service provides access to POWERED-ON Machine by IP. (You can configure WOL to power on the machine)'
+    )
     icon_file = 'machine.png'
 
     uses_cache = False  # Cache are running machine awaiting to be assigned
@@ -66,19 +68,20 @@ class IPSingleMachineService(services.Service):
 
     # Does not really mind. But do not show the field on admin form
     overrided_fields = {'max_services_count_type': types.services.ServicesCountingType.STANDARD}
-    
+
     # Gui
     host = gui.TextField(
         length=64,
         label=_('Host IP/FQDN'),
         order=1,
-        tooltip=_('IP or FQDN of the server to connect to. Can include MAC address separated by ";" after the IP/Hostname'),
+        tooltip=_(
+            'IP or FQDN of the server to connect to. Can include MAC address separated by ";" after the IP/Hostname'
+        ),
         required=True,
         old_field_name='ip',
     )
 
-
-    def get_host_mac(self) -> typing.Tuple[str, str]:
+    def get_host_mac(self) -> tuple[str, str]:
         if ';' in self.host.as_str():
             return typing.cast(tuple[str, str], tuple(self.host.as_str().split(';', 2)[:2]))
         return self.host.as_str(), ''
@@ -95,7 +98,7 @@ class IPSingleMachineService(services.Service):
         if mac and not net.is_valid_mac(mac):
             raise exceptions.ui.ValidationError(gettext('Invalid MAC address used: "{}"'.format(mac)))
 
-    def get_unassigned_host(self) -> typing.Optional[tuple[str, str]]:
+    def get_unassigned_host(self) -> tuple[str, str] | None:
         return self.get_host_mac()
 
     def provider(self) -> 'provider.PhysicalMachinesProvider':

@@ -183,11 +183,6 @@ class TRDPTransport(BaseRDPTransport):
         r.enforced_shares = self.enforce_drives.value
         r.redir_usb = self.allow_usb_redirection.value
 
-        # If sso, fix adding a domain UDS and force
-        if self.use_sso.value:
-            r.password = '__NO_PASSWORD__'
-            r.domain = 'UDS'  # Fake in fact for SSO, but needed so xfreerdp3 do not ask for domain
-
         sp: collections.abc.MutableMapping[str, typing.Any] = {
             'tunnel': {
                 'host': tunnel_host,

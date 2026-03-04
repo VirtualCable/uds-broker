@@ -115,7 +115,7 @@ class ProxmoxServiceFixed(FixedService):  # pylint: disable=too-many-public-meth
     def provider(self) -> 'ProxmoxProvider':
         return typing.cast('ProxmoxProvider', super().provider())
 
-    def get_console_connection(self, vmid: str) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    def get_console_connection(self, vmid: str) -> types.services.ConsoleConnectionInfo | None:
         return self.provider().api.get_console_connection(int(vmid))
 
     def is_available(self) -> bool:
@@ -168,7 +168,7 @@ class ProxmoxServiceFixed(FixedService):  # pylint: disable=too-many-public-meth
                     logger.debug('No current snapshot')
                     self.provider().api.create_snapshot(
                         vmid,
-                        name='UDS Snapshot',
+                        name='UDS_Snapshot',
                     )
             except Exception as e:
                 self.do_log(types.log.LogLevel.WARNING, 'Could not create SNAPSHOT for this VM. ({})'.format(e))
@@ -190,7 +190,7 @@ class ProxmoxServiceFixed(FixedService):  # pylint: disable=too-many-public-meth
                 )
 
     def get_and_assign(self) -> str:
-        found_vmid: typing.Optional[str] = None
+        found_vmid: str | None = None
         try:
             with self._assigned_access() as assigned_vms:
                 for checking_vmid in self.machines.as_list():

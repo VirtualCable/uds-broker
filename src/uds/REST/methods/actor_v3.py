@@ -532,8 +532,10 @@ class BaseReadyChange(ActorV3Action):
         logger.debug('Args: %s,  Params: %s', self._args, self._params)
         userservice = self.get_userservice()
         # Stores known IP and notifies it to deployment
-        userservice.log_ip(self._params['ip'])
         userservice_instance = userservice.get_instance()
+        # If instance has an IP, do not change it, otherwise, set the new one
+        ip = userservice_instance.get_ip() or self._params['ip']
+        userservice.log_ip(ip)  # Store IP in database
         userservice_instance.set_ip(self._params['ip'])
         userservice.update_data(userservice_instance)
 
@@ -622,7 +624,8 @@ class Version(ActorV3Action):
         logger.debug('Version Args: %s,  Params: %s', self._args, self._params)
         userservice = self.get_userservice()
         userservice.actor_version = self._params['version']
-        userservice.log_ip(self._params['ip'])
+        ip = userservice.get_instance().get_ip() or self._params['ip']
+        userservice.log_ip(ip)
 
         return ActorV3Action.actor_result()
 
@@ -792,6 +795,7 @@ class Ticket(ActorV3Action):
                             token=self._params['token'], type=types.servers.ServerType.ACTOR
                         )  # Not assigned, because only needs check
                     except Server.DoesNotExist:
+                        logger.error('Actor token not found (params: %s)', self._params)
                         raise exceptions.rest.BlockAccess() from None  # If too many blocks...
 
                     return ActorV3Action.actor_result(TicketStore.get(self._params['ticket'], invalidate=True))
@@ -809,6 +813,7 @@ class Ticket(ActorV3Action):
                 case _:
                     raise exceptions.rest.RequestError('Invalid request')
         except TicketStore.DoesNotExist:
+            logger.error('Actor ticket not found (params: %s)', self._params)
             return ActorV3Action.actor_result(error='Invalid ticket')
 
 

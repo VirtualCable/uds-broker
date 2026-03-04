@@ -46,8 +46,8 @@ if typing.TYPE_CHECKING:
     from .provider import OpenshiftProvider
     from uds.core.services.generics.fixed.userservice import FixedUserService
 
-from .openshift import exceptions as morph_exceptions
-from .openshift import exceptions as morph_exceptions
+from .openshift import exceptions as oshift_exceptions
+from .openshift import exceptions as oshift_exceptions
 
 
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         servers = {
             str(server.name): server.name
             for server in self.api.list_vms()
-            if not server.name.startswith('UDS-') and server.is_usable()
+            if not server.name.startswith('uds-') and server.is_usable()
         }
 
         with self._assigned_access() as assigned_servers:
@@ -150,7 +150,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         """
         Gets an available machine from the fixed list and assigns it.
         """
-        found_vmid: typing.Optional[str] = None  #! DUDA
+        found_vmid: str | None = None
         try:
             with self._assigned_access() as assigned:
                 for checking_vmid in self.sorted_assignables_list():
@@ -218,11 +218,11 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
                 vm_name = vm.name
                 break
         else:
-            raise morph_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
+            raise oshift_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
 
-        vmi_info = self.api.get_vm_instance_info(vm_name)
+        vmi_info = self.api.get_vm_info(vm_name)
         if not vmi_info or not vmi_info.interfaces:
-            raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
+            raise oshift_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
         return vmi_info.interfaces[0].ip_address
 
     def get_mac(self, vmid: str) -> str:
@@ -237,11 +237,11 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
                 vm_name = vm.name
                 break
         else:
-            raise morph_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
+            raise oshift_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
 
-        vmi_info = self.api.get_vm_instance_info(vm_name)
+        vmi_info = self.api.get_vm_info(vm_name)
         if not vmi_info or not vmi_info.interfaces:
-            raise morph_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
+            raise oshift_exceptions.OpenshiftNotFoundError(f'No interfaces found for VM {vm_name}')
         return vmi_info.interfaces[0].mac_address
 
     def get_name(self, vmid: str) -> str:
@@ -253,7 +253,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
         for vm in vms:
             if vm.uid == vmid:
                 return vm.name
-        raise morph_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
+        raise oshift_exceptions.OpenshiftNotFoundError(f'No VM found for VM ID {vmid}')
 
     def remove_and_free(self, vmid: str) -> types.states.TaskState:
         """
@@ -264,7 +264,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
             with self._assigned_access() as assigned:
                 assigned.remove(vmid)
             return types.states.TaskState.FINISHED
-        except morph_exceptions.OpenshiftNotFoundError:
+        except oshift_exceptions.OpenshiftNotFoundError:
             logger.info(f'VM {vmid} not found when trying to remove and free, considering as deleted.')
             return types.states.TaskState.FINISHED
         except Exception as e:

@@ -141,10 +141,10 @@ class IPMachinesService(services.Service):
 
     services_type_provided = types.services.ServiceType.VDI
 
-    def enumerate_servers(self) -> typing.Iterable['models.Server']:
+    def enumerate_servers(self) -> collections.abc.Iterable['models.Server']:
         return fields.get_server_group_from_field(self.server_group).servers.filter(maintenance_mode=False)
 
-    def get_token(self) -> typing.Optional[str]:
+    def get_token(self) -> str | None:
         return self.token.as_str() or None
 
     def get_max_lock_time(self) -> datetime.timedelta:
@@ -205,7 +205,7 @@ class IPMachinesService(services.Service):
                 return server.uuid
         raise exceptions.services.MaxServicesReachedError()
 
-    def get_host_mac(self, server_uuid: str) -> typing.Tuple[str, str]:
+    def get_host_mac(self, server_uuid: str) -> tuple[str, str]:
         server = models.Server.objects.get(uuid=server_uuid)
         return server.host, server.mac
 
@@ -252,7 +252,7 @@ class IPMachinesService(services.Service):
         self.unlock_server(id)
 
     # Used by actor API. look parent documentation
-    def get_valid_id(self, ids: collections.abc.Iterable[str]) -> typing.Optional[str]:
+    def get_valid_id(self, ids: collections.abc.Iterable[str]) -> str | None:
         # If locking not allowed, return None
         if self.lock_on_external_access.as_bool() is False:
             return None

@@ -77,13 +77,10 @@ class TicketStore(UUIDModel):
     @staticmethod
     def generate_uuid(length: int = consts.ticket.TICKET_LENGTH) -> str:
         """In fact, generates a random string of TICKET_LENGTH chars, that will be used as uuid for the ticket (but is not an uuid compliant string)"""
-        return (
-            CryptoManager.manager()
-            .random_string(
+        # Removed 3.0 compat (lowercase)
+        return CryptoManager.manager().random_string(
                 length=length,
             )
-            .lower()
-        )  # Temporary fix lower() for compat with 3.0
 
     @staticmethod
     def create(

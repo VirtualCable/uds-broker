@@ -345,7 +345,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
         userservice.in_use = False
         userservice.src_hostname = userservice.src_ip = ''
         userservice.save()
-        
+
         # Execute back operations to move to level 1
         userservice.move_to_level(types.services.CacheLevel.L1)
 
@@ -558,9 +558,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
             # Move the clone of the user service to cache, and set our as REMOVED
             self.forced_move_assigned_to_cache_l1(userservice)
 
-    def get_existing_assignation_for_user(
-        self, service_pool: ServicePool, user: User
-    ) -> UserService | None:
+    def get_existing_assignation_for_user(self, service_pool: ServicePool, user: User) -> UserService | None:
         existing = service_pool.assigned_user_services().filter(
             user=user, state__in=State.VALID_STATES
         )  # , deployed_service__visible=True
@@ -885,12 +883,13 @@ class UserServiceManager(metaclass=singleton.Singleton):
 
     def notify_ready_from_os_manager(self, userservice: UserService, data: typing.Any) -> None:
         try:
-            userservice_instance = userservice.get_instance()
             logger.debug('Notifying user service ready state')
-            state = userservice_instance.process_ready_from_os_manager(data)
+            state = userservice.get_instance().process_ready_from_os_manager(data)
             logger.debug('State: %s', state)
             if state == types.states.TaskState.FINISHED:
-                userservice.update_data(userservice_instance)
+                userservice.update_data(userservice.get_instance())
+                if ip := userservice.get_instance().get_ip():
+                    userservice.log_ip(ip)
                 logger.debug('Service is now ready')
             elif userservice.state in (
                 State.USABLE,
@@ -905,9 +904,7 @@ class UserServiceManager(metaclass=singleton.Singleton):
             userservice.set_state(State.ERROR)
             return
 
-    def locate_user_service(
-        self, user: User, userservice_id: str, create: bool = False
-    ) -> UserService | None:
+    def locate_user_service(self, user: User, userservice_id: str, create: bool = False) -> UserService | None:
         """
         Locates a user service from a user and a service id
 

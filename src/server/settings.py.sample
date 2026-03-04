@@ -81,6 +81,7 @@ LANGUAGES = (
     ('de', gettext('German')),
     ('pt', gettext('Portuguese')),
     ('it', gettext('Italian')),
+    ('eu', gettext('Basque')),
     ('ar', gettext('Arabic')),
     ('eu', gettext('Basque')),
     ('ar', gettext('Arabian')),

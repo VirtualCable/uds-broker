@@ -235,7 +235,6 @@ class FixedUserService(services.UserService, autoserializable.AutoSerializable, 
     def get_unique_id(self) -> str:
         return self._mac or self._name
 
-    @typing.final
     def get_ip(self) -> str:
         try:
             if self._vmid:

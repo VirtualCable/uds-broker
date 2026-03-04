@@ -122,6 +122,7 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         types.services.Operation.START,
         types.services.Operation.START_COMPLETED,
         types.services.Operation.WAIT,
+        types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE,
         types.services.Operation.SUSPEND,
         types.services.Operation.SUSPEND_COMPLETED,
         types.services.Operation.FINISH,
@@ -300,6 +301,21 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
 
         return None
 
+    def _insert_restore_snapshot_on_back_to_cache(self, *, for_deploy: bool) -> None:
+        """
+        Inserts, if needed, the operations to create a snapshot after creation
+        and restore it when going back to cache if required
+
+        This is outside of main queues, to avoid adding more time for noop operations
+        when not needed.
+        """
+        if self.service().restore_snapshot_on_back_to_cache():
+            if for_deploy:
+                self._queue.insert(-1, types.services.Operation.WAIT)
+                self._queue.insert(-1, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE)
+            else:
+                self._queue.insert(0, types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER)
+
     @typing.final
     def retry_later(self) -> types.states.TaskState:
         """
@@ -369,7 +385,6 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             self._mac = self.service().get_mac(self, self._vmid, for_unique_id=True) or ''
         return self._mac
 
-    @typing.final
     def get_ip(self) -> str:
         if self._ip == '':
             try:
@@ -389,12 +404,18 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         """
         logger.debug('Deploying for user')
         self._set_queue(self._create_queue.copy())  # copy is needed to avoid modifying class var
+
+        # if back to cache with snapshot, add wait and snapshot creation to queue, so we can create the snapshot before going to cache
+        # before finish
+        self._insert_restore_snapshot_on_back_to_cache(for_deploy=True)
+
         return self._execute_queue()
 
     @typing.final
     def deploy_for_cache(self, level: types.services.CacheLevel) -> types.states.TaskState:
         if level == types.services.CacheLevel.L1:
             self._set_queue(self._create_queue_l1_cache.copy())
+            self._insert_restore_snapshot_on_back_to_cache(for_deploy=True)
         else:
             self._set_queue(self._create_queue_l2_cache.copy())
         return self._execute_queue()
@@ -405,6 +426,9 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
             self._set_queue(self._move_to_l1_queue.copy())
         else:
             self._set_queue(self._move_to_l2_queue.copy())
+
+        # Insert snapshot recovery if needed when going back to cache
+        self._insert_restore_snapshot_on_back_to_cache(for_deploy=False)
         return self._execute_queue()
 
     @typing.final
@@ -595,6 +619,32 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
         if self._mac == '' and self._vmid != '':
             self._mac = self.service().get_mac(self, self._vmid)
 
+    def op_back_to_cache_snapshot_create(self) -> None:
+        """
+        This method is called to create a snapshot of the service
+        for caching purposes
+        """
+        # SNAP | FINISH  - We receive a queue with something like this
+        # NOP | STOP | SNAP | FINISH  - If started, and needs restore on back to cache, stop it
+        # SNAP | START | FINISH   - If not started, just create snapshot and ensure it's started after it (as we stopped it)
+        if self.service().restore_snapshot_on_back_to_cache():
+            if self.service().is_running(self, vmid=self._vmid):
+                self._queue.insert(0, types.services.Operation.SHUTDOWN_COMPLETED)
+                self._queue.insert(0, types.services.Operation.SHUTDOWN)
+                self._queue.insert(0, types.services.Operation.NOP)  # To be consumed by exec loop
+                return
+
+            self._queue.insert(1, types.services.Operation.START)
+            self.service().snapshot_creation(self)
+
+    def op_back_to_cache_snapshot_recover(self) -> None:
+        """
+        This method is called to recover a snapshot of the service
+        for caching purposes
+        """
+        if self.service().restore_snapshot_on_back_to_cache():
+            self.service().snapshot_recovery(self)
+
     @must_have_vmid
     def op_start(self) -> None:
         """
@@ -736,6 +786,18 @@ class DynamicUserService(services.UserService, autoserializable.AutoSerializable
     def op_create_completed_checker(self) -> types.states.TaskState:
         """
         This method is called to check if the service creation is completed
+        """
+        return types.states.TaskState.FINISHED
+
+    def op_back_to_cache_snapshot_create_checker(self) -> types.states.TaskState:
+        """
+        This method is called to check if the snapshot creation is completed
+        """
+        return types.states.TaskState.FINISHED
+
+    def op_back_to_cache_snapshot_recover_checker(self) -> types.states.TaskState:
+        """
+        This method is called to check if the snapshot recovery is completed
         """
         return types.states.TaskState.FINISHED
 
@@ -911,6 +973,8 @@ _EXECUTORS: typing.Final[
     types.services.Operation.INITIALIZE: DynamicUserService.op_initialize,
     types.services.Operation.CREATE: DynamicUserService.op_create,
     types.services.Operation.CREATE_COMPLETED: DynamicUserService.op_create_completed,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE: DynamicUserService.op_back_to_cache_snapshot_create,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER: DynamicUserService.op_back_to_cache_snapshot_recover,
     types.services.Operation.START: DynamicUserService.op_start,
     types.services.Operation.START_COMPLETED: DynamicUserService.op_start_completed,
     types.services.Operation.STOP: DynamicUserService.op_stop,
@@ -938,6 +1002,8 @@ _CHECKERS: typing.Final[
     types.services.Operation.INITIALIZE: DynamicUserService.op_initialize_checker,
     types.services.Operation.CREATE: DynamicUserService.op_create_checker,
     types.services.Operation.CREATE_COMPLETED: DynamicUserService.op_create_completed_checker,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_CREATE: DynamicUserService.op_back_to_cache_snapshot_create_checker,
+    types.services.Operation.BACK_TO_CACHE_SNAPSHOT_RECOVER: DynamicUserService.op_back_to_cache_snapshot_recover_checker,
     types.services.Operation.START: DynamicUserService.op_start_checker,
     types.services.Operation.START_COMPLETED: DynamicUserService.op_start_completed_checker,
     types.services.Operation.STOP: DynamicUserService.op_stop_checker,

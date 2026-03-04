@@ -106,7 +106,7 @@ class TunnelTicketPQ(Handler):
                         tunnel=ticket.tunnel_token,
                     )
 
-            else:  # New tunnel request
+            elif req.command == 'start':  # New tunnel request
                 if net.ip_to_long(req.ip).version == 0:
                     raise Exception('Invalid from IP')
                 events.add_event(
@@ -133,6 +133,8 @@ class TunnelTicketPQ(Handler):
                     notify=notify_ticket,
                     shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else '',
                 ).as_encrypted_dict(req.kem_kyber_key, ticket_id=req.ticket)
+            else:
+                raise Exception('Invalid command')
 
             return {}
         except Exception as e:

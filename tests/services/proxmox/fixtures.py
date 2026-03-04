@@ -36,6 +36,7 @@ import copy
 import functools
 import random
 import typing
+import collections.abc
 
 from unittest import mock
 import uuid
@@ -329,14 +330,14 @@ def replace_vm_info(vmid: int, **kwargs: typing.Any) -> prox_types.ExecResult:
     return UPID
 
 
-def replacer_vm_info(**kwargs: typing.Any) -> typing.Callable[..., prox_types.ExecResult]:
+def replacer_vm_info(**kwargs: typing.Any) -> collections.abc.Callable[..., prox_types.ExecResult]:
     return functools.partial(replace_vm_info, **kwargs)
 
 
 T = typing.TypeVar('T')
 
 
-def returner(value: T, *args: typing.Any, **kwargs: typing.Any) -> typing.Callable[..., T]:
+def returner(value: T, *args: typing.Any, **kwargs: typing.Any) -> collections.abc.Callable[..., T]:
     def inner(*args: typing.Any, **kwargs: typing.Any) -> T:
         return value
 
@@ -571,7 +572,7 @@ def create_provider(**kwargs: typing.Any) -> provider.ProxmoxProvider:
 
 
 def create_service_linked(
-    provider: typing.Optional[provider.ProxmoxProvider] = None, **kwargs: typing.Any
+    provider: provider.ProxmoxProvider | None = None, **kwargs: typing.Any
 ) -> service_linked.ProxmoxServiceLinked:
     """
     Create a fixed service
@@ -596,7 +597,7 @@ def create_service_linked(
 
 
 def create_service_fixed(
-    provider: typing.Optional[provider.ProxmoxProvider] = None, **kwargs: typing.Any
+    provider: provider.ProxmoxProvider | None = None, **kwargs: typing.Any
 ) -> service_fixed.ProxmoxServiceFixed:
     """
     Create a fixed service
@@ -613,7 +614,7 @@ def create_service_fixed(
 
 
 def create_publication(
-    service: typing.Optional[service_linked.ProxmoxServiceLinked] = None,
+    service: service_linked.ProxmoxServiceLinked | None = None,
     **kwargs: typing.Any,
 ) -> 'publication.ProxmoxPublication':
     """
@@ -633,7 +634,7 @@ def create_publication(
 
 
 def create_userservice_fixed(
-    service: typing.Optional[service_fixed.ProxmoxServiceFixed] = None,
+    service: service_fixed.ProxmoxServiceFixed | None = None,
 ) -> deployment_fixed.ProxmoxUserServiceFixed:
     """
     Create a fixed user service, has no publication
@@ -648,8 +649,8 @@ def create_userservice_fixed(
 
 
 def create_userservice_linked(
-    service: typing.Optional[service_linked.ProxmoxServiceLinked] = None,
-    publication: typing.Optional['publication.ProxmoxPublication'] = None,
+    service: service_linked.ProxmoxServiceLinked | None = None,
+    publication: 'publication.ProxmoxPublication | None' = None,
 ) -> deployment_linked.ProxmoxUserserviceLinked:
     """
     Create a linked user service
