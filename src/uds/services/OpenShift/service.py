@@ -229,7 +229,7 @@ class OpenshiftService(DynamicService):
 
         # 2. Try to get associated DataVolume or PVC
         try:
-            name, typ = self.api.get_vm_pvc_or_dv_name( self.api.namespace, vmid)
+            name, typ = self.api.get_vm_pvc_or_dv_name(self.api.namespace, vmid)
             logger.debug('Associated storage for VM %s: %s (%s)', vmid, name, typ)
         except Exception as e:
             logger.debug('No associated DataVolume/PVC for VM %s or already deleted: %s', vmid, e)

@@ -142,4 +142,3 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         if not interfaces or not interfaces[0].mac_address:
             return types.states.TaskState.RUNNING
         return types.states.TaskState.FINISHED
-

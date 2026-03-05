@@ -6,11 +6,6 @@ import logging
 
 from . import exceptions
 
-
-# The structure seems to be:
-#  Groups:
-#    - Clouds
-
 logger = logging.getLogger(__name__)
 
 
@@ -18,10 +13,6 @@ class State(enum.StrEnum):
     """
     Represents the state of a Openshift vm.
     """
-
-    # OpenShift VM phases and statuses
-    # See:
-    # and
 
     # Phases
     PENDING = 'Pending'
@@ -274,41 +265,3 @@ class VM:
         except Exception as e:
             logger.error(f'Error creating Definition from dict: {e}')
             raise exceptions.OpenshiftError('Invalid Definition data') from e
-
-
-# @dataclasses.dataclass
-# class VMInstance:
-#     name: str
-#     namespace: str
-#     uid: str
-#     interfaces: list[Interface]
-#     status: VMStatus
-#     phase: VMStatus = VMStatus.UNKNOWN  # Use InstanceStatus for phase
-
-#     def validate(self) -> 'VMInstance':
-#         if not self.is_usable():
-#             raise exceptions.OpenshiftError(f'VMInstance {self.name} is not usable (status: {self.status})')
-
-#         return self
-
-#     def is_usable(self) -> bool:
-#         return self.status.is_usable()
-
-#     @staticmethod
-#     def from_dict(dictionary: collections.abc.MutableMapping[str, typing.Any]) -> 'VMInstance':
-#         try:
-#             metadata = dictionary.get('metadata', {})
-#             status_data = dictionary.get('status', {})
-#             phase_str = status_data.get('phase', '')
-#             status_str = phase_str or status_data.get('printableStatus', 'UNKNOWN')
-#             return VMInstance(
-#                 name=metadata.get('name', ''),
-#                 namespace=metadata.get('namespace', ''),
-#                 uid=metadata.get('uid', ''),
-#                 interfaces=[Interface.from_dict(iface) for iface in status_data.get('interfaces', [])],
-#                 status=VMStatus.from_string(status_str),
-#                 phase=VMStatus.from_string(phase_str) if phase_str else VMStatus.UNKNOWN,
-#             )
-#         except Exception as e:
-#             logger.error(f'Error creating VMInstance from dict: {e}')
-#             raise exceptions.OpenshiftError('Invalid VMInstance data') from e

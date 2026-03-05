@@ -274,7 +274,7 @@ class OpenshiftClient:
         except exceptions.OpenshiftNotFoundError:
             pass  # If the VMInstance is not found, we can still return the VM info
 
-        #logger.debug(f"VM info for '{vm_name}': {response}")
+        # logger.debug(f"VM info for '{vm_name}': {response}")
         return types.VM.from_dict(response)
 
     def get_vm_interfaces(self, vm_name: str) -> list[types.Interface]:
@@ -283,12 +283,16 @@ class OpenshiftClient:
         Returns a list of Interface objects.
         """
         try:
-            interfaces = self.do_request(
-                'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachineinstances/{vm_name}"
-            ).get('status', {}).get('interfaces', [])
+            interfaces = (
+                self.do_request(
+                    'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachineinstances/{vm_name}"
+                )
+                .get('status', {})
+                .get('interfaces', [])
+            )
         except exceptions.OpenshiftNotFoundError:
             return []  # If the VMInstance is not found, return an empty list
-        
+
         return [types.Interface.from_dict(iface) for iface in interfaces]
 
     def get_vm_pvc_or_dv_name(self, namespace: str, vm_name: str) -> tuple[str, str]:
@@ -422,7 +426,7 @@ class OpenshiftClient:
                 vol['persistentVolumeClaim']['claimName'] = new_dv_name
 
         # Use the source PVC size and volumeMode for the new DataVolumeTemplate
-        pvc_size = self.get_pvc_size( namespace, source_pvc_name)
+        pvc_size = self.get_pvc_size(namespace, source_pvc_name)
 
         source_storage_class, source_volume_mode = self.get_pvc_storage_class_and_volume_mode(
             namespace, source_pvc_name
@@ -559,12 +563,8 @@ class OpenshiftClient:
         source_pvc_name, vol_type = self.get_vm_pvc_or_dv_name(namespace, source_vm_name)  # type: ignore
         size = self.get_pvc_size(namespace, source_pvc_name)
         new_pvc_name = f"{new_vm_name}-disk"
-        if self.clone_pvc_with_datavolume(
-            namespace, source_pvc_name, new_pvc_name, storage_class, size
-        ):
-            self.create_vm_from_pvc(
-                namespace, source_vm_name, new_vm_name, new_pvc_name, source_pvc_name
-            )
+        if self.clone_pvc_with_datavolume(namespace, source_pvc_name, new_pvc_name, storage_class, size):
+            self.create_vm_from_pvc(namespace, source_vm_name, new_vm_name, new_pvc_name, source_pvc_name)
         else:
             logging.error("Error cloning PVC")
 
