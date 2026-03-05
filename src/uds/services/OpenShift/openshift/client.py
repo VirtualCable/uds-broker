@@ -274,7 +274,7 @@ class OpenshiftClient:
         except exceptions.OpenshiftNotFoundError:
             pass  # If the VMInstance is not found, we can still return the VM info
 
-        logger.debug(f"VM info for '{vm_name}': {response}")
+        #logger.debug(f"VM info for '{vm_name}': {response}")
         return types.VM.from_dict(response)
 
     def get_vm_interfaces(self, vm_name: str) -> list[types.Interface]:
