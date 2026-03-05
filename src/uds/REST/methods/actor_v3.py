@@ -532,6 +532,7 @@ class BaseReadyChange(ActorV3Action):
         logger.debug('Args: %s,  Params: %s', self._args, self._params)
         userservice = self.get_userservice()
         # Stores known IP and notifies it to deployment
+        # userservice.log_ip(self._params['ip'])
         userservice_instance = userservice.get_instance()
         # If instance has an IP, do not change it, otherwise, set the new one
         ip = userservice_instance.get_ip() or self._params['ip']
