@@ -150,7 +150,7 @@ class State(enum.StrEnum):
         try:
             return State(state)
         except ValueError:
-            logger.warning(f'Unknown instance state: {state}, defaulting to UNKNOWN')
+            logger.warning(f'Unknown instance state: {state}')
             return State.UNKNOWN
 
 

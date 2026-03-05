@@ -232,7 +232,7 @@ class OpenshiftService(DynamicService):
             # get_vm_pvc_or_dv_name(api_url, namespace, vm_name) -> (name, type)
             # api_url is not used in the implementation, so pass empty string
             namespace = self.api.namespace if hasattr(self.api, 'namespace') else 'default'
-            name, typ = self.api.get_vm_pvc_or_dv_name('', namespace, vmid)
+            name, typ = self.api.get_vm_pvc_or_dv_name( namespace, vmid)
             logger.debug('Associated storage for VM %s: %s (%s)', vmid, name, typ)
         except Exception as e:
             logger.debug('No associated DataVolume/PVC for VM %s or already deleted: %s', vmid, e)
@@ -250,7 +250,7 @@ class OpenshiftService(DynamicService):
         elif typ == 'pvc':
             try:
                 # get_pvc_size(api_url, namespace, pvc_name)
-                self.api.get_pvc_size('', namespace, name)
+                self.api.get_pvc_size(namespace, name)
                 logger.debug('PVC %s for VM %s still exists', name, vmid)
                 return False
             except Exception as e:
