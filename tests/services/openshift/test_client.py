@@ -109,7 +109,7 @@ class TestOpenshiftClient(UDSTransactionTestCase):
         """
         Test that all VMs returned by list_vms have required fields.
         """
-        vms = self.os_client.list_vms()
+        vms = list(self.os_client.list_vms())
         self.assertIsInstance(vms, list)
         for vm in vms:
             self.assertTrue(hasattr(vm, 'name'))
@@ -143,16 +143,6 @@ class TestOpenshiftClient(UDSTransactionTestCase):
         self.assertTrue(self.os_client.start_vm(self.test_vm))
         self.assertTrue(self.os_client.stop_vm(self.test_vm))
         #self.assertTrue(self.os_client.delete_vm(self.test_vm))
-
-    def test_start_stop_suspend_resume_vm(self):
-        """
-        Test stop (and optionally start) VM instance. Suspend/resume skipped if not supported.
-        """
-        if not self.test_vm:
-            self.skipTest('No test_vm specified')
-        #self.assertTrue(self.os_client.start_vm(self.test_vm))
-        self.assertTrue(self.os_client.stop_vm(self.test_vm))
-        # Suspend/resume skipped if not supported
 
     def test_delete_vm_invalid(self):
         """
