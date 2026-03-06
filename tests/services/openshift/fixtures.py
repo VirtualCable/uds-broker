@@ -57,11 +57,10 @@ DEF_VMS: list[openshift_types.VM] = [
         name=f'vm-{i}',
         namespace='default',
         uid=f'uid-{i}',
-        status=openshift_types.VMStatus.STOPPED if i % 2 == 0 else openshift_types.VMStatus.RUNNING,
+        status=openshift_types.State.STOPPED if i % 2 == 0 else openshift_types.State.RUNNING,
         volume_template=openshift_types.VolumeTemplate(name=f'volume-{i}', storage='10Gi'),
         disks=[openshift_types.DeviceDisk(name=f'disk-{i}', boot_order=1)],
         volumes=[openshift_types.Volume(name=f'volume-{i}', data_volume=f'dv-{i}')],
-        interfaces=[openshift_types.Interface(name='eth0', mac_address=f'00:11:22:33:44:{i:02x}', ip_address=f'192.168.1.{i}')],
     )
     for i in range(1, 11)
 ]
@@ -70,18 +69,10 @@ DEF_VM_INSTANCES: list[openshift_types.VM] = [
         name=f'vm-{i}',
         namespace='default',
         uid=f'uid-instance-{i}',
+        status=openshift_types.State.STOPPED if i % 2 == 0 else openshift_types.State.RUNNING,
         volume_template=openshift_types.VolumeTemplate(name=f'volume-{i}', storage='10Gi'),
         disks=[openshift_types.DeviceDisk(name=f'disk-{i}', boot_order=1)],
         volumes=[openshift_types.Volume(name=f'volume-{i}', data_volume=f'dv-{i}')],
-        interfaces=[
-            openshift_types.Interface(
-                name='eth0',
-                mac_address=f'00:11:22:33:44:{i:02x}',
-                ip_address=f'192.168.1.{i}',
-            )
-        ],
-        status=openshift_types.VMStatus.STOPPED if i % 2 == 0 else openshift_types.VMStatus.RUNNING,
-        phase=openshift_types.VMStatus.STOPPED if i % 2 == 0 else openshift_types.VMStatus.RUNNING,
     )
     for i in range(1, 11)
 ]

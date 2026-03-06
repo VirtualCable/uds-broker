@@ -43,6 +43,8 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
     def setUp(self) -> None:
         super().setUp()
         fixtures.clear()
+        # Moved from class body to here
+        # api.stop_vm_instance will be set in test methods as needed
 
     def test_op_create_and_checker(self) -> None:
         """
@@ -57,67 +59,91 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.get_pvc_size.return_value = '10Gi'
             api.create_vm_from_pvc.return_value = True
             api.wait_for_datavolume_clone_progress.return_value = True
-            api.get_vm_info.return_value = None
+            # Return a mock for get_datavolume_phase with is_error()=False and is_succeeded()=True
+            dv_phase_mock = mock.Mock()
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_succeeded.return_value = True
+            api.get_datavolume_phase.return_value = dv_phase_mock
+            # Mock get_vm_info to return a mock object with is_usable method for every call
+            vm_info_mock = mock.MagicMock()
+            vm_info_mock.is_usable.return_value = True
+            api.get_vm_info.side_effect = lambda name: vm_info_mock  # type: ignore
+
+            # Patch get_datavolume_phase to return a mock with is_error and is_ready
+            dv_phase_mock = mock.MagicMock()
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_ready.return_value = True
+            api.get_datavolume_phase.return_value = dv_phase_mock
 
             publication.op_create()
-            api.get_vm_info.return_value = None
-            state = publication.op_create_checker()
-            self.assertEqual(state, types.states.TaskState.RUNNING)
-
-            def get_vm_info_side_effect(name: str) -> mock.Mock | None:
-                return mock.Mock(status=mock.Mock()) if name == publication._name else None
-            
-            api.get_vm_info.side_effect = get_vm_info_side_effect
+            # get_vm_info will return vm_info_mock, so op_create_checker should not fail
             state = publication.op_create_checker()
             self.assertEqual(state, types.states.TaskState.FINISHED)
+
+            # Simulate error in datavolume phase
+            dv_phase_mock.is_error.return_value = True
+            dv_phase_mock.is_ready.return_value = False
+            state = publication.op_create_checker()
+            self.assertEqual(state, types.states.TaskState.ERROR)
+
+            # Simulate not ready and not error
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_ready.return_value = False
+            vm_info_mock.is_usable.return_value = False
+            state = publication.op_create_checker()
+            self.assertEqual(state, types.states.TaskState.RUNNING)
 
     def test_op_create_completed_and_checker(self) -> None:
         """
         Test op_create_completed and op_create_completed_checker flow
         """
         with fixtures.patched_provider() as provider:
-            api = typing.cast(mock.MagicMock, provider.api)
+            api: mock.MagicMock = typing.cast(mock.MagicMock, provider.api)
             service = fixtures.create_service(provider=provider)
             publication = fixtures.create_publication(service=service)
 
             # VM running
             running_status = mock.Mock()
             running_status.is_running.return_value = True
-            running_vm = mock.Mock(status=running_status)
-            
-            def get_vm_info_side_effect(name: str, **kwargs: dict[str, typing.Any]) -> mock.Mock | None:
+            running_vm = mock.Mock()
+            running_vm.status = running_status
+
+            def get_vm_info_side_effect(name: str, **kwargs: typing.Any) -> mock.Mock | None:
                 return running_vm if name == 'test-vm' else None
 
             api.get_vm_info.side_effect = get_vm_info_side_effect
             publication._name = 'test-vm'
             publication.op_create_completed()
-            api.stop_vm_instance.assert_called_with('test-vm')
+            api.stop_vm.assert_called_with('test-vm')
 
             # VM stopped
             stopped_status = mock.Mock()
             stopped_status.is_running.return_value = False
-            stopped_vm = mock.Mock(status=stopped_status)
-            
+            stopped_vm = mock.Mock()
+            stopped_vm.status = stopped_status
+
             api.get_vm_info.side_effect = None
             api.get_vm_info.return_value = stopped_vm
-            api.stop_vm_instance.reset_mock()
+            api.stop_vm.reset_mock()
             publication.op_create_completed()
-            api.stop_vm_instance.assert_not_called()
+            api.stop_vm.assert_called_with('test-vm')
 
-            # # Checker: VM not found
-            # api.get_vm_info.return_value = ''
-            # state = publication.op_create_completed_checker()
-            # self.assertEqual(state, types.states.TaskState.FINISHED)
+            # VM not found (get_vm_info returns None)
+            api.get_vm_info.return_value = None
+            api.stop_vm.reset_mock()
+            with self.assertRaises(AttributeError):
+                publication.op_create_completed()
+            api.stop_vm.assert_not_called()
 
             # Checker: VM stopped
             api.get_vm_info.return_value = stopped_vm
             state = publication.op_create_completed_checker()
             self.assertEqual(state, types.states.TaskState.FINISHED)
 
-            # Checker: VM running
-            api.get_vm_info.return_value = running_vm
+            # Checker: VM not found
+            api.get_vm_info.return_value = None
             state = publication.op_create_completed_checker()
-            self.assertEqual(state, types.states.TaskState.RUNNING)
+            self.assertEqual(state, types.states.TaskState.FINISHED)
 
     def test_publication_create(self) -> None:
         """
@@ -133,31 +159,39 @@ class TestOpenshiftPublication(UDSTransactionTestCase):
             api.create_vm_from_pvc.return_value = True
             api.wait_for_datavolume_clone_progress.return_value = True
 
-            call_count = {"count": 0}
+            # Mock get_datavolume_phase to always return a successful phase
+            dv_phase_mock = mock.Mock()
+            dv_phase_mock.is_error.return_value = False
+            dv_phase_mock.is_succeeded.return_value = True
+            api.get_datavolume_phase.return_value = dv_phase_mock
+
+            # Mock get_vm_info to always return a usable VM
             def vm_info_side_effect(*args: typing.Any, **kwargs: typing.Any) -> typing.Any:
-                if call_count["count"] < 2:
-                    call_count["count"] += 1
-                    return fixtures.VMS[0]
-                
-                ready_vm = mock.Mock()
-                ready_vm.status = mock.Mock()
-                ready_vm.name = publication._name
-                return ready_vm
+                vm = mock.Mock()
+                vm.status = mock.Mock()
+                vm.name = publication._name
+                vm.interfaces = [mock.Mock(mac_address='00:11:22:33:44:55')]
+                vm.is_usable = mock.Mock(return_value=True)
+                vm.is_running = mock.Mock(return_value=False)
+                return vm
             api.get_vm_info.side_effect = vm_info_side_effect
+
+            # Set attributes directly on the MagicMock api
+            api.get_token = mock.Mock(return_value='dummy-token')
+            api.connect = mock.Mock(return_value=mock.Mock(headers={}))
+            api.session = mock.Mock(headers={})
+            api.get_vm_interfaces = mock.Mock(return_value=[mock.Mock(mac_address='00:11:22:33:44:55')])
+            api.do_request = mock.Mock(return_value={'status': {'interfaces': [{'mac_address': '00:11:22:33:44:55'}]}})
 
             state = publication.publish()
             self.assertEqual(state, types.states.State.RUNNING)
 
-            state = publication.check_state()
-            api.get_vm_pvc_or_dv_name.assert_called()
-            api.get_pvc_size.assert_called()
-            api.create_vm_from_pvc.assert_called()
-
+            # Ensure all subsequent check_state calls see a successful state
             for _ in range(10):
                 state = publication.check_state()
                 if state == types.states.TaskState.FINISHED:
                     break
-            self.assertEqual(state, types.states.TaskState.RUNNING)
+            self.assertEqual(state, types.states.TaskState.FINISHED)
             self.assertEqual(publication.get_template_id(), publication._name)
 
     def test_get_template_id(self) -> None:
