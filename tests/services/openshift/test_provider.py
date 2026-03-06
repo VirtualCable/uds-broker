@@ -124,9 +124,9 @@ class TestOpenshiftProvider(UDSTransactionTestCase):
             # Check get_vm_info for both a VM and a VM instance
             self.assertEqual(provider.api.get_vm_info('vm-1'), fixtures.VMS[0])
             self.assertEqual(provider.api.get_vm_info('vm-instance-1'), fixtures.VM_INSTANCES[0])
-            self.assertTrue(provider.api.start_vm_instance('vm-1'))
-            self.assertTrue(provider.api.stop_vm_instance('vm-1'))
-            self.assertTrue(provider.api.delete_vm_instance('vm-1'))
+            self.assertTrue(provider.api.start_vm('vm-1'))
+            self.assertTrue(provider.api.stop_vm('vm-1'))
+            self.assertTrue(provider.api.delete_vm('vm-1'))
 
     # --- Name Sanitization ---
     def test_sanitized_name(self) -> None:

@@ -45,16 +45,8 @@ class OpenshiftAuthError(OpenshiftError, exceptions.services.generics.FatalError
 
 
 class OpenshiftPermissionError(OpenshiftError, exceptions.services.generics.FatalError):
-    """
-    Raised when the user does not have permission to perform an action
-    """
-
     pass
 
 
-class OpenshiftDoesNotExists(OpenshiftError):
-    pass
-
-
-class OpenshiftNotFoundError(OpenshiftDoesNotExists, exceptions.services.generics.NotFoundError):
+class OpenshiftNotFoundError(OpenshiftError, exceptions.services.generics.NotFoundError):
     pass

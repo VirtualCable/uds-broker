@@ -25,7 +25,6 @@ from .publication import OpenshiftTemplatePublication
 
 from .deployment import OpenshiftUserService
 from .openshift import exceptions as oshift_exceptions
-from .openshift import types as oshift_types
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +149,10 @@ class OpenshiftService(DynamicService):
         Tries up to 3 times with 5 seconds delay if not found.
         """
         logger.debug('Getting IP for VM ID: %s', vmid)
-        try:
-            vm_info = self.api.get_vm_info(vmid)
-            logger.debug(f"The vm info is:{vm_info}")
-            if vm_info.interfaces and vm_info.interfaces:
-                logger.info(f"IP address found: {vm_info.interfaces[0].ip_address}")
-                return vm_info.interfaces[0].ip_address
-        except oshift_exceptions.OpenshiftNotFoundError:
-            pass
+        interfaces = self.api.get_vm_interfaces(vmid)
+        if interfaces and interfaces[0].ip_address:
+            logger.info(f"IP address found: {interfaces[0].ip_address}")
+            return interfaces[0].ip_address
         return ''
 
     def get_mac(
@@ -178,14 +173,10 @@ class OpenshiftService(DynamicService):
         if vmid == '':
             return ''
         logger.debug('Getting MAC for VM ID: %s', vmid)
-        try:
-            vm_info = self.api.get_vm_info(vmid)
-            logger.debug(f"The vm info is:{vm_info}")
-            if vm_info.interfaces and vm_info.interfaces:
-                logger.info(f"MAC address found: {vm_info.interfaces[0].mac_address}")
-                return vm_info.interfaces[0].mac_address
-        except oshift_exceptions.OpenshiftNotFoundError:
-            pass
+        interfaces = self.api.get_vm_interfaces(vmid)
+        if interfaces and interfaces[0].mac_address:
+            logger.info(f"MAC address found: {interfaces[0].mac_address}")
+            return interfaces[0].mac_address
         return ''
 
     def is_running(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> bool:
@@ -194,44 +185,73 @@ class OpenshiftService(DynamicService):
         """
         vmi_info = self.api.get_vm_info(vmid)
         # Use both status and phase to determine if running
-        return (
-            vmi_info.status == oshift_types.VMStatus.RUNNING or vmi_info.phase == oshift_types.VMStatus.RUNNING
-        )
+        return vmi_info.status.is_running()
 
     def start(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Starts the machine
         Can return a task, or None if no task is returned
         """
-        self.api.start_vm_instance(vmid)
+        self.api.start_vm(vmid)
 
     def stop(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Stops the machine
         Can return a task, or None if no task is returned
         """
-        self.api.stop_vm_instance(vmid)
+        self.api.stop_vm(vmid)
 
     def shutdown(self, caller_instance: 'DynamicUserService | DynamicPublication | None', vmid: str) -> None:
         """
         Shutdowns the machine, same as stop (both tries soft shutdown, it's a openshift thing)
         """
-        self.api.stop_vm_instance(vmid)
+        self.api.stop_vm(vmid)
 
     def execute_delete(self, vmid: str) -> None:
         """
         Deletes the VM
         """
         logger.debug('Deleting Openshift VM %s', vmid)
-        self.api.delete_vm_instance(vmid)  # Force deletion, as we are not using soft delete
+        self.api.delete_vm(vmid)  # Force deletion, as we are not using soft delete
 
     def is_deleted(self, vmid: str) -> bool:
         """
-        Checks if the VM is deleted.
+        Checks if the VM and its associated DataVolume/PVC are deleted.
         """
         logger.debug('Checking if VM %s is deleted', vmid)
+        # 1. Check if VM exists
         try:
             self.api.get_vm_info(vmid)
+            logger.debug('VM %s still exists', vmid)
+            return False
         except oshift_exceptions.OpenshiftNotFoundError:
-            return True
-        return False
+            pass  # VM not found, continue
+
+        # 2. Try to get associated DataVolume or PVC
+        try:
+            name, typ = self.api.get_vm_pvc_or_dv_name(self.api.namespace, vmid)
+            logger.debug('Associated storage for VM %s: %s (%s)', vmid, name, typ)
+        except Exception as e:
+            logger.debug('No associated DataVolume/PVC for VM %s or already deleted: %s', vmid, e)
+            return True  # If can't find storage, consider deleted
+
+        # 3. Check if DataVolume or PVC exists
+        if typ == 'dv':
+            try:
+                phase = self.api.get_datavolume_phase(name)
+                logger.debug('DataVolume %s for VM %s still exists (phase: %s)', name, vmid, phase)
+                return False
+            except Exception as e:
+                logger.debug('DataVolume %s for VM %s not found: %s', name, vmid, e)
+                return True
+        elif typ == 'pvc':
+            try:
+                self.api.get_pvc_size(self.api.namespace, name)
+                logger.debug('PVC %s for VM %s still exists', name, vmid)
+                return False
+            except Exception as e:
+                logger.debug('PVC %s for VM %s not found: %s', name, vmid, e)
+                return True
+        # If unknown type, be conservative
+        logger.debug('Unknown storage type for VM %s: %s', vmid, typ)
+        return True
