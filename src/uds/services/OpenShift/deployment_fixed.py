@@ -61,7 +61,7 @@ class OpenshiftUserServiceFixed(FixedUserService, autoserializable.AutoSerializa
         vm = self.service().provider().api.get_vm_info(self._name)
 
         if vm and vm.status.is_off():
-            self.service().provider().api.start_vm_instance(self._name)
+            self.service().provider().api.start_vm(self._name)
 
     def op_stop(self) -> None:
         """
@@ -76,10 +76,10 @@ class OpenshiftUserServiceFixed(FixedUserService, autoserializable.AutoSerializa
 
         # If vm is running, stop it
         logger.debug('Machine %s is running, stopping it', self._name)
-        self.service().api.stop_vm_instance(self._name)
+        self.service().api.stop_vm(self._name)
 
     # Check methods
-    def _check_status(self, *status: opensh_types.VMStatus) -> types.states.TaskState:
+    def _check_status(self, *status: opensh_types.State) -> types.states.TaskState:
         """
         Checks the status of the vm and returns the appropriate TaskState.
         """
@@ -98,7 +98,7 @@ class OpenshiftUserServiceFixed(FixedUserService, autoserializable.AutoSerializa
         Checks if machine has started
         """
         return self._check_status(
-            opensh_types.VMStatus.RUNNING,
+            opensh_types.State.RUNNING,
         )
 
     def op_stop_checker(self) -> types.states.TaskState:
@@ -106,6 +106,6 @@ class OpenshiftUserServiceFixed(FixedUserService, autoserializable.AutoSerializa
         Checks if machine has stoped
         """
         return self._check_status(
-            opensh_types.VMStatus.STOPPED,
-            opensh_types.VMStatus.SUSPENDED,
+            opensh_types.State.STOPPED,
+            opensh_types.State.SUSPENDED,
         )
