@@ -181,6 +181,7 @@ class TestOpenshiftService(UDSTransactionTestCase):
 
         # Check if deleted
         api.get_vm_info.side_effect = oshift_exceptions.OpenshiftNotFoundError('not found')
+        api.get_vm_pvc_or_dv_name.side_effect = oshift_exceptions.OpenshiftNotFoundError('not found')
         self.assertTrue(service.is_deleted('vm-1'))
 
         # Simulate VM exists

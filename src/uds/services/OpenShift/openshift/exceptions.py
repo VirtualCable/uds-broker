@@ -30,14 +30,23 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 
 
 from uds.core import exceptions
+
+
 class OpenshiftError(exceptions.services.generics.Error):
     pass
+
+
 class OpenshiftConnectionError(OpenshiftError, exceptions.services.generics.RetryableError):
     pass
+
+
 class OpenshiftAuthError(OpenshiftError, exceptions.services.generics.FatalError):
     pass
+
+
 class OpenshiftPermissionError(OpenshiftError, exceptions.services.generics.FatalError):
     pass
+
 
 class OpenshiftNotFoundError(OpenshiftError, exceptions.services.generics.NotFoundError):
     pass

@@ -92,15 +92,13 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         api = self.service().api
         publication_vm_name = self.publication()._name
         namespace = api.namespace
-        api_url = api.api_url
         self._name = self.service().sanitized_name(self._name)
 
-        source_pvc_name, _vol_type = api.get_vm_pvc_or_dv_name(api_url, namespace, publication_vm_name)
+        source_pvc_name, _vol_type = api.get_vm_pvc_or_dv_name(namespace, publication_vm_name)
 
         new_pvc_name = f"{self._name}-disk"
 
         api.create_vm_from_pvc(
-            api_url=api_url,
             namespace=namespace,
             source_vm_name=publication_vm_name,
             new_vm_name=self._name,
@@ -144,4 +142,3 @@ class OpenshiftUserService(DynamicUserService, autoserializable.AutoSerializable
         if not interfaces or not interfaces[0].mac_address:
             return types.states.TaskState.RUNNING
         return types.states.TaskState.FINISHED
-
