@@ -16,4 +16,3 @@ let rdpFilePath = File.createTempFile(null, content, '.rdp');
 let process = Process.launch(mstscPath, [rdpFilePath]);
 Tasks.addEarlyUnlinkableFile(rdpFilePath);
 Tasks.addWaitableApp(process);
-Logger.info(`Launched RDP client with file ${rdpFilePath}`);

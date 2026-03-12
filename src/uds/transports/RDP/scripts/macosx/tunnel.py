@@ -177,9 +177,6 @@ if kind == 'thincast':
 
         # Rename as .rdp, so open recognizes it
         shutil.move(filename, filename + '.rdp') # type: ignore
-        # show filename content in log for debug
-        with open(filename + '.rdp', 'r') as f: # type: ignore
-            logger.debug('RDP file content:\n%s', f.read()) # type: ignore 
         params = [ # type: ignore
             'open',
             '-a',
