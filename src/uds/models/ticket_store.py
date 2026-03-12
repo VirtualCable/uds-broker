@@ -79,8 +79,8 @@ class TicketStore(UUIDModel):
         """In fact, generates a random string of TICKET_LENGTH chars, that will be used as uuid for the ticket (but is not an uuid compliant string)"""
         # Removed 3.0 compat (lowercase)
         return CryptoManager.manager().random_string(
-                length=length,
-            )
+            length=length,
+        )
 
     @staticmethod
     def create(
@@ -230,6 +230,7 @@ class TicketStore(UUIDModel):
         host: str | None = None,  # Easy single remote support
         port: int | None = None,  # Easy single remote support
         tunnel_token: str = '',  # Tunnel identifier (tunnel token)
+        extra: dict[str, typing.Any] | None = None,
     ) -> str:
         owner = CryptoManager.manager().random_string(length=8)
         if not userservice.user:
@@ -240,9 +241,9 @@ class TicketStore(UUIDModel):
 
         if port is not None:
             remotes = [
-                types.tickets.TunnelTicketRemote(host=host or '', port=port)
+                types.tickets.TunnelTicketRemote(host=host or '', port=port, extra=extra or {})
             ]  # Host will be filled with userservice IP later
-            
+
         if remotes is None:
             raise ValueError('No remotes specified for tunnel ticket')
 
