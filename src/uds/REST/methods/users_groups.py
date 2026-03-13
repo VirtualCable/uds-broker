@@ -213,7 +213,7 @@ class Users(DetailHandler[UserItem]):
                 else:
                     auth.modify_user(fields)  # Notifies authenticator
                     user = parent.users.get(uuid=process_uuid(item))
-                    user.__dict__.update(fields)
+                    typing.cast(dict[str, typing.Any], user.__dict__).update(fields)
                     user.save()
 
                 logger.debug('User parent: %s', user.parent)
@@ -471,7 +471,7 @@ class Groups(DetailHandler[GroupItem]):
                 to_save['skip_mfa'] = fields['skip_mfa']
 
                 group = parent.groups.get(uuid=process_uuid(item))
-                group.__dict__.update(to_save)
+                typing.cast(dict[str, typing.Any], group.__dict__).update(to_save)
 
             if is_meta:
                 # Do not allow to add meta groups to meta groups

@@ -436,7 +436,7 @@ class ServersGroups(ModelHandler[GroupItem]):
     PATH = 'servers'
     NAME = 'groups'
 
-    FIELDS_TO_SAVE = ['name', 'comments', 'type', 'tags']  # Subtype is appended on pre_save
+    FIELDS_TO_SAVE = ['name', 'comments', 'type:_', 'subtype:_', 'data_type:_' 'tags']  # Subtype is appended on pre_save
 
     TABLE = (
         ui_utils.TableBuilder(_('Servers Groups'))
@@ -482,7 +482,6 @@ class ServersGroups(ModelHandler[GroupItem]):
             .add_stock_field(types.rest.stock.StockField.NAME)
             .add_stock_field(types.rest.stock.StockField.TAGS)
             .add_stock_field(types.rest.stock.StockField.COMMENTS)
-            .add_hidden(name='type', default=for_type)
             .add_info(
                 name='title',
                 default=title,
@@ -492,9 +491,14 @@ class ServersGroups(ModelHandler[GroupItem]):
 
     def pre_save(self, fields: dict[str, typing.Any]) -> None:
         # Update type and subtype to correct values
-        type, subtype = fields['type'].split('@')
-        fields['type'] = types.servers.ServerType[type.upper()].value
-        fields['subtype'] = subtype
+        if 'data_type' in fields:
+            type, subtype = typing.cast(str, fields['data_type'].split('@'))
+            fields['type'] = types.servers.ServerType[type.upper()].value
+            fields['subtype'] = subtype
+            del fields['data_type']
+        elif not ('type' in fields and 'subtype' in fields):
+             raise exceptions.rest.RequestError('Type and subtype must be provided') from None
+
         return super().pre_save(fields)
 
     def get_item(self, item: 'Model') -> GroupItem:
