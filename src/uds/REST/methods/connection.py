@@ -57,7 +57,7 @@ class Connection(Handler):
     @staticmethod
     def result(
         result: typing.Any = None,
-        error: typing.Optional[typing.Union[str, int]] = None,
+        error: str | int | None = None,
         error_code: int = 0,
         is_retrayable: bool = False,
     ) -> dict[str, typing.Any]:

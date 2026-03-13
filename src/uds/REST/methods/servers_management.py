@@ -490,7 +490,7 @@ class ServersGroups(ModelHandler[GroupItem]):
         )
 
     def pre_save(self, fields: dict[str, typing.Any]) -> None:
-        # Update type and subtype to correct values
+        # Allow from admin gui (data_type) or from API (type and subtype)
         if 'data_type' in fields:
             type, subtype = typing.cast(str, fields['data_type'].split('@'))
             fields['type'] = types.servers.ServerType[type.upper()].value

@@ -30,6 +30,7 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import collections.abc
 import dataclasses
 import logging
 import typing
@@ -94,7 +95,7 @@ class Reports(model.BaseModelHandler[ReportItem]):
     )
 
     def _locate_report(
-        self, uuid: str, values: typing.Optional[typing.Dict[str, typing.Any]] = None
+        self, uuid: str, values: dict[str, typing.Any] | None = None
     ) -> 'Report':
         found = None
         logger.debug('Looking for report %s', uuid)
@@ -167,7 +168,7 @@ class Reports(model.BaseModelHandler[ReportItem]):
         return sorted(report.gui_description(), key=lambda f: f.gui.order)
 
     # Returns the list of
-    def get_items(self, *args: typing.Any, **kwargs: typing.Any) -> typing.Generator[ReportItem, None, None]:
+    def get_items(self, *args: typing.Any, **kwargs: typing.Any) -> collections.abc.Generator[ReportItem, None, None]:
         for i in reports.available_reports:
             yield ReportItem(
                 id=i.get_uuid(),

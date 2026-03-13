@@ -92,7 +92,7 @@ class AssignedUserService(DetailHandler[UserServiceItem]):
     @staticmethod
     def userservice_item(
         item: models.UserService,
-        props: typing.Optional[dict[str, typing.Any]] = None,
+        props: dict[str, typing.Any] | None = None,
         is_cache: bool = False,
     ) -> 'UserServiceItem':
         """
