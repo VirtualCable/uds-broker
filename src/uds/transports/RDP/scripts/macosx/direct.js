@@ -122,6 +122,5 @@ if (thincastExecutable || xfreeRdpExecutable) {
     throw new Error(errorString.replace('{msrd}', msrd).replace('{msrd_li}', msrd_li));
 }
 
-Logger.info(`Launching RDP client with params: ${params.join(' ')}`);
 // On MacOS, we do not need to wait for the app to end, just launch it
 Process.launch('/usr/bin/open', params);

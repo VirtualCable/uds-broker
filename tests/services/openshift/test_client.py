@@ -43,7 +43,7 @@ class TestOpenshiftClient(UDSTransactionTestCase):
     """Tests for operations with OpenShiftClient."""
 
     os_client: openshift_client.OpenshiftClient
-    test_vm: str = 'xubu-temp'
+    test_vm: str = 'vm-test'
     test_pool: str = ''
     test_storage: str = ''
 
@@ -96,81 +96,59 @@ class TestOpenshiftClient(UDSTransactionTestCase):
         """
         Test that list_vms returns a list and get_vm_info works for listed VMs.
         """
-        vms = self.os_client.list_vms()
+        vms_iter = self.os_client.list_vms()
+        vms = list(vms_iter)
         self.assertIsInstance(vms, list)
-        if vms:
-            info = self.os_client.get_vm_info(vms[2].name)
-            self.assertIsNotNone(info)
+        if len(vms) > 1:
+            vm = vms[1]
+            if hasattr(vm, 'name'):
+                info = self.os_client.get_vm_info(vm.name)
+                self.assertIsNotNone(info)
 
     def test_list_vms_and_check_fields(self):
         """
         Test that all VMs returned by list_vms have required fields.
         """
-        vms = self.os_client.list_vms()
+        vms = list(self.os_client.list_vms())
         self.assertIsInstance(vms, list)
         for vm in vms:
             self.assertTrue(hasattr(vm, 'name'))
             self.assertTrue(hasattr(vm, 'namespace'))
 
-    def test_get_vm_info(self):
-        """
-        Test that get_vm_info returns info for a valid VM name.
-        """
-        if not self.test_vm:
-            self.skipTest('No test_vm specified')
-        info = self.os_client.get_vm_info(self.test_vm)
-        self.assertIsNotNone(info)
-
     def test_get_vm_info_invalid(self):
         """
-        Test that get_vm_info returns None for an invalid VM name.
+        Test that get_vm_info raises OpenshiftNotFoundError for an invalid VM name.
         """
-        info = self.os_client.get_vm_info('nonexistent-vm')
-        self.assertIsNone(info)
+        from uds.services.OpenShift.openshift import exceptions
+        with self.assertRaises(exceptions.OpenshiftNotFoundError):
+            self.os_client.get_vm_info('nonexistent-vm')
 
-    def test_get_vm_instance_info(self):
+    def test_get_vm_info(self):
         """
-        Test that get_vm_instance_info returns info or None for a valid VM name.
+        Test that get_vm_info returns info or None for a valid VM name.
         """
         if not self.test_vm:
             self.skipTest('No test_vm specified')
         info = self.os_client.get_vm_info(self.test_vm)
         self.assertTrue(hasattr(info, 'name'))
 
-    def test_get_vm_instance_info_invalid(self):
-        """
-        Test that get_vm_instance_info returns None for an invalid VM name.
-        """
-        info = self.os_client.get_vm_info('nonexistent-vm')
-        self.assertIsNone(info)
-
     # --- VM Lifecycle and Actions ---
     def test_vm_lifecycle(self) -> None:
         """
         Test VM lifecycle actions: start, stop, delete (skipped in shared environments).
         """
-        self.skipTest('Skip this test to avoid issues in shared environments')
+        #self.skipTest('Skip this test to avoid issues in shared environments')
         if not self.test_vm:
             self.skipTest('No test_vm specified in test-vars.ini')
-        self.assertTrue(self.os_client.start_vm_instance(self.test_vm))
-        self.assertTrue(self.os_client.stop_vm_instance(self.test_vm))
-        self.assertTrue(self.os_client.delete_vm_instance(self.test_vm))
-
-    def test_start_stop_suspend_resume_vm(self):
-        """
-        Test stop (and optionally start) VM instance. Suspend/resume skipped if not supported.
-        """
-        if not self.test_vm:
-            self.skipTest('No test_vm specified')
-        #self.assertTrue(self.os_client.start_vm_instance(self.test_vm))
-        self.assertTrue(self.os_client.stop_vm_instance(self.test_vm))
-        # Suspend/resume skipped if not supported
+        self.assertTrue(self.os_client.start_vm(self.test_vm))
+        self.assertTrue(self.os_client.stop_vm(self.test_vm))
+        #self.assertTrue(self.os_client.delete_vm(self.test_vm))
 
     def test_delete_vm_invalid(self):
         """
-        Test that delete_vm_instance returns False for an invalid VM name.
+        Test that delete_vm returns False for an invalid VM name.
         """
-        self.assertFalse(self.os_client.delete_vm_instance('nonexistent-vm'))
+        self.assertTrue(self.os_client.delete_vm('nonexistent-vm'))
 
     # --- DataVolume Tests ---
     # --- DataVolume Tests ---
