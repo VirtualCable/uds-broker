@@ -498,9 +498,11 @@ class ServersGroups(ModelHandler[GroupItem]):
 
     def pre_save(self, fields: dict[str, typing.Any]) -> None:
         # Update type and subtype to correct values
-        type, subtype = fields['type'].split('@')
-        fields['type'] = types.servers.ServerType[type.upper()].value
-        fields['subtype'] = subtype
+        type_str = fields.get('type') or self._params.get('data_type')
+        if type_str:
+            type, subtype = type_str.split('@')
+            fields['type'] = types.servers.ServerType[type.upper()].value
+            fields['subtype'] = subtype
         return super().pre_save(fields)
 
     def get_item(self, item: 'Model') -> GroupItem:
