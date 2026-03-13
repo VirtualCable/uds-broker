@@ -294,7 +294,7 @@ class AssignedUserService(DetailHandler[UserServiceItem]):
         log.log(userservice, types.log.LogLevel.INFO, log_string, types.log.LogSource.ADMIN)
 
     # Only owner is allowed to change right now
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, models.ServicePool)
         if not item:
             raise exceptions.rest.RequestError('Only modify is allowed')
@@ -409,7 +409,7 @@ class Groups(DetailHandler[GroupItem]):
     """
 
     def get_items(self, parent: 'Model') -> types.rest.ItemsResult['GroupItem']:
-        parent = typing.cast(typing.Union['models.ServicePool', 'models.MetaPool'], parent)
+        parent = typing.cast('models.ServicePool | models.MetaPool', parent)
 
         return [
             GroupItem(
@@ -431,7 +431,7 @@ class Groups(DetailHandler[GroupItem]):
         raise exceptions.rest.NotSupportedError('Single group retrieval not implemented inside assigned groups')
 
     def get_table(self, parent: 'Model') -> TableInfo:
-        typing.cast(typing.Union['models.ServicePool', 'models.MetaPool'], parent)  # Just ensures type
+        typing.cast('models.ServicePool | models.MetaPool', parent)  # Just ensures type
         return (
             ui_utils.TableBuilder(_('Assigned groups'))
             .text_column(name='group_name', title=_('Name'))
@@ -441,8 +441,8 @@ class Groups(DetailHandler[GroupItem]):
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
-        parent = typing.cast(typing.Union['models.ServicePool', 'models.MetaPool'], parent)
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
+        parent = typing.cast('models.ServicePool | models.MetaPool', parent)
 
         group: models.Group = models.Group.objects.get(uuid=process_uuid(self._params['id']))
         parent.assignedGroups.add(group)
@@ -456,7 +456,7 @@ class Groups(DetailHandler[GroupItem]):
         return {'id': group.uuid}
 
     def delete_item(self, parent: 'Model', item: str) -> None:
-        parent = typing.cast(typing.Union['models.ServicePool', 'models.MetaPool'], parent)
+        parent = typing.cast('models.ServicePool | models.MetaPool', parent)
         group: models.Group = models.Group.objects.get(uuid=process_uuid(self._args[0]))
         parent.assignedGroups.remove(group)
         log.log(
@@ -513,7 +513,7 @@ class Transports(DetailHandler[TransportItem]):
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, models.ServicePool)
         transport: models.Transport = models.Transport.objects.get(uuid=process_uuid(self._params['id']))
         parent.transports.add(transport)

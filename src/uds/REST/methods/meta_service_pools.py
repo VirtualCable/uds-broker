@@ -191,7 +191,7 @@ class MetaAssignedService(DetailHandler[UserServiceItem]):
 
     def _assigned_userservices_for_pools(
         self, parent: 'models.MetaPool'
-    ) -> collections.abc.Generator[tuple[models.UserService, dict[str, typing.Any]] | None, None, None]:
+    ) -> collections.abc.Generator[tuple[models.UserService, dict[str, typing.Any]], None, None]:
         for m in self.odata_filter(parent.members.filter(enabled=True)):
             properties: dict[str, typing.Any] = {
                 k: v

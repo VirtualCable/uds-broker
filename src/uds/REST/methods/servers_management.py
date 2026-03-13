@@ -30,8 +30,10 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import collections.abc
+import csv
 import dataclasses
 import datetime
+import io
 import logging
 import typing
 
@@ -336,20 +338,30 @@ class ServersServers(DetailHandler[ServerItem]):
 
     def importcsv(self, parent: 'Model') -> typing.Any:
         """
-        We receive a json with string[][] format with the data.
+        We receive the file
         Has no header, only the data.
         """
         parent = ensure.is_instance(parent, models.ServerGroup)
-        data: list[list[str]] = self._params.get('data', [])
-        logger.debug('Data received: %s', data)
+        data: str = self._params.get('data', '')
+        has_header: bool = self._params.get('has_header', False)
+        separator: str = self._params.get('separator', ',')
+        logger.debug('Data received: %s, has_header: %s..., separator: %s', data[:64], has_header, separator)
+
+        csv_file = io.StringIO(data)
+        reader = csv.reader(csv_file, delimiter=separator)
         # String lines can have 1, 2 or 3 fields.
-        # if 1, it's a IP
-        # if 2, it's a IP and a hostname. Hostame can be empty, in this case, it will be the same as IP
-        # if 3, it's a IP, a hostname and a MAC. MAC can be empty, in this case, it will be UNKNOWN
+        # if 1, it's a hostname
+        # if 2, it's a hostname + IP. Hostame can be empty, in this case, it will be the same as IP
+        # if 3 or more, it's a hostname + IP + MAC. Hostame can be empty, in this case, it will be the same as IP. MAC can be empty, in this case, it will be set to NULL_MAC
         # if ip is empty and has a hostname, it will be kept, but if it has no hostname, it will be skipped
-        # If the IP is invalid and has no hostname, it will be skipped
         import_errors: list[str] = []
-        for line_number, row in enumerate(data, 1):
+        if has_header:
+            try:
+                next(reader)  # Skip header
+            except StopIteration:
+                return ['CSV has no data rows']
+
+        for line_number, row in enumerate(reader, 1):
             if len(row) == 0:
                 continue
             hostname = row[0].strip()
@@ -436,7 +448,13 @@ class ServersGroups(ModelHandler[GroupItem]):
     PATH = 'servers'
     NAME = 'groups'
 
-    FIELDS_TO_SAVE = ['name', 'comments', 'type:_', 'subtype:_', 'data_type:_' 'tags']  # Subtype is appended on pre_save
+    FIELDS_TO_SAVE = [
+        'name',
+        'comments',
+        'type:_',
+        'subtype:_',
+        'data_type:_' 'tags',
+    ]  # Subtype is appended on pre_save
 
     TABLE = (
         ui_utils.TableBuilder(_('Servers Groups'))
@@ -497,7 +515,7 @@ class ServersGroups(ModelHandler[GroupItem]):
             fields['subtype'] = subtype
             del fields['data_type']
         elif not ('type' in fields and 'subtype' in fields):
-             raise exceptions.rest.RequestError('Type and subtype must be provided') from None
+            raise exceptions.rest.RequestError('Type and subtype must be provided') from None
 
         return super().pre_save(fields)
 
