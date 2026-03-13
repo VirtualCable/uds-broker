@@ -34,6 +34,8 @@ import dataclasses
 import datetime
 import logging
 import typing
+import csv
+import io
 
 from django.db.models import Model
 from django.utils.translation import gettext
@@ -336,11 +338,11 @@ class ServersServers(DetailHandler[ServerItem]):
 
     def importcsv(self, parent: 'Model') -> typing.Any:
         """
-        We receive a json with string[][] format with the data.
+        We receive a csv string with the data.
         Has no header, only the data.
         """
         parent = ensure.is_instance(parent, models.ServerGroup)
-        data: list[list[str]] = self._params.get('data', [])
+        data: str = self._params.get('data', '')
         logger.debug('Data received: %s', data)
         # String lines can have 1, 2 or 3 fields.
         # if 1, it's a IP
@@ -349,7 +351,11 @@ class ServersServers(DetailHandler[ServerItem]):
         # if ip is empty and has a hostname, it will be kept, but if it has no hostname, it will be skipped
         # If the IP is invalid and has no hostname, it will be skipped
         import_errors: list[str] = []
-        for line_number, row in enumerate(data, 1):
+        
+        f = io.StringIO('\n'.join(','.join(row) for row in data)) 
+        reader: collections.abc.Iterable[list[str]] = csv.reader(f)
+        
+        for line_number, row in enumerate(reader, 1):
             if len(row) == 0:
                 continue
             hostname = row[0].strip()
@@ -492,9 +498,11 @@ class ServersGroups(ModelHandler[GroupItem]):
 
     def pre_save(self, fields: dict[str, typing.Any]) -> None:
         # Update type and subtype to correct values
-        type, subtype = fields['type'].split('@')
-        fields['type'] = types.servers.ServerType[type.upper()].value
-        fields['subtype'] = subtype
+        type_str = fields.get('type') or self._params.get('data_type')
+        if type_str:
+            type, subtype = type_str.split('@')
+            fields['type'] = types.servers.ServerType[type.upper()].value
+            fields['subtype'] = subtype
         return super().pre_save(fields)
 
     def get_item(self, item: 'Model') -> GroupItem:
