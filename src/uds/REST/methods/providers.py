@@ -179,7 +179,7 @@ class Providers(ModelHandler[ProviderItem]):
 
         raise exceptions.rest.NotFound('Type not found!')
 
-    def allservices(self) -> typing.Generator[types.rest.BaseRestItem, None, None]:
+    def allservices(self) -> collections.abc.Generator[types.rest.BaseRestItem, None, None]:
         """
         Custom method that returns "all existing services", no mater who's his daddy :)
         """

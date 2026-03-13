@@ -29,6 +29,7 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import collections.abc
 import dataclasses
 import logging
 import typing
@@ -118,7 +119,7 @@ class MetaServicesPool(DetailHandler[MetaItem]):
             .build()
         )
 
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, models.MetaPool)
         # If already exists
         uuid = process_uuid(item) if item else None
@@ -166,7 +167,7 @@ class MetaAssignedService(DetailHandler[UserServiceItem]):
     def item_as_dict(
         meta_pool: 'models.MetaPool',
         item: 'models.UserService',
-        props: typing.Optional[dict[str, typing.Any]],
+        props: dict[str, typing.Any] | None,
     ) -> 'UserServiceItem':
         element = AssignedUserService.userservice_item(item, props, False)
         element.pool_id = item.deployed_service.uuid
@@ -190,7 +191,7 @@ class MetaAssignedService(DetailHandler[UserServiceItem]):
 
     def _assigned_userservices_for_pools(
         self, parent: 'models.MetaPool'
-    ) -> typing.Generator[tuple[models.UserService, typing.Optional[dict[str, typing.Any]]], None, None]:
+    ) -> collections.abc.Generator[tuple[models.UserService, dict[str, typing.Any]] | None, None, None]:
         for m in self.odata_filter(parent.members.filter(enabled=True)):
             properties: dict[str, typing.Any] = {
                 k: v
@@ -288,7 +289,7 @@ class MetaAssignedService(DetailHandler[UserServiceItem]):
         log.log(parent, types.log.LogLevel.INFO, log_str, types.log.LogSource.ADMIN)
 
     # Only owner is allowed to change right now
-    def save_item(self, parent: 'Model', item: typing.Optional[str]) -> typing.Any:
+    def save_item(self, parent: 'Model', item: str | None) -> typing.Any:
         parent = ensure.is_instance(parent, models.MetaPool)
         if item is None:
             raise exceptions.rest.RequestError(_('Invalid item specified'))

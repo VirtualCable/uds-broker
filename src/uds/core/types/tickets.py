@@ -44,11 +44,16 @@ class TunnelTicketRemote:
     host: str
     port: int
 
+    extra: dict[str, typing.Any] = dataclasses.field(
+        default_factory=dict[str, typing.Any]
+    )  # Extra data that can be used for future extensions
+
     def as_dict(self) -> dict[str, typing.Any]:
         """Returns a dict representation of the remote"""
         return {
             'host': self.host,
             'port': self.port,
+            'extra': self.extra,
         }
 
 

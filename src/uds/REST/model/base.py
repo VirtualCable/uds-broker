@@ -103,8 +103,15 @@ class BaseModelHandler(Handler, abc.ABC, typing.Generic[types.rest.T_Item]):
     ) -> dict[str, typing.Any]:
         """
         Reads the indicated fields from the parameters received, and if
-        :param fields_list: List of required fields
-        :return: A dictionary containing all required fields
+        
+        Arguments:
+            fields_list: List of fields to read, if a field is optional, it can be
+            
+        Note:
+            If a field is optional, it can be indicated with a :default_value, for example:
+                - field1:default_value
+                - field2:None (to indicate that default value is None)
+                - field3:_ (to indicate that if not present, it should be skipped, and it is not required)
         """
         args: dict[str, str] = {}
         default: str | None = None

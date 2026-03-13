@@ -52,7 +52,7 @@ T = typing.TypeVar('T', bound=models.Model)
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
     from django.db.models.query import QuerySet
-    
+
     from uds.models import User
     from uds.REST.model.master import ModelHandler
 
@@ -87,9 +87,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
     """
 
     CUSTOM_METHODS: typing.ClassVar[list[str]] = []
-    _parent: typing.Optional[
-        'ModelHandler[types.rest.T_Item]'
-    ]  # Parent handler, that is the ModelHandler that contains this detail
+    _parent: 'ModelHandler[types.rest.T_Item] | None'  # Parent handler, that is the ModelHandler that contains this detail
     _path: str
     _params: typing.Any  # _params is deserialized object from request
     _args: list[str]
@@ -278,7 +276,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         raise NotImplementedError(f'Must provide an get_item method for {self.__class__} class')
 
     # Default save
-    def save_item(self, parent: models.Model, item: typing.Optional[str]) -> types.rest.T_Item:
+    def save_item(self, parent: models.Model, item: str | None) -> types.rest.T_Item:
         """
         Invoked for a valid "put" operation
         If this method is not overridden, the detail class will not have "Save/modify" operations.
@@ -328,7 +326,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         return sorted(self.get_gui(parent, for_type), key=lambda f: f.gui.order)
 
     def enum_types(
-        self, parent: models.Model, for_type: typing.Optional[str]
+        self, parent: models.Model, for_type: str | None
     ) -> collections.abc.Iterable[types.rest.TypeInfo]:
         """
         The default is that detail element will not have any types (they are "homogeneous")
@@ -337,7 +335,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
         Args:
             parent (models.Model): Parent object
-            for_type (typing.Optional[str]): Request argument in fact
+            for_type (str | None): Request argument in fact
 
         Return:
             collections.abc.Iterable[types.rest.TypeInfoDict]: A list of dictionaries describing type/types
@@ -347,24 +345,24 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
     def get_logs(self, parent: models.Model, item: str) -> list[typing.Any]:
         """
         If the detail has any log associated with it items, provide it overriding this method
-        
+
         Args:
             parent: Parent model
             item: Item id (uuid)
-            
+
         Returns:
             A list of log elements (normally got using "uds.core.util.log.get_logs" method)
         """
         raise exceptions.rest.InvalidMethodError('Object does not support logs')
-    
+
     def calc_item_position(self, item_uuid: str, qs: 'QuerySet[T]') -> int:
         """
         Helper method to get the position of an item in a queryset
-        
+
         Args:
             item_uuid (str): UUID of the item to find
             qs (QuerySet[T]): Queryset to search into
-            
+
         Returns:
             int: Position of the item in the default ordering, -1 if not found
         """
@@ -373,17 +371,16 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         if obj:
             return model_utils.get_position_in_queryset(obj, qs)
         return -1
-        
 
     def get_item_position(self, parent: models.Model, item_uuid: str) -> int:
         """
         Tries to get the position of an item in the default ordering of the detail items
-        
+
         Args:
             item_uuid (str): UUID of the item to find
         Returns:
             int: Position of the item in the default ordering, -1 if not found
-            
+
         Note:
             Override this method if the detail can provide item position
         """
