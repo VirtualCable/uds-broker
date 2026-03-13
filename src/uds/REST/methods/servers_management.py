@@ -352,7 +352,7 @@ class ServersServers(DetailHandler[ServerItem]):
         # If the IP is invalid and has no hostname, it will be skipped
         import_errors: list[str] = []
         
-        f = io.StringIO('\n'.join(','.join(row) for row in data)) 
+        f = io.StringIO(data) 
         reader: collections.abc.Iterable[list[str]] = csv.reader(f)
         
         for line_number, row in enumerate(reader, 1):
