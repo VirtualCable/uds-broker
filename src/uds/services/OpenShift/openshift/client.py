@@ -262,6 +262,7 @@ class OpenshiftClient:
         Get VM information by name.
         Returns the VM object if found, else None.
         """
+        response: dict[str, typing.Any] = {}
         response: dict[str, typing.Any] = self.do_request(
             'GET', f"/apis/kubevirt.io/v1/namespaces/{self.namespace}/virtualmachines/{vm_name}"
         )

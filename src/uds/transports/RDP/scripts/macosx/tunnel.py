@@ -163,7 +163,6 @@ if kind == 'msrdc':
 
 if kind == 'thincast':
     if sp['as_file']:  # type: ignore
-        logger.debug('Opening Thincast with RDP file %s', sp['as_file']) # type: ignore
         theFile = sp['as_file'] # type: ignore
         theFile = theFile.format( # type: ignore
             address='{}'.format(address)
@@ -183,7 +182,6 @@ if kind == 'thincast':
             executable,
             filename + '.rdp', # type: ignore
         ]
-        logger.debug('Opening Thincast with RDP file with params: %s', ' '.join(params)) # type: ignore
         tools.addTaskToWait( # type: ignore
             subprocess.Popen(params) # type: ignore
         )
@@ -202,7 +200,6 @@ if kind == 'thincast':
             executable,
             '--args',
         ] + [os.path.expandvars(i) for i in xfparms + ['/v:{}'.format(address)]]  # type: ignore
-        #logger.debug('Executing: %s', ' '.join(params))
         subprocess.Popen(params) # type: ignore
 else:  # freerdp or udsrdp
     # Fix resolution...
