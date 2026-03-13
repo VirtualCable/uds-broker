@@ -164,7 +164,6 @@ if kind == 'thincast':
             executable,
             filename + '.rdp', # type: ignore
         ]
-        logger.debug('Opening Thincast with RDP file with params: %s', ' '.join(params)) # type: ignore
         tools.addTaskToWait( # type: ignore
             subprocess.Popen(params) # type: ignore
         )
@@ -193,5 +192,4 @@ else:  # for now, both xfreerdp or udsrdp
         xfparms = list(map(lambda x: x.replace('#WIDTH#', '1400').replace('#HEIGHT#', '800'), sp['as_new_xfreerdp_params']))  # type: ignore
 
     params = [os.path.expandvars(i) for i in [executable] + xfparms + ['/v:{}'.format(sp['address'])]]  # type: ignore
-    logger.debug('Executing: %s', ' '.join(params)) # type: ignore
     subprocess.Popen(params) # type: ignore
