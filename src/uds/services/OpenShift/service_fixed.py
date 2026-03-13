@@ -174,7 +174,7 @@ class OpenshiftServiceFixed(FixedService):  # pylint: disable=too-many-public-me
                 if found_vmid:
                     assigned.add(found_vmid)
         except Exception as e:  #
-            logger.debug('Error getting machine: %s', e)
+            logger.error('Error getting machine: %s', e)
             raise Exception('No machine available')
 
         if not found_vmid:

@@ -130,44 +130,27 @@ class OpenshiftClient:
         data: typing.Any = None,
         check_for_success: bool = False,
     ) -> typing.Any:
-        logger.debug(
-            'Requesting %s %s with parameters %s and data %s',
-            method.upper(),
-            path,
-            parameters,
-            data,
-        )
         try:
+            url = self.get_api_url(path, *parameters)
+
             match method:
-                case 'GET':
-                    response = self.session.get(
-                        self.get_api_url(path, *parameters),
+                case 'GET' | 'DELETE':
+                    response = self.session.request(
+                        method,
+                        url,
                         timeout=self._timeout,
                     )
-                case 'POST':
-                    response = self.session.post(
-                        self.get_api_url(path, *parameters),
+                case 'POST' | 'PUT':
+                    response = self.session.request(
+                        method,
+                        url,
                         json=data,
                         timeout=self._timeout,
                     )
-                case 'PUT':
-                    response = self.session.put(
-                        self.get_api_url(path, *parameters),
-                        json=data,
-                        timeout=self._timeout,
-                    )
-                case 'DELETE':
-                    response = self.session.delete(
-                        self.get_api_url(path, *parameters),
-                        timeout=self._timeout,
-                    )
-                case _:
-                    raise ValueError(f'Unsupported HTTP method: {method}')
         except requests.ConnectionError as e:
             raise exceptions.OpenshiftConnectionError(str(e))
         except requests.RequestException as e:
             raise exceptions.OpenshiftError(f'Error during request: {str(e)}')
-        logger.debug('Request result to %s: %s -- %s', path, response.status_code, response.content[:64])
 
         if not response.ok:
             if response.status_code == 401:
@@ -274,7 +257,6 @@ class OpenshiftClient:
         except exceptions.OpenshiftNotFoundError:
             pass  # If the VMInstance is not found, we can still return the VM info
 
-        # logger.debug(f"VM info for '{vm_name}': {response}")
         return types.VM.from_dict(response)
 
     def get_vm_interfaces(self, vm_name: str) -> list[types.Interface]:
@@ -460,7 +442,6 @@ class OpenshiftClient:
             iface.pop('macAddress', None)
 
         logger.info(f"Creating VM '{new_vm_name}' from cloned PVC '{new_dv_name}'.")
-        # logger.info(f"VM Object: {vm_obj}")
 
         create_path = f"/apis/kubevirt.io/v1/namespaces/{namespace}/virtualmachines"
         self.do_request('POST', create_path, data=vm_obj)
