@@ -822,9 +822,10 @@ class ProxmoxClient:
             case collections.abc.Iterable():
                 node_list = set(node)
 
+        version = self.get_version()
         return sorted(
             [
-                types.StorageInfo.from_dict(st_info)
+                types.StorageInfo.from_dict(st_info, version=version)
                 for st_info in self.get_cluster_resources('storage')
                 if st_info['node'] in node_list and (content is None or content in st_info['content'])
             ],

@@ -190,8 +190,8 @@ class ProxmoxService(DynamicService):
                 )
             except StopIteration:
                 raise exceptions.ui.ValidationError(_('Selected storage not found on Proxmox'))
-            if storage.type == 'lvm' and not self.use_full_clone.value:
-                raise exceptions.ui.ValidationError(_('Linked clones are not allowed on lvm storage'))
+            if not storage.supports_linked_clone() and self.use_full_clone.value:
+                raise exceptions.ui.ValidationError(_('Linked clones are not allowed on the storage'))
 
             # if int(self.memory.value) < 128:
             #     raise exceptions.ValidationException(_('The minimum allowed memory is 128 Mb'))

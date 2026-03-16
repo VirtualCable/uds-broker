@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from . import exceptions as prox_exceptions
 
-NETWORK_RE: typing.Final[typing.Pattern[str]] = re.compile(r'([a-zA-Z0-9]+)=([^,]+)')  # May have vla id at end
+NETWORK_RE: typing.Final[re.Pattern[str]] = re.compile(r'([a-zA-Z0-9]+)=([^,]+)')  # May have vla id at end
 
 
 class VMStatus(enum.StrEnum):
@@ -133,13 +133,13 @@ class NodeStats:
 
 @dataclasses.dataclass
 class ClusterInfo:
-    cluster: typing.Optional[Cluster]
+    cluster: Cluster | None
     nodes: list[Node]
 
     @staticmethod
     def from_dict(dictionary: collections.abc.MutableMapping[str, typing.Any]) -> 'ClusterInfo':
         nodes: list[Node] = []
-        cluster: typing.Optional[Cluster] = None
+        cluster: Cluster | None = None
 
         for i in dictionary['data']:
             if i['type'] == 'cluster':
@@ -310,23 +310,23 @@ class VMInfo:
     template: bool
     ha: HAInfo
 
-    agent: typing.Optional[str]
-    cpus: typing.Optional[int]
-    lock: typing.Optional[str]  # if suspended, lock == "suspended" & qmpstatus == "stopped"
-    disk: typing.Optional[int]
-    maxdisk: typing.Optional[int]
-    mem: typing.Optional[int]
-    maxmem: typing.Optional[int]
-    name: typing.Optional[str]
-    pid: typing.Optional[int]
-    qmpstatus: typing.Optional[str]  # stopped, running, paused (in memory)
-    tags: typing.Optional[str]
-    uptime: typing.Optional[int]
-    netin: typing.Optional[int]
-    netout: typing.Optional[int]
-    diskread: typing.Optional[int]
-    diskwrite: typing.Optional[int]
-    vgpu_type: typing.Optional[str]
+    agent: str | None
+    cpus: int | None
+    lock: str | None  # if suspended, lock == "suspended" & qmpstatus == "stopped"
+    disk: int | None
+    maxdisk: int | None
+    mem: int | None
+    maxmem: int | None
+    name: str | None
+    pid: int | None
+    qmpstatus: str | None  # stopped, running, paused (in memory)
+    tags: str | None
+    uptime: int | None
+    netin: int | None
+    netout: int | None
+    diskread: int | None
+    diskwrite: int | None
+    vgpu_type: str | None
 
     def validate(self) -> 'VMInfo':
         if self.id < 0:
@@ -412,7 +412,7 @@ class VMConfiguration:
     vmgenid: str
     digest: str
     networks: list[NetworkConfiguration]
-    tpmstate0: typing.Optional[str]
+    tpmstate0: str | None
 
     template: bool
     protection: bool
@@ -456,12 +456,15 @@ class StorageInfo:
     used: int
     avail: int
     total: int
+    _version: str = dataclasses.field(repr=False, compare=False, default='')
 
     def is_null(self) -> bool:
         return self.node == '' and self.storage == ''
 
     @staticmethod
-    def from_dict(dictionary: collections.abc.MutableMapping[str, typing.Any]) -> 'StorageInfo':
+    def from_dict(
+        dictionary: collections.abc.MutableMapping[str, typing.Any], version: str = ''
+    ) -> 'StorageInfo':
         if 'maxdisk' in dictionary:  # From cluster/resources
             total = int(dictionary['maxdisk'])
             used = int(dictionary['disk'])
@@ -484,6 +487,7 @@ class StorageInfo:
             used=used,
             avail=avail,
             total=total,
+            _version=version,
         )
 
     @staticmethod
@@ -499,6 +503,16 @@ class StorageInfo:
             avail=0,
             total=0,
         )
+
+    def supports_snapshots(self) -> bool:
+        # Only storage types that support snapshots are those that allow differential storage
+        # Note: On Promxmox 9, lvm allows snapshots
+        return self.type not in ('iscsi', 'iscsidirect', 'lvm') or (self._version >= '9' and self.type == 'lvm')
+
+    def supports_linked_clone(self) -> bool:
+        # Only storage types that support snapshots are those that allow differential storage
+        # Note: On Promxmox 9, lvm allows snapshots
+        return self.type not in ('iscsi', 'iscsidirect', 'lvm')
 
 
 @dataclasses.dataclass
@@ -529,7 +543,9 @@ class PoolInfo:
     members: list[PoolMemberInfo]
 
     @staticmethod
-    def from_dict(data: collections.abc.MutableMapping[str, typing.Any], *, poolid: typing.Optional[str] = None) -> 'PoolInfo':
+    def from_dict(
+        data: collections.abc.MutableMapping[str, typing.Any], *, poolid: str | None = None
+    ) -> 'PoolInfo':
         if 'members' in data:
             members: list[PoolMemberInfo] = [PoolMemberInfo.from_dict(i) for i in data['members']]
         else:
@@ -558,9 +574,9 @@ class SnapshotInfo:
     name: str
     description: str
 
-    parent: typing.Optional[str]
-    snaptime: typing.Optional[int]
-    vmstate: typing.Optional[bool]
+    parent: str | None
+    snaptime: int | None
+    vmstate: bool | None
 
     @staticmethod
     def from_dict(dictionary: collections.abc.MutableMapping[str, typing.Any]) -> 'SnapshotInfo':
