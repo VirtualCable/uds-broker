@@ -39,7 +39,7 @@ from uds.core.util.decorators import cached
 from uds.core.util.unique_id_generator import UniqueIDGenerator
 
 from .proxmox import client, types as prox_types, exceptions as prox_exceptions
-from .service_linked import ProxmoxServiceLinked
+from .service import ProxmoxService
 from .service_fixed import ProxmoxServiceFixed
 
 # Not imported at runtime, just for type checking
@@ -64,7 +64,7 @@ class ProxmoxProvider(services.ServiceProvider):
     type_description = _('Proxmox platform service provider')
     icon_file = 'provider.png'
 
-    offers = [ProxmoxServiceLinked, ProxmoxServiceFixed]
+    offers = [ProxmoxService, ProxmoxServiceFixed]
 
     host = gui.TextField(
         length=64,
@@ -128,7 +128,7 @@ class ProxmoxProvider(services.ServiceProvider):
     macs_range = fields.macs_range_field(default='52:54:00:00:00:00-52:54:00:FF:FF:FF')
 
     # Own variables
-    _cached_api: typing.Optional[client.ProxmoxClient] = None
+    _cached_api: client.ProxmoxClient | None = None
     _vmid_generator: UniqueIDGenerator
 
     @property
@@ -182,12 +182,12 @@ class ProxmoxProvider(services.ServiceProvider):
         self,
         vmid: int,
         name: str,
-        description: typing.Optional[str],
+        description: str | None,
         as_linked_clone: bool,
-        target_node: typing.Optional[str] = None,
-        target_storage: typing.Optional[str] = None,
-        target_pool: typing.Optional[str] = None,
-        must_have_vgpus: typing.Optional[bool] = None,
+        target_node: str | None = None,
+        target_storage: str | None = None,
+        target_pool: str | None = None,
+        must_have_vgpus: bool | None = None,
     ) -> prox_types.VmCreationResult:
         return self.api.clone_vm(
             vmid,

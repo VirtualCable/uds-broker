@@ -53,10 +53,10 @@ from tests.utils import search_item_by_attr
 from uds.services.Proxmox import (
     deployment_linked,
     provider,
+    service,
     service_fixed,
     publication,
     deployment_fixed,
-    service_linked,
 )
 
 from uds.services.Proxmox.proxmox import types as prox_types, exceptions as prox_exceptions
@@ -573,14 +573,14 @@ def create_provider(**kwargs: typing.Any) -> provider.ProxmoxProvider:
 
 def create_service_linked(
     provider: provider.ProxmoxProvider | None = None, **kwargs: typing.Any
-) -> service_linked.ProxmoxServiceLinked:
+) -> service.ProxmoxService:
     """
     Create a fixed service
     """
     uuid_ = str(uuid.uuid4())
     values = SERVICE_LINKED_VALUES_DICT.copy()
     values.update(kwargs)
-    srvc = service_linked.ProxmoxServiceLinked(
+    srvc = service.ProxmoxService(
         environment=environment.Environment.private_environment(uuid_),
         provider=provider or create_provider(),
         values=values,
@@ -614,7 +614,7 @@ def create_service_fixed(
 
 
 def create_publication(
-    service: service_linked.ProxmoxServiceLinked | None = None,
+    service: service.ProxmoxService | None = None,
     **kwargs: typing.Any,
 ) -> 'publication.ProxmoxPublication':
     """
@@ -649,7 +649,7 @@ def create_userservice_fixed(
 
 
 def create_userservice_linked(
-    service: service_linked.ProxmoxServiceLinked | None = None,
+    service: service.ProxmoxService | None = None,
     publication: 'publication.ProxmoxPublication | None' = None,
 ) -> deployment_linked.ProxmoxUserserviceLinked:
     """

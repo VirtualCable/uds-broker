@@ -45,7 +45,7 @@ from .proxmox import types as prox_types
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
-    from .service_linked import ProxmoxServiceLinked
+    from .service import ProxmoxService
     from .publication import ProxmoxPublication
 
 logger = logging.getLogger(__name__)
@@ -143,8 +143,8 @@ class ProxmoxUserserviceLinked(DynamicUserService):
 
         return types.states.TaskState.RUNNING
 
-    def service(self) -> 'ProxmoxServiceLinked':
-        return typing.cast('ProxmoxServiceLinked', super().service())
+    def service(self) -> 'ProxmoxService':
+        return typing.cast('ProxmoxService', super().service())
 
     def publication(self) -> 'ProxmoxPublication':
         pub = super().publication()

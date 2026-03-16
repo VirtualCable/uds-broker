@@ -39,7 +39,7 @@ from uds.core.util import autoserializable
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
-    from .service_linked import ProxmoxServiceLinked
+    from .service import ProxmoxService
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,8 @@ class ProxmoxPublication(DynamicPublication, autoserializable.AutoSerializable):
     _task = autoserializable.StringField(default='')
 
     # Utility overrides for type checking...
-    def service(self) -> 'ProxmoxServiceLinked':
-        return typing.cast('ProxmoxServiceLinked', super().service())
+    def service(self) -> 'ProxmoxService':
+        return typing.cast('ProxmoxService', super().service())
 
     def unmarshal(self, data: bytes) -> None:
         """
