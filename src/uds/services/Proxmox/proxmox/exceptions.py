@@ -43,8 +43,10 @@ class ProxmoxConnectionError(ProxmoxError, exceptions.services.generics.Retryabl
 class ProxmoxAuthError(ProxmoxError, exceptions.services.generics.FatalError):
     pass
 
+
 class ProxmoxDoesNotExists(ProxmoxError):
     pass
+
 
 class ProxmoxNotFound(ProxmoxDoesNotExists, exceptions.services.generics.NotFoundError):
     pass

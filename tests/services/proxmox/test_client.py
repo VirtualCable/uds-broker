@@ -35,6 +35,7 @@ import time
 import typing
 import logging
 import contextlib
+import collections.abc
 
 from uds.core import types as core_types
 
@@ -133,15 +134,15 @@ class TestProxmoxClient(UDSTransactionTestCase):
     @contextlib.contextmanager
     def _create_test_vm(
         self,
-        vmid: typing.Optional[int] = None,
+        vmid: int | None = None,
         as_linked_clone: bool = False,
-        target_node: typing.Optional[str] = None,
-        target_storage: typing.Optional[str] = None,
-        target_pool: typing.Optional[str] = None,
-        must_have_vgpus: typing.Optional[bool] = None,
-    ) -> typing.Iterator[prox_types.VMInfo]:
+        target_node: str | None = None,
+        target_storage: str | None = None,
+        target_pool: str | None = None,
+        must_have_vgpus: bool | None = None,
+    ) -> collections.abc.Iterator[prox_types.VMInfo]:
         new_vmid = self._get_new_vmid()
-        res: typing.Optional[prox_types.VmCreationResult] = None
+        res: prox_types.VmCreationResult | None = None
         try:
             res = self.pclient.clone_vm(
                 vmid=vmid or self.test_vm.id,

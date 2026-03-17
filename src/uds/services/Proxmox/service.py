@@ -190,7 +190,8 @@ class ProxmoxService(DynamicService):
                 )
             except StopIteration:
                 raise exceptions.ui.ValidationError(_('Selected storage not found on Proxmox'))
-            if not storage.supports_linked_clone() and self.use_full_clone.value:
+            if not storage.supports_linked_clone() and not self.use_full_clone.value:
+                # if storage does not support linked clones and user wants to use linked clones, raise an error
                 raise exceptions.ui.ValidationError(_('Linked clones are not allowed on the storage'))
 
             # if int(self.memory.value) < 128:
@@ -339,3 +340,30 @@ class ProxmoxService(DynamicService):
             return False
         except Exception:
             return True
+
+    def snapshot_creation(self, userservice_instance: DynamicUserService) -> None:
+        userservice_instance = typing.cast(ProxmoxUserserviceLinked, userservice_instance)
+        vmid = int(userservice_instance._vmid)
+        logger.debug('Using snapshots')
+        # If no snapshot exists for this vm, try to create one for it on background
+        # Lauch an snapshot. We will not wait for it to finish, but instead let it run "as is"
+        try:
+            if not self.provider().api.get_current_vm_snapshot(vmid):
+                logger.debug('No current snapshot')
+                self.provider().api.create_snapshot(
+                    vmid,
+                    name='UDS_Snapshot',
+                )
+        except Exception as e:
+            self.do_log(types.log.LogLevel.WARNING, 'Could not create SNAPSHOT for this VM. ({})'.format(e))
+
+    def snapshot_recovery(self, userservice_instance: DynamicUserService) -> None:
+        userservice_instance = typing.cast(ProxmoxUserserviceLinked, userservice_instance)
+        vmid = int(userservice_instance._vmid)
+        try:
+            # try to revert to snapshot
+            snapshot = self.provider().api.get_current_vm_snapshot(vmid)
+            if snapshot:
+                userservice_instance._store_task(self.provider().api.restore_snapshot(vmid, name=snapshot.name))
+        except Exception as e:
+            self.do_log(types.log.LogLevel.WARNING, 'Could not restore SNAPSHOT for this VM. ({})'.format(e))

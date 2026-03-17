@@ -56,8 +56,8 @@ class ProxmoxDeferredRemoval(jobs.Job):
     frecuency = 60 * 3  # Once every NN minutes
     friendly_name = 'Proxmox removal'
     counter = 0
-    
-    def get_vmid_stored_data_from(self, data: bytes) -> typing.Tuple[int, bool]:
+
+    def get_vmid_stored_data_from(self, data: bytes) -> tuple[int, bool]:
         vmdata = data.decode()
         if ':' in vmdata:
             vmid, try_graceful_shutdown_s = vmdata.split(':')
@@ -66,7 +66,6 @@ class ProxmoxDeferredRemoval(jobs.Job):
             vmid = vmdata
             try_graceful_shutdown = False
         return int(vmid), try_graceful_shutdown
-        
 
     # @staticmethod
     # def remove(provider_instance: 'provider.ProxmoxProvider', vmid: int, try_graceful_shutdown: bool) -> None:
@@ -79,19 +78,19 @@ class ProxmoxDeferredRemoval(jobs.Job):
     #         vminfo = provider_instance.get_machine_info(vmid)
     #         if vminfo.status == 'running':
     #             if try_graceful_shutdown:
-    #                 # If running vm,  simply try to shutdown 
+    #                 # If running vm,  simply try to shutdown
     #                 provider_instance.shutdown_machine(vmid)
     #                 # Store for later removal
-    #             else: 
+    #             else:
     #                 # If running vm,  simply stops it and wait for next
     #                 provider_instance.stop_machine(vmid)
-                    
+
     #             store_for_deferred_removal()
     #             return
 
     #         provider_instance.remove_machine(vmid)  # Try to remove, launch removal, but check later
     #         store_for_deferred_removal()
-            
+
     #     except client.ProxmoxNotFound:
     #         return  # Machine does not exists
     #     except Exception as e:
@@ -132,7 +131,7 @@ class ProxmoxDeferredRemoval(jobs.Job):
                 vmid, _try_graceful_shutdown = self.get_vmid_stored_data_from(data[1])
                 # In fact, here, _try_graceful_shutdown is not used, but we keep it for mayby future use
                 # The soft shutdown has already being initiated by the remove method
-                   
+
                 try:
                     vm_info = instance.api.get_vm_info(vmid)
                     logger.debug('Found %s for removal %s', vmid, data)
