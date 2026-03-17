@@ -100,7 +100,7 @@ class Providers(ModelHandler[ProviderItem]):
         .text_column(name='tags', title=_('Tags'), visible=False)
         .row_style(prefix='row-maintenance-', field='maintenance_mode')
         .with_field_mappings(type_name='data_type')
-        .with_filter_fields('name', 'data_type', 'comments', 'services_count','maintenance_mode')
+        .with_filter_fields('name', 'data_type', 'comments', 'maintenance_mode')
     ).build()
 
     # Rest api related information to complete the auto-generated API
