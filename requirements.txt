@@ -1,7 +1,7 @@
 # Broker (and common)
 # Latest versions should work fine with master branch
 Django>5.2
-pyasn1==0.6.1
+pyasn1==0.6.3
 pyasn1_modules==0.4.2
 pytest
 pytest-django
