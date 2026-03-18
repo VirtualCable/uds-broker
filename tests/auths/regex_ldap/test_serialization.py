@@ -58,7 +58,7 @@ PASSWD: typing.Final[str] = 'PASSWD'
 # v5:
 #   self.verify_ssl.value = vals[14]
 #   self.certificate.value = vals[15]
-SERIALIZED_AUTH_DATA: typing.Final[typing.Mapping[str, bytes]] = {
+SERIALIZED_AUTH_DATA: typing.Final[dict[str, bytes]] = {
     'v1': b'v1\thost\t166\t1\tuame\t' + PASSWD.encode('utf8') + b'\t99\tdc=dom,dc=m\tuclass\tuseridAttr\tgroup_attr\t\tusernattr',
     'v2': b'v2\thost\t166\t1\tuame\t' + PASSWD.encode('utf8') + b'\t99\tdc=dom,dc=m\tuclass\tuseridAttr\tgroup_attr\tusernattr',
     'v3': b'v3\thost\t166\t1\tuame\t' + PASSWD.encode('utf8') + b'\t99\tdc=dom,dc=m\tuclass\tuseridAttr\tgroup_attr\tusernattr\taltClass',
