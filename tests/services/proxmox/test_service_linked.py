@@ -42,7 +42,8 @@ from ...utils.test import UDSTestCase
 
 class TestProxmovLinkedService(UDSTestCase):
     def test_service_data(self) -> None:
-        service = fixtures.create_service_linked()
+        with fixtures.patched_provider() as provider:
+            service = fixtures.create_service_linked(provider=provider)
 
         self.assertEqual(service.pool.value, fixtures.SERVICE_LINKED_VALUES_DICT['pool'])
         self.assertEqual(service.ha.value, fixtures.SERVICE_LINKED_VALUES_DICT['ha'])

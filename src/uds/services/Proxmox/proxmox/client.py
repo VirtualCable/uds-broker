@@ -311,9 +311,7 @@ class ProxmoxClient:
             for gpu in self.do_get(f'nodes/{node}/hardware/pci/{device}/mdev', node=node)['data']
         ]
 
-    def node_has_vgpus_available(
-        self, node: str, vgpu_type: str | None, **kwargs: typing.Any
-    ) -> bool:
+    def node_has_vgpus_available(self, node: str, vgpu_type: str | None, **kwargs: typing.Any) -> bool:
         return any(
             gpu.available and (vgpu_type is None or gpu.type == vgpu_type) for gpu in self.list_node_vgpus(node)
         )
@@ -383,9 +381,18 @@ class ProxmoxClient:
         # Ensure exists target pool, (id is in fact the name of the pool)
         if target_pool and not any(p.id == target_pool for p in self.list_pools()):
             raise exceptions.ProxmoxDoesNotExists(f'Pool "{target_pool}" does not exist')
-        
+
         logger.debug('Cloning VM %s to %s', vmid, new_vmid)
-        logger.debug('Parameters: %s %s %s %s %s %s %s', name, description, as_linked_clone, target_node, target_storage, target_pool, must_have_vgpus)
+        logger.debug(
+            'Parameters: %s %s %s %s %s %s %s',
+            name,
+            description,
+            as_linked_clone,
+            target_node,
+            target_storage,
+            target_pool,
+            must_have_vgpus,
+        )
 
         src_node = vminfo.node
 
@@ -403,13 +410,13 @@ class ProxmoxClient:
                 target_node = node.name
             else:
                 target_node = src_node
-                
-        logger.debug('Target node: %s', target_node)    
+
+        logger.debug('Target node: %s', target_node)
 
         # Ensure exists target node
         if not any(n.name == target_node for n in self.get_cluster_info().nodes):
             raise exceptions.ProxmoxDoesNotExists(f'Node "{target_node}" does not exist')
-        
+
         logger.debug('VM info: %s', vminfo)
         logger.debug('Type of vminfo.vgpu_type: %s', type(vminfo.vgpu_type))
         logger.debug('Value of vminfo.vgpu_type: %s', vminfo.vgpu_type)
@@ -498,9 +505,7 @@ class ProxmoxClient:
         except Exception:
             logger.exception('removeFromHA')
 
-    def set_vm_protection(
-        self, vmid: int, *, node: str | None = None, protection: bool = False
-    ) -> None:
+    def set_vm_protection(self, vmid: int, *, node: str | None = None, protection: bool = False) -> None:
         params: list[tuple[str, str]] = [
             ('protection', str(int(protection))),
         ]
@@ -537,7 +542,7 @@ class ProxmoxClient:
             if found_ips:
                 sorted_ips = sorted(found_ips, key=lambda x: ':' in x)
                 return sorted_ips[0]
-            
+
         except Exception as e:
             logger.warning('Error getting guest ip address for machine %s: %s', vmid, e)
             raise exceptions.ProxmoxError(f'No ip address for vm {vmid}: {e}')
@@ -558,9 +563,7 @@ class ProxmoxClient:
         except Exception:
             return []  # If we can't get snapshots, just return empty list
 
-    def get_current_vm_snapshot(
-        self, vmid: int, node: str | None = None
-    ) -> types.SnapshotInfo | None:
+    def get_current_vm_snapshot(self, vmid: int, node: str | None = None) -> types.SnapshotInfo | None:
         return (
             sorted(
                 filter(lambda x: x.snaptime, self.list_snapshots(vmid, node)),
@@ -709,9 +712,7 @@ class ProxmoxClient:
         raise exceptions.ProxmoxNotFound(f'VM {vmid} not found')
 
     @cached('vmc', consts.CACHE_VM_INFO_DURATION, key_helper=caching_key_helper)
-    def get_vm_config(
-        self, vmid: int, node: str | None = None, **kwargs: typing.Any
-    ) -> types.VMConfiguration:
+    def get_vm_config(self, vmid: int, node: str | None = None, **kwargs: typing.Any) -> types.VMConfiguration:
         node = node or self.get_vm_info(vmid).node
         return types.VMConfiguration.from_dict(
             self.do_get(f'nodes/{node}/qemu/{vmid}/config', node=node)['data']
@@ -771,9 +772,7 @@ class ProxmoxClient:
             self.do_post(f'nodes/{node}/qemu/{vmid}/status/suspend', data=[('todisk', '1')], node=node)
         )
 
-    def shutdown_vm(
-        self, vmid: int, node: str | None = None, timeout: int | None = None
-    ) -> types.ExecResult:
+    def shutdown_vm(self, vmid: int, node: str | None = None, timeout: int | None = None) -> types.ExecResult:
         # if exitstatus is "OK" or contains "already running", all is fine
         node = node or self.get_vm_info(vmid).node
         return types.ExecResult.from_dict(

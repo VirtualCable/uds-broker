@@ -296,7 +296,8 @@ class TestProxmoxLinkedUserService(UDSTransactionTestCase):
                     api.stop_vm.assert_called()
 
     def test_userservice_basics(self) -> None:
-        with fixtures.patched_provider():
-            userservice = fixtures.create_userservice_linked()
+        with fixtures.patched_provider() as provider:
+            service = fixtures.create_service_linked(provider=provider)
+            userservice = fixtures.create_userservice_linked(service=service)
             userservice.set_ip('1.2.3.4')
             self.assertEqual(userservice.get_ip(), '1.2.3.4')

@@ -30,6 +30,7 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import collections.abc
 import pickle
 import typing
 
@@ -81,7 +82,7 @@ TEST_QUEUE: typing.Final[list[OldOperation]] = [
 
 TEST_QUEUE_NEW: typing.Final[list[types.services.Operation]] = [i.to_operation() for i in TEST_QUEUE]
 
-SERIALIZED_DEPLOYMENT_DATA: typing.Final[typing.Mapping[str, bytes]] = {
+SERIALIZED_DEPLOYMENT_DATA: typing.Final[collections.abc.Mapping[str, bytes]] = {
     'v1': b'v1\x01name\x01ip\x01mac\x01task\x01vmid\x01reason\x01' + pickle.dumps(TEST_QUEUE, protocol=0),
 }
 
@@ -100,7 +101,9 @@ class ProxmoxDeploymentSerializationTest(UDSTransactionTestCase):
 
     def test_marshaling(self) -> None:
         def _create_instance(unmarshal_data: 'bytes|None' = None) -> Deployment:
-            instance = fixtures.create_userservice_linked()
+            with fixtures.patched_provider() as provider:
+                service = fixtures.create_service_linked(provider=provider)
+            instance = fixtures.create_userservice_linked(service=service)
             if unmarshal_data:
                 instance.unmarshal(unmarshal_data)
             return instance
@@ -126,7 +129,9 @@ class ProxmoxDeploymentSerializationTest(UDSTransactionTestCase):
 
     def test_marshaling_queue(self) -> None:
         def _create_instance(unmarshal_data: 'bytes|None' = None) -> Deployment:
-            instance = fixtures.create_userservice_linked()
+            with fixtures.patched_provider() as provider:
+                service = fixtures.create_service_linked(provider=provider)
+            instance = fixtures.create_userservice_linked(service=service)
             instance.env.storage.save_pickled('queue', TEST_QUEUE)
             if unmarshal_data:
                 instance.unmarshal(unmarshal_data)

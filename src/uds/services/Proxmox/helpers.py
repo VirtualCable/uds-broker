@@ -41,10 +41,12 @@ if typing.TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 def get_provider(parameters: typing.Any) -> 'ProxmoxProvider':
     return typing.cast(
         'ProxmoxProvider', models.Provider.objects.get(uuid=parameters['prov_uuid']).get_instance()
     )
+
 
 def get_storage(parameters: typing.Any) -> types.ui.CallbackResultType:
     logger.debug('Parameters received by getResources Helper: %s', parameters)

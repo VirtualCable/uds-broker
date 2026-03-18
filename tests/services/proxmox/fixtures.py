@@ -524,6 +524,7 @@ SERVICE_LINKED_VALUES_DICT: gui.ValuesDictType = {
     'ha': HA_GROUPS[0],
     'try_soft_shutdown': False,
     'machine': VMINFO_LIST[0].id,
+    'use_full_clone': False,
     'datastore': STORAGES[0].storage,
     'gpu': VGPUS[0].type,
     'basename': 'base',
@@ -551,7 +552,7 @@ def create_client_mock() -> mock.Mock:
 @contextlib.contextmanager
 def patched_provider(
     **kwargs: typing.Any,
-) -> typing.Generator[provider.ProxmoxProvider, None, None]:
+) -> collections.abc.Generator[provider.ProxmoxProvider, None, None]:
     client = create_client_mock()
     provider = create_provider(**kwargs)
     provider._cached_api = client
@@ -567,7 +568,7 @@ def create_provider(**kwargs: typing.Any) -> provider.ProxmoxProvider:
 
     uuid_ = str(uuid.uuid4())
     return provider.ProxmoxProvider(
-        environment=environment.Environment.private_environment(uuid), values=values, uuid=uuid_
+        environment=environment.Environment.private_environment(uuid_), values=values, uuid=uuid_
     )
 
 
@@ -656,10 +657,11 @@ def create_userservice_linked(
     Create a linked user service
     """
     uuid_ = str(uuid.uuid4())
+    service = service or create_service_linked()
     return deployment_linked.ProxmoxUserserviceLinked(
         environment=environment.Environment.private_environment(uuid_),
-        service=service or create_service_linked(),
-        publication=publication or create_publication(),
+        service=service,
+        publication=publication or create_publication(service=service),
         uuid=uuid_,
     )
 
