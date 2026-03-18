@@ -30,7 +30,6 @@ ovirt-engine-sdk-python
 pycurl
 matplotlib
 mysqlclient
-python-ldap
 paramiko
 pyOpenSSL
 pyrad
