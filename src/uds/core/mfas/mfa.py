@@ -94,7 +94,7 @@ class LoginAllowed(enum.StrEnum):
 
     @staticmethod
     def check_ip_allowed(
-        request: 'ExtendedHttpRequest', networks: typing.Optional[collections.abc.Iterable[str]] = None
+        request: 'ExtendedHttpRequest', networks: collections.abc.Iterable[str] | None = None
     ) -> bool:
         if networks is None:
             return True  # No network restrictions, so we allow
@@ -104,7 +104,7 @@ class LoginAllowed(enum.StrEnum):
     def check_action(
         action: 'LoginAllowed|str',
         request: 'ExtendedHttpRequest',
-        networks: typing.Optional[collections.abc.Iterable[str]] = None,
+        networks: collections.abc.Iterable[str] | None = None,
     ) -> bool:
 
         if not isinstance(action, LoginAllowed):
@@ -238,7 +238,7 @@ class MFA(Module):
         """
         return ''
 
-    def allow_login_without_identifier(self, request: 'ExtendedHttpRequest') -> typing.Optional[bool]:
+    def allow_login_without_identifier(self, request: 'ExtendedHttpRequest') -> bool | None:
         """
         If this method returns True, an user that has no "identifier" is allowed to login without MFA
         Returns:
@@ -267,7 +267,7 @@ class MFA(Module):
 
     def _get_data(
         self, request: 'ExtendedHttpRequest', userid: str
-    ) -> typing.Optional[tuple[datetime.datetime, str]]:
+    ) -> tuple[datetime.datetime, str] | None:
         """
         Internal method to get the data from storage
         """
@@ -294,7 +294,7 @@ class MFA(Module):
         userid: str,
         username: str,
         identifier: str,
-        validity: typing.Optional[int] = None,
+        validity: int | None = None,
     ) -> 'MFA.RESULT':
         """
         This method will be invoked from the MFA form, to send the MFA code to the user.
@@ -351,7 +351,7 @@ class MFA(Module):
         username: str,
         identifier: str,
         code: str,
-        validity: typing.Optional[int] = None,
+        validity: int | None = None,
     ) -> None:
         """
         If this method is provided by an authenticator, the user will be allowed to enter a MFA code

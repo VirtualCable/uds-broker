@@ -28,8 +28,6 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-import typing
-
 from uds.core import consts, exceptions, mfas, types
 from uds.core.managers.crypto import CryptoManager
 from uds.core.util import config, storage
@@ -70,8 +68,8 @@ def mfa(
     # Try to get cookie anc check it
     mfa_cookie = request.COOKIES.get(consts.auth.MFA_COOKIE_NAME, None)
     if mfa_cookie and mfa_provider.remember_device > 0:
-        stored_user_id: typing.Optional[str]
-        created: typing.Optional[int]
+        stored_user_id: str | None
+        created: int | None
         stored_data = store.read_pickled(mfa_cookie) or (None, None, None)
         stored_user_id, created, ip = (stored_data + (None,))[:3]
         if (

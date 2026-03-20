@@ -136,7 +136,7 @@ class Authenticator(Module):
     # : database, that are most authenticator (except Internal DB)
     # : So, external_source means that "user is kept at database only"
     external_source: typing.ClassVar[bool] = True
-    
+
     # : Mark this authenticator as mfa data enabled (so mfa field appears on the user)
     mfa_data_enabled: typing.ClassVar[bool] = False
 
@@ -171,13 +171,13 @@ class Authenticator(Module):
     # : group class
     group_type: typing.ClassVar[type[Group]] = Group
 
-    _db_obj: typing.Optional['models.Authenticator'] = None  # Cached dbAuth object
+    _db_obj: 'models.Authenticator | None' = None  # Cached dbAuth object
 
     def __init__(
         self,
         environment: 'Environment',
         values: types.core.ValuesType = None,
-        uuid: typing.Optional[str] = None,
+        uuid: str | None = None,
     ):
         """
         Instantiathes the authenticator.
@@ -330,7 +330,7 @@ class Authenticator(Module):
         return ''
 
     @classmethod
-    def provides_mfa_identifier(cls: typing.Type['Authenticator']) -> bool:
+    def provides_mfa_identifier(cls: type['Authenticator']) -> bool:
         """
         Returns if this authenticator provides a MFA identifier
         """
@@ -498,7 +498,7 @@ class Authenticator(Module):
         """
         raise NotImplementedError
 
-    def get_javascript(self, request: 'ExtendedHttpRequest') -> typing.Optional[str]:
+    def get_javascript(self, request: 'ExtendedHttpRequest') -> str | None:
         """
         If you override this method, and returns something different of None,
         UDS will consider your authenticator as "Owner draw", that is, that it
@@ -554,9 +554,7 @@ class Authenticator(Module):
         """
         return types.auth.FAILED_AUTH
 
-    def get_info(
-        self, parameters: collections.abc.Mapping[str, str]
-    ) -> typing.Optional[tuple[str, typing.Optional[str]]]:
+    def get_info(self, parameters: collections.abc.Mapping[str, str]) -> tuple[str, str | None] | None:
         """
         This method is invoked whenever the authinfo url is invoked, with the name of the authenticator
         If this is implemented, information returned by this will be shown via web.

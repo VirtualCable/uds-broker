@@ -91,7 +91,7 @@ class TOTP_MFA(mfas.MFA):
     def initialize(self, values: 'types.core.ValuesType') -> None:
         return super().initialize(values)
 
-    def allow_login_without_identifier(self, request: 'ExtendedHttpRequest') -> typing.Optional[bool]:
+    def allow_login_without_identifier(self, request: 'ExtendedHttpRequest') -> bool | None:
         return None
 
     def ask_for_otp(self, request: 'ExtendedHttpRequest') -> bool:
@@ -122,7 +122,7 @@ class TOTP_MFA(mfas.MFA):
         # Get data from storage related to this user
         # Data contains the secret and if the user has already logged in already some time
         # so we show the QR code only once
-        data: typing.Optional[tuple[str, bool]] = self.storage.read_pickled(userid)
+        data: tuple[str, bool] | None = self.storage.read_pickled(userid)
         if data is None:
             data = (pyotp.random_base32(), False)
             self._save_user_data(userid, data)
@@ -173,7 +173,7 @@ class TOTP_MFA(mfas.MFA):
         userid: str,
         username: str,
         identifier: str,
-        validity: typing.Optional[int] = None,
+        validity: int | None = None,
     ) -> 'mfas.MFA.RESULT':
         if self.ask_for_otp(request) is False:
             return mfas.MFA.RESULT.ALLOWED
@@ -188,7 +188,7 @@ class TOTP_MFA(mfas.MFA):
         username: str,
         identifier: str,
         code: str,
-        validity: typing.Optional[int] = None,
+        validity: int | None = None,
     ) -> None:
         if self.ask_for_otp(request) is False:
             return
