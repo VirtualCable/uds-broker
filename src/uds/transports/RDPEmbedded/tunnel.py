@@ -74,6 +74,8 @@ class TRDPEmbeddedTransport(BaseRDPEmbeddedTransport):
 
     allow_drives = BaseRDPEmbeddedTransport.allow_drives
     enforce_drives = BaseRDPEmbeddedTransport.enforce_drives
+    use_nla = BaseRDPEmbeddedTransport.use_nla
+    use_sso = BaseRDPEmbeddedTransport.use_sso
     rdp_port = BaseRDPEmbeddedTransport.rdp_port
 
     screen_size = BaseRDPEmbeddedTransport.screen_size

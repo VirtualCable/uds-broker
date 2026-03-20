@@ -139,6 +139,7 @@ class BaseRDPEmbeddedTransport(transports.Transport):
     use_sso = gui.CheckBoxField(
         label=_('Use SSO'),
         order=16,
+        default=False,
         tooltip=_(
             'If checked, and user service supports it, will use UDS SSO mechanism. (Ensure you have enabled UDS SSO)'
         ),
@@ -147,6 +148,7 @@ class BaseRDPEmbeddedTransport(transports.Transport):
     use_nla = gui.CheckBoxField(
         label=_('Use NLA'),
         order=20,
+        default=True,
         tooltip=_('If checked, Network Level Authentication will be used for RDP connections'),
         tab=types.ui.Tab.PARAMETERS,
     )
