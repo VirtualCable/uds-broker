@@ -81,6 +81,13 @@ class TicketStore(UUIDModel):
         return CryptoManager.manager().random_string(
             length=length,
         )
+        
+    @staticmethod
+    def _derive_cbc_key(owner: str) -> bytes:
+        """Derives a key for AES256 CBC encryption from the owner string"""
+        # Just a simple derivation, we can use the owner string directly as key, but we need to ensure it's 32 bytes long
+        # So we will pad it with zeros if it's shorter, or truncate it if it's longer
+        return CryptoManager.manager().derive_password(owner, b'ticket', length=16)
 
     @staticmethod
     def create(
@@ -108,7 +115,7 @@ class TicketStore(UUIDModel):
         if secure:
             if not owner:
                 raise ValueError('Tried to use a secure ticket without owner')
-            pickled_data = CryptoManager.manager().aes256_cbc_encrypt(pickled_data, owner.encode())
+            pickled_data = CryptoManager.manager().aes256_cbc_encrypt(pickled_data, TicketStore._derive_cbc_key(owner))
             owner = (
                 consts.ticket.TICKET_SECURED_OWNER
             )  # So data is REALLY encrypted, because key used to encrypt is sustituted by SECURED on DB
@@ -135,7 +142,7 @@ class TicketStore(UUIDModel):
             # db Owner is the value stored on the DB
             # So, if this is a secure ticket, we must use the SECURED value
             # And use the real "owner" as key to encrypt/decrypt
-            key = owner.encode()
+            key = TicketStore._derive_cbc_key(owner)
             owner = consts.ticket.TICKET_SECURED_OWNER  # Generic "secured" owner for secure tickets
 
         t = TicketStore.objects.get(uuid=uuid, owner=owner)
@@ -173,7 +180,7 @@ class TicketStore(UUIDModel):
             if secure:
                 if not owner:
                     raise ValueError('Tried to use a secure ticket without owner')
-                key = owner.encode()
+                key = TicketStore._derive_cbc_key(owner)
 
             t = TicketStore.objects.get(uuid=uuid)
 

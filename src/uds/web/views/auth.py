@@ -181,7 +181,7 @@ def auth_info(request: 'HttpRequest', authenticator_name: str) -> HttpResponse:
 # Gets the javascript from the custom authtenticator
 @never_cache
 def custom_auth(request: 'ExtendedHttpRequest', auth_id: str) -> HttpResponse:
-    res: typing.Optional[str] = ''
+    res: str | None = ''
     try:
         try:
             auth = Authenticator.objects.get(uuid=process_uuid(auth_id))
@@ -297,12 +297,12 @@ def ticket_auth(
 
 
 @never_cache
-def login(request: types.requests.ExtendedHttpRequest, tag: typing.Optional[str] = None) -> HttpResponse:
+def login(request: types.requests.ExtendedHttpRequest, tag: str | None = None) -> HttpResponse:
     # Default empty form
     tag = tag or request.session.get('tag', None)
 
     logger.debug('Tag: %s', tag)
-    response: typing.Optional[HttpResponse] = None
+    response: HttpResponse | None = None
     if request.method == 'POST':
         request.session['restricted'] = False  # Access is from login
         request.authorized = False  # Ensure that on login page, user is unauthorized first

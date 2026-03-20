@@ -120,18 +120,13 @@ class CryptoManager(metaclass=singleton.Singleton):
             ValueError: If the length is not a positive integer.
 
         """
-        bkey: bytes = key.encode() if isinstance(key, str) else key
-        while len(bkey) < length:
-            bkey += bkey
+        key = key.encode() if isinstance(key, str) else key
 
-        kl: list[int] = list(bkey)
-        pos = 0
-        while len(kl) > length:
-            kl[pos] ^= kl[length]
-            pos = (pos + 1) % length
-            del kl[length]
+        # If we already have a length key, just return it, for compat with old data, but if not, derive a new one
+        if len(key) == length:
+            return key
 
-        return bytes(kl)
+        return CryptoManager.manager().derive_password(key, b'uds-aes-key', length=length)
 
     def encrypt(self, value: str) -> str:
         return codecs.encode(
@@ -181,6 +176,11 @@ class CryptoManager(metaclass=singleton.Singleton):
             encoded = codecs.encode(encoded, 'base64').strip()  # Return as bytes
 
         return encoded
+
+    def derive_password(self, password: str | bytes, salt: bytes | str, length: int = 32) -> bytes:
+        password = password.encode() if isinstance(password, str) else password
+        salt = salt.encode() if isinstance(salt, str) else salt
+        return hashlib.pbkdf2_hmac('sha256', password, salt, 100000, dklen=length)
 
     def aes256_cbc_decrypt(self, text: bytes, key: bytes, base64: bool = False) -> bytes:
         if base64:
