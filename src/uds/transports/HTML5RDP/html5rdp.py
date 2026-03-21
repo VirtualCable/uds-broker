@@ -342,7 +342,7 @@ class HTML5RDPTransport(transports.Transport):
 
     def get_connection_info(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
         *,
