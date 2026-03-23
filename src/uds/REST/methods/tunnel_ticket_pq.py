@@ -85,58 +85,58 @@ class TunnelTicketPQ(Handler):
             if ticket.userservice is None or ticket.userservice.user is None:
                 raise Exception('Ticket has no associated userservice or the userservice has no user')
 
-            # response = types.tickets.TunnelTicketResponse.from_ticket(ticket)
-            if req.command == 'stop':
-                # This data will always be with tz info (from 5.0 onwards)
-                total_time = sql_now() - ticket.started
+            match req.command:
+                case 'stop':
+                    # This data will always be with tz info (from 5.0 onwards)
+                    total_time = sql_now() - ticket.started
 
-                msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{req.sent}/d:{req.recv}/t:{total_time}.'
-                log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
-                log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
+                    msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{req.sent}/d:{req.recv}/t:{total_time}.'
+                    log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
+                    log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
 
-                # Try to log Close event. Note that the userservice may already be gone
-                if ticket.userservice:
-                    # If pool does not exists, do not log anything
+                    # Try to log Close event. Note that the userservice may already be gone
+                    if ticket.userservice:
+                        # If pool does not exists, do not log anything
+                        events.add_event(
+                            ticket.userservice.service_pool,
+                            events.types.stats.EventType.TUNNEL_CLOSE,
+                            duration=total_time,
+                            sent=req.sent,
+                            received=req.recv,
+                            tunnel=ticket.tunnel_token,
+                        )
+                    return {}
+
+                case 'start':
+                    if net.ip_to_long(req.ip).version == 0:
+                        raise Exception('Invalid from IP')
                     events.add_event(
                         ticket.userservice.service_pool,
-                        events.types.stats.EventType.TUNNEL_CLOSE,
-                        duration=total_time,
-                        sent=req.sent,
-                        received=req.recv,
-                        tunnel=ticket.tunnel_token,
+                        events.types.stats.EventType.TUNNEL_OPEN,
+                        username=ticket.userservice.user.pretty_name,
+                        srcip=req.ip,
+                        dstip=ticket.remotes_as_str(),
+                        tunnel=req.token,
+                    )
+                    msg = f'User {ticket.userservice.user.name} started tunnel {req.token[:8]}... to {ticket.remotes_as_str()} from {req.ip}.'
+                    log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
+                    log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
+                    # Generate new, notify only, ticket, for the userservice to notify when done
+                    notify_ticket = models.TicketStore.create_for_tunnel(
+                        userservice=ticket.userservice,
+                        remotes=ticket.remotes,
+                        tunnel_token=ticket.tunnel_token,
+                        validity=MAX_SESSION_LENGTH,
                     )
 
-            elif req.command == 'start':  # New tunnel request
-                if net.ip_to_long(req.ip).version == 0:
-                    raise Exception('Invalid from IP')
-                events.add_event(
-                    ticket.userservice.service_pool,
-                    events.types.stats.EventType.TUNNEL_OPEN,
-                    username=ticket.userservice.user.pretty_name,
-                    srcip=req.ip,
-                    dstip=ticket.remotes_as_str(),
-                    tunnel=req.token,
-                )
-                msg = f'User {ticket.userservice.user.name} started tunnel {req.token[:8]}... to {ticket.remotes_as_str()} from {req.ip}.'
-                log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
-                log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
-                # Generate new, notify only, ticket, for the userservice to notify when done
-                notify_ticket = models.TicketStore.create_for_tunnel(
-                    userservice=ticket.userservice,
-                    remotes=ticket.remotes,
-                    tunnel_token=ticket.tunnel_token,
-                    validity=MAX_SESSION_LENGTH,
-                )
+                    return types.tickets.TunnelTicketResponse(
+                        remotes=ticket.remotes,
+                        notify=notify_ticket,
+                        shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else '',
+                    ).as_encrypted_dict(req.kem_kyber_key, ticket_id=req.ticket)
+                case _:
+                    raise Exception('Invalid command')
 
-                return types.tickets.TunnelTicketResponse(
-                    remotes=ticket.remotes,
-                    notify=notify_ticket,
-                    shared_secret=ticket.shared_secret.hex() if ticket.shared_secret else '',
-                ).as_encrypted_dict(req.kem_kyber_key, ticket_id=req.ticket)
-            else:
-                raise Exception('Invalid command')
-
-            return {}
         except Exception as e:
             logger.info('Ticket Request ignored: %s', e)
             raise exceptions.rest.AccessDenied() from e
