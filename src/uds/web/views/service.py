@@ -172,6 +172,17 @@ def user_service_status(
 @weblogin_required()
 @never_cache
 def action(request: 'ExtendedHttpRequestWithUser', service_id: str, action_string: str) -> HttpResponse:
+    # favorite/unfavorite do not require an existing UserService,
+    # so handle them before the userservice lookup.
+    # service_id is 'F<pool_uuid>' or 'M<meta_uuid>' — strip the prefix.
+    if action_string in ('favorite', 'unfavorite'):
+        pool_uuid = service_id[1:]
+        if action_string == 'favorite':
+            request.user.add_favorite(pool_uuid)
+        else:
+            request.user.remove_favorite(pool_uuid)
+        return HttpResponse(json.dumps(None), content_type='application/json')
+
     userservice = UserServiceManager.manager().locate_meta_service(request.user, service_id)
     if not userservice:
         userservice = UserServiceManager.manager().locate_user_service(request.user, service_id, create=False)
@@ -180,14 +191,6 @@ def action(request: 'ExtendedHttpRequestWithUser', service_id: str, action_strin
     rebuild: bool = False
     if userservice:
         match action_string:
-            case 'favorite':
-                if userservice.user is None:
-                    raise Exception('UserService is None!')
-                userservice.user.add_favorite(userservice.service_pool.uuid)
-            case 'unfavorite':
-                if userservice.user is None:
-                    raise Exception('UserService is None!')
-                userservice.user.remove_favorite(userservice.service_pool.uuid)
             case 'release':
                 if userservice.service_pool.allow_users_remove:
                     rebuild = True
@@ -213,9 +216,7 @@ def action(request: 'ExtendedHttpRequestWithUser', service_id: str, action_strin
                         ),
                         types.log.LogSource.WEB,
                     )
-                    # UserServiceManager.manager().requestLogoff(userService)
                     UserServiceManager.manager().reset(userservice)
-            # Rest, ignore
             case _:
                 log.log(
                     userservice.service_pool,
@@ -225,14 +226,12 @@ def action(request: 'ExtendedHttpRequestWithUser', service_id: str, action_strin
                 )
 
     if rebuild:
-        # Rebuild services data, but return only "this" service
         for v in services.get_services_info_dict(request)['services']:
             if v['id'] == service_id:
                 response = v
                 break
 
-    return HttpResponse(json.dumps(response), content_type="application/json")
-
+    return HttpResponse(json.dumps(response), content_type='application/json')
 
 @never_cache
 @auth.deny_non_authenticated  # web_login_required not used here because this is not a web page, but js
