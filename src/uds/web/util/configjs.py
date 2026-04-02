@@ -179,6 +179,7 @@ def uds_js(request: 'ExtendedHttpRequest') -> str:
         },
         'min_for_filter': GlobalConfig.SITE_FILTER_MIN.as_int(True),
         'enable_favorite_services': GlobalConfig.ENABLE_FAVORITE_SERVICES.as_bool(),
+        'allow_animated_backgrounds': GlobalConfig.ALLOW_ANIMATED_BACKGROUNDS.as_bool(),
     }
 
     info: dict[str, typing.Any] | None = None

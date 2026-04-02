@@ -109,8 +109,8 @@ class Config:
         def value(
             self,
             key: str,
-            default: typing.Optional[str] = None,
-            type: typing.Optional['Config.FieldType'] = None,
+            default: str | None = None,
+            type: 'Config.FieldType | None' = None,
             help: str = '',
         ) -> 'Config.Value':
             type = type or Config.FieldType.UNKNOWN
@@ -128,14 +128,14 @@ class Config:
         _key: str
         _default: str
         _help: str
-        _data: typing.Optional[str] = None
+        _data: str | None = None
 
         def __init__(
             self,
             type: 'Config.FieldType',
             section: 'Config.Section',
             key: str,
-            default: typing.Optional[str],
+            default: str | None,
             help: str = '',
         ) -> None:
             self._type = type
@@ -175,7 +175,7 @@ class Config:
                 # Not found, so we create it
                 self.set(self._default)
                 self._data = self._default
-            except Exception as e: # On migration, this could happen
+            except Exception as e:  # On migration, this could happen
                 logger.info('Error accessing db config %s.%s: %s', self._section.name(), self._key, e)
                 # logger.exception(e)
                 self._data = self._default
@@ -220,7 +220,7 @@ class Config:
 
         def get_type(self) -> int:
             return self._type
-        
+
         @property
         def is_password(self) -> bool:
             return self._type == Config.FieldType.PASSWORD
@@ -231,7 +231,7 @@ class Config:
         def get_help(self) -> str:
             return gettext(self._help)
 
-        def set(self, value: typing.Union[str, bool, int]) -> None:
+        def set(self, value: str | bool | int) -> None:
             if GlobalConfig.is_initialized() is False or Config._is_migrating is True:
                 Config._for_saving_later.append((self, value))
                 return
@@ -279,7 +279,7 @@ class Config:
         type: 'Config.FieldType',
         section: Section,
         key: str,
-        default: typing.Optional[str] = None,
+        default: str | None = None,
         help: str = '',
     ) -> 'Config.Value':
         return Config.Value(type=type, section=section, key=key, default=default, help=help)
@@ -308,7 +308,9 @@ class Config:
                 yield val
 
     @staticmethod
-    def update(section: 'Config.SectionType', key: str, value: str, check_type: bool = False) -> 'None|Config.Value':
+    def update(
+        section: 'Config.SectionType', key: str, value: str, check_type: bool = False
+    ) -> 'None|Config.Value':
         # If cfg value does not exists, simply ignore request
         try:
             cfg: DBConfig = DBConfig.objects.get(section=section, key=key)
@@ -482,7 +484,7 @@ class GlobalConfig:
         type=Config.FieldType.NUMERIC,
         help=_('How long should the user service be unused before os manager considers it for removal'),
     )  # Defaults to 10 minutes
-    
+
     # Default CSS Used: REMOVED! (keep the for for naw, for reference, but will be cleaned on future...)
     # CSS: Config.Value = Config.section(Config.SectionType.GLOBAL).value('css', settings.STATIC_URL + 'css/uds.css', type=Config.FieldType.TEXT_FIELD)
     # Max logins before blocking an account
@@ -784,12 +786,9 @@ class GlobalConfig:
         help=_('Enable VNC menu for user services'),
     )
     NOTIFY_CALLBACK_URL: Config.Value = Config.section(Config.SectionType.GLOBAL).value(
-        'notifyCallbackURL',
-        '',
-        type=Config.FieldType.HIDDEN,
-        help=''
+        'notifyCallbackURL', '', type=Config.FieldType.HIDDEN, help=''
     )
-    
+
     # Cookies consent
     COOKIES_CONSENT_TEXT: Config.Value = Config.section(Config.SectionType.CUSTOM).value(
         'Cookies consent text',
@@ -820,7 +819,13 @@ class GlobalConfig:
         '0',
         type=Config.FieldType.BOOLEAN,
         help=_('Enable or disable add favorite services feature'),
-    )        
+    )
+    ALLOW_ANIMATED_BACKGROUNDS: Config.Value = Config.section(Config.SectionType.CUSTOM).value(
+        'Animated backgrounds',
+        '1',
+        type=Config.FieldType.BOOLEAN,
+        help=_('Allow animated backgrounds'),
+    )
 
     @staticmethod
     def is_initialized() -> bool:
