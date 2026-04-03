@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
- Author: Adolfo Gómez, dkmaster at dkmon dot com
+Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 
 import re
@@ -79,31 +79,44 @@ def _process_request(request: 'ExtendedHttpRequest') -> 'HttpResponse | None':
                 request.user,
                 request.session.get('ip', None),
             )
-            
+
             # Clear session and redirect to login, skipping manager
             weblogout(request)
-            
 
     return None
 
 
 def _process_response(
-    request: 'ExtendedHttpRequest',  # pylint: disable=unused-argument
+    request: 'ExtendedHttpRequest',
     response: 'HttpResponse',
 ) -> 'HttpResponse':
     if GlobalConfig.ENHANCED_SECURITY.as_bool():
-        # Legacy browser support for X-XSS-Protection
-        response['X-XSS-Protection'] = '1; mode=block'
-        # Add Content-Security-Policy, see https://www.owasp.org/index.php/Content_Security_Policy
-        response['Content-Security-Policy'] = (
-            "default-src 'self' 'unsafe-inline' 'unsafe-eval' uds: udss:; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' https: data:; object-src 'none'; base-uri 'self'; "
-            "frame-ancestors 'none'; form-action 'self';"
-        )
+        # Security headers
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+        # Content Security Policy
+        csp_parts = [
+            "default-src 'self' udssv2:;",
+            "script-src 'self' 'unsafe-inline' udssv2:;",
+            "style-src 'self' 'unsafe-inline';",
+            "img-src 'self' https: data:;",
+            "font-src 'self' data:;",
+            "connect-src 'self' *;",
+            "object-src 'none';",
+            "base-uri 'self';",
+            "frame-ancestors 'none';",
+            "form-action 'self';",
+        ]
+        response['Content-Security-Policy'] = " ".join(csp_parts)
+
+        if request.is_secure():
+            response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
     return response
 
-# Content-Security-Policy: default-src 'self' uds: udss:; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';
+
+# Content-Security-Policy: default-src 'self' udssv2:; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';
 
 
 # Compatibility with old middleware, so we can use it in settings.py as it was
