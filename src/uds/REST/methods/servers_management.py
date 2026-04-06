@@ -224,11 +224,15 @@ class ServersServers(DetailHandler[ServerItem]):
             )
 
         return (
-            gui_builder.add_text(
+            gui_builder.add_choice(
                 name='server',
                 label=gettext('Server'),
                 tooltip=gettext('Server to include on group'),
-                default='',
+                choices=[
+                    types.ui.ChoiceItem(item.uuid, item.hostname)
+                    for item in models.Server.objects.filter(type=parent.type, subtype=parent.subtype)
+                    if item.groups.count() == 0
+                ],
             )
             .add_info(name='title', default=title)
             .build()
