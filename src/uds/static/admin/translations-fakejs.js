@@ -329,7 +329,11 @@ gettext("December");
 gettext("Never");
 // HTML
 gettext("User mode");
+gettext("Light theme");
+gettext("Dark theme");
 gettext("Logout");
+gettext("Light theme");
+gettext("Dark theme");
 gettext("Close");
 gettext("Yes");
 gettext("No");

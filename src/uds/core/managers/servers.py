@@ -33,6 +33,7 @@ import datetime
 import logging
 import typing
 import operator
+import collections.abc
 from concurrent.futures import ThreadPoolExecutor
 
 from django.db import transaction
@@ -69,7 +70,7 @@ class ServerManager(metaclass=singleton.Singleton):
         return ServerManager()  # Singleton pattern will return always the same instance
 
     @contextlib.contextmanager
-    def counter_storage(self) -> typing.Iterator[StorageAsDict]:
+    def counter_storage(self) -> collections.abc.Iterator[StorageAsDict]:
         with Storage(self.STORAGE_NAME).as_dict(atomic=True, group='counters') as storage:
             # If counters are too old, restart them
             if timezone.localtime() - self.last_counters_clean > self.MAX_COUNTERS_AGE:
@@ -77,7 +78,7 @@ class ServerManager(metaclass=singleton.Singleton):
                 storage.clear()
             yield storage
 
-    def property_name(self, user: typing.Optional[typing.Union[str, 'models.User']]) -> str:
+    def property_name(self, user: 'str | models.User | None') -> str:
         """Returns the property name for a user"""
         if isinstance(user, str):
             return ServerManager.BASE_PROPERTY_NAME + user
@@ -107,7 +108,7 @@ class ServerManager(metaclass=singleton.Singleton):
         server_group: 'models.ServerGroup',
         with_activity: bool,
         last_activity_delta: datetime.timedelta = datetime.timedelta(minutes=3),
-    ) -> typing.Iterator['models.Server']:
+    ) -> collections.abc.Iterator['models.Server']:
         """
         Returns an iterator of servers with or without activity in the past last_activity_delta time
         This is used to check if a server is still active and not in maintenance mode.
@@ -132,12 +133,12 @@ class ServerManager(metaclass=singleton.Singleton):
 
     def get_server_stats(
         self, servers_filter: 'QuerySet[models.Server]'
-    ) -> list[tuple[typing.Optional['types.servers.ServerStats'], 'models.Server']]:
+    ) -> list[tuple['types.servers.ServerStats | None', 'models.Server']]:
         """
         Returns a list of stats for a list of servers
         """
         # Paralelize stats retrieval
-        retrieved_stats: list[tuple[typing.Optional['types.servers.ServerStats'], 'models.Server']] = []
+        retrieved_stats: list[tuple['types.servers.ServerStats | None', 'models.Server']] = []
 
         def _retrieve_stats(server: 'models.Server') -> None:
             try:
@@ -163,14 +164,14 @@ class ServerManager(metaclass=singleton.Singleton):
         server_group: 'models.ServerGroup',
         now: datetime.datetime,
         min_memory_mb: int = 0,
-        excluded_servers_uuids: typing.Optional[typing.Set[str]] = None,
+        excluded_servers_uuids: set[str] | None = None,
         *,
         weight_threshold: int = 0,  # If not 0, server with weight below and nearer to this value will be selected
     ) -> tuple['models.Server', 'types.servers.ServerStats']:
         """
         Finds the best server for a service
         """
-        best: typing.Optional[tuple['models.Server', 'types.servers.ServerStats']] = None
+        best: tuple['models.Server', 'types.servers.ServerStats'] | None = None
         unmanaged_list: list['models.Server'] = []
         fltrs = server_group.servers.filter(maintenance_mode=False)
         fltrs = fltrs.filter(Q(locked_until=None) | Q(locked_until__lte=now))  # Only unlocked servers
@@ -250,12 +251,12 @@ class ServerManager(metaclass=singleton.Singleton):
         server_group: 'models.ServerGroup',
         service_type: types.services.ServiceType = types.services.ServiceType.VDI,
         min_memory_mb: int = 0,  # Does not apply to unmanged servers
-        lock_interval: typing.Optional[datetime.timedelta] = None,
-        server: typing.Optional['models.Server'] = None,  # If not note
-        excluded_servers_uuids: typing.Optional[typing.Set[str]] = None,
+        lock_interval: datetime.timedelta | None = None,
+        server: 'models.Server | None' = None,  # If not note
+        excluded_servers_uuids: set[str] | None = None,
         *,
         weight_threshold: int = 0,
-    ) -> typing.Optional[types.servers.ServerCounter]:
+    ) -> types.servers.ServerCounter | None:
         """
         Select a server for an userservice to be assigned to
 
@@ -296,7 +297,7 @@ class ServerManager(metaclass=singleton.Singleton):
         excluded_servers_uuids = excluded_servers_uuids or set()
 
         with server_group.properties as props:
-            info: typing.Optional[types.servers.ServerCounter] = types.servers.ServerCounter.from_iterable(
+            info: types.servers.ServerCounter | None = types.servers.ServerCounter.from_iterable(
                 props.get(prop_name)
             )
             # If server is forced, and server is part of the group, use it
@@ -397,7 +398,7 @@ class ServerManager(metaclass=singleton.Singleton):
                 reset_counter = False
                 # ServerCounterType
 
-                server_counter: typing.Optional[types.servers.ServerCounter] = (
+                server_counter: types.servers.ServerCounter | None = (
                     types.servers.ServerCounter.from_iterable(props.get(prop_name))
                 )
                 # If no cached value, get server assignation
@@ -443,9 +444,7 @@ class ServerManager(metaclass=singleton.Singleton):
         server_group: 'models.ServerGroup',
         userservice: 'models.UserService',
         info: types.connections.ConnectionData,
-        server: typing.Optional[
-            'models.Server'
-        ] = None,  # Forced server instead of selecting one from server_group
+        server: 'models.Server | None' = None,  # Forced server instead of selecting one from server_group
     ) -> None:
         """
         Notifies preconnect to server
@@ -500,7 +499,7 @@ class ServerManager(metaclass=singleton.Singleton):
         self,
         userservice: 'models.UserService',
         server_group: 'models.ServerGroup',
-    ) -> typing.Optional['models.Server']:
+    ) -> 'models.Server | None':
         """
         Returns the server assigned to an user service
 
@@ -516,7 +515,7 @@ class ServerManager(metaclass=singleton.Singleton):
 
         prop_name = self.property_name(userservice.user)
         with server_group.properties as props:
-            info: typing.Optional[types.servers.ServerCounter] = types.servers.ServerCounter.from_iterable(
+            info: types.servers.ServerCounter | None = types.servers.ServerCounter.from_iterable(
                 props.get(prop_name)
             )
             if info is None:
@@ -526,7 +525,7 @@ class ServerManager(metaclass=singleton.Singleton):
     def sorted_server_list(
         self,
         server_group: 'models.ServerGroup',
-        excluded_servers_uuids: typing.Optional[typing.Set[str]] = None,
+        excluded_servers_uuids: set[str] | None = None,
     ) -> list['models.Server']:
         """
         Returns a list of servers sorted by usage
