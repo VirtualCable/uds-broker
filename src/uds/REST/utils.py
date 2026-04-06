@@ -60,7 +60,7 @@ def camel_and_snake_case_from(text: str) -> tuple[str, str]:
 
 def to_incremental_json(
     source: collections.abc.Generator[typing.Any, None, None]
-) -> typing.Generator[str, None, None]:
+) -> collections.abc.Generator[str, None, None]:
     '''
     Converts a generator to a json incremental string
     '''

@@ -37,7 +37,7 @@ import collections.abc
 from django.utils.translation import gettext_noop
 
 # Old Field name type
-OldFieldNameType = typing.Union[str, list[str], None]
+OldFieldNameType = str | list[str] | None
 
 
 class Tab(enum.StrEnum):
@@ -52,7 +52,7 @@ class Tab(enum.StrEnum):
     ATTRIBUTES = gettext_noop('Attributes')
 
     @staticmethod
-    def from_str(value: typing.Optional[str]) -> typing.Union['Tab', str, None]:
+    def from_str(value: str | None) -> 'Tab | str | None':
         """Returns a Tab from a string
         If value is not a valid Tab, returns Tab.PARAMETERS
 
@@ -116,10 +116,10 @@ class FieldPatternType(enum.StrEnum):
 class CallbackResultItem(typing.TypedDict):
     # {'name': 'datastore', 'choices': res}
     name: str
-    choices: typing.List['ChoiceItem']
+    choices: collections.abc.Sequence['ChoiceItem']
 
 
-CallbackResultType = list[CallbackResultItem]
+CallbackResultType = collections.abc.Sequence[CallbackResultItem]
 
 
 class Filler(typing.TypedDict):
@@ -147,9 +147,9 @@ class ChoiceItem:
         return data
 
 
-ChoicesType = typing.Union[
-    collections.abc.Callable[[], collections.abc.Iterable[ChoiceItem]], collections.abc.Iterable[ChoiceItem]
-]
+ChoicesType = (
+    collections.abc.Callable[[], collections.abc.Iterable[ChoiceItem]] | collections.abc.Iterable[ChoiceItem]
+)
 
 
 # Field Info

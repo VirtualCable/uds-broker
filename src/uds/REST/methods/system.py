@@ -66,7 +66,7 @@ def get_servicepools_counters(
 ) -> list[dict[str, typing.Any]]:
     val: list[dict[str, typing.Any]] = []
     try:
-        cache_key = (servicepool and str(servicepool.id) or 'all') + str(counter_type) + str(since_days)
+        cache_key = f'{servicepool.id if servicepool else "all"}-{counter_type}-{since_days}'
         # Get now but with 0 minutes and 0 seconds
         to = sql_now().replace(minute=0, second=0, microsecond=0)
         since: datetime.datetime = to - datetime.timedelta(days=since_days)

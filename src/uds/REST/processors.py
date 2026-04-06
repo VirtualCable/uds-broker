@@ -141,7 +141,7 @@ class ContentProcessor:
             case collections.abc.Iterable():
                 return [
                     ContentProcessor.process_for_render(v, data_transformer)
-                    for v in typing.cast(collections.abc.Iterable[typing.Any], obj)
+                    for v in typing.cast(collections.abc.Iterable[typing.Any], obj)   # pyrefly: ignore  # other type checkers cannot infer obj type
                 ]
 
             case datetime.datetime():

@@ -74,7 +74,7 @@ def replace_path(path: str) -> str:
 
 
 def log_operation(
-    handler: typing.Optional['Handler'], response_code: int, level: LogLevel = LogLevel.INFO
+    handler: 'Handler | None', response_code: int, level: LogLevel = LogLevel.INFO
 ) -> None:
     """
     Logs a request

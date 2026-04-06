@@ -49,7 +49,7 @@ MODIFY_REPLACE = LDAP_MODIFY_REPLACE
 MODIFY_INCREMENT = LDAP_MODIFY_INCREMENT
 
 LDAPResultType = collections.abc.MutableMapping[str, typing.Any]
-LDAPSearchResultType = typing.Optional[list[dict[str, typing.Any]]]
+LDAPSearchResultType = list[dict[str, typing.Any]] | None
 
 LDAPConnection: typing.TypeAlias = Connection
 
@@ -87,7 +87,7 @@ def connection(
     timeout: int = 3,
     debug: bool = False,
     verify_ssl: bool = False,
-    certificate_data: typing.Optional[str] = None,  # Content of the certificate, not the file itself
+    certificate_data: str | None = None,  # Content of the certificate, not the file itself
 ) -> 'LDAPConnection':
     """
     Tries to connect to ldap using ldap3. If username is None, it tries to connect using user provided credentials.
@@ -152,10 +152,10 @@ def as_dict(
     base: str,
     ldap_filter: str,
     *,
-    attributes: typing.Optional[collections.abc.Iterable[str]] = None,
+    attributes: collections.abc.Iterable[str] | None = None,
     limit: int = 100,
     scope: typing.Any = SCOPE_SUBTREE,
-) -> typing.Generator[LDAPResultType, None, None]:
+) -> collections.abc.Generator[LDAPResultType, None, None]:
     """
     Makes a search on LDAP, returns a generator with the results, where each result is a dictionary where values are always a list of strings
     """
@@ -187,9 +187,9 @@ def first(
     field: str,
     value: str,
     *,
-    attributes: typing.Optional[collections.abc.Iterable[str]] = None,
+    attributes: collections.abc.Iterable[str] | None = None,
     max_entries: int = 50,
-) -> typing.Optional[LDAPResultType]:
+) -> 'LDAPResultType | None':
     """
     Searchs for the username and returns its LDAP entry
     """
@@ -290,7 +290,7 @@ def modify(
         raise LDAPError(str(e)) from e
 
 
-def get_root_dse(con: Connection) -> typing.Optional[LDAPResultType]:
+def get_root_dse(con: Connection) -> 'LDAPResultType | None':
     con.search('', '(objectClass=*)', search_scope=SCOPE_BASE)
     if con.entries:
         entry = typing.cast(typing.Any, con.entries[0])

@@ -44,6 +44,7 @@ from uds.core import consts
 from uds.core import exceptions
 from uds.core import types
 from uds.core.module import Module
+from uds.core.types.rest import T_Item
 from uds.core.util import log, permissions, model as model_utils, api as api_utils
 from uds.models import ManagedObjectModel, Tag, TaggingMixin
 
@@ -57,9 +58,10 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T = typing.TypeVar('T', bound=models.Model)
+T_Item = typing.TypeVar('T_Item', bound=types.rest.BaseRestItem)
 
 
-class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
+class ModelHandler(BaseModelHandler[T_Item], abc.ABC):
     """
     Basic Handler for a model
     Basically we will need same operations for all models, so we can
@@ -204,14 +206,14 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
             raise
 
     # Data related
-    def get_item(self, item: models.Model) -> types.rest.T_Item:
+    def get_item(self, item: models.Model) -> T_Item:
         """
         Must be overriden by descendants.
         Expects the return of an item as a dictionary
         """
         raise NotImplementedError()
 
-    def get_item_summary(self, item: models.Model) -> types.rest.T_Item:
+    def get_item_summary(self, item: models.Model) -> T_Item:
         """
         Invoked when request is an "overview"
         default behavior is return item_as_dict
@@ -245,7 +247,7 @@ class ModelHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
     def get_items(
         self, *, sumarize: bool = False, query: QuerySet[T] | None = None
-    ) -> collections.abc.Generator[types.rest.T_Item, None, None]:
+    ) -> collections.abc.Generator[T_Item, None, None]:
         """
         Get items from the model.
         Args:

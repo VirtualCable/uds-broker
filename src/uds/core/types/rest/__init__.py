@@ -35,6 +35,7 @@ import abc
 import enum
 import typing
 import dataclasses
+import collections.abc
 
 from . import stock
 from . import actor
@@ -169,7 +170,7 @@ class ManagedObjectItem(BaseRestItem, typing.Generic[T_Model]):
 
 
 # Alias for get_items return type
-ItemsResult: typing.TypeAlias = list[T_Item] | typing.Iterator[T_Item]
+ItemsResult: typing.TypeAlias = list[T_Item] | collections.abc.Iterator[T_Item]
 
 
 @dataclasses.dataclass
@@ -179,7 +180,7 @@ class TypeInfo:
     description: str = dataclasses.field(metadata={'description': 'Description for this type'})
     icon: str = dataclasses.field(metadata={'description': 'Icon of the type, in base64'})
 
-    group: typing.Optional[str] = dataclasses.field(
+    group: str | None = dataclasses.field(
         default=None, metadata={'description': 'Group name used for grouping "similar" types'}
     )
 
@@ -285,7 +286,7 @@ class TableInfo:
     title: str
     fields: list[TableField]  # List of fields in the table
     row_style: 'RowStyleInfo'
-    subtitle: typing.Optional[str] = None
+    subtitle: str | None = None
     filter_fields: list[str] = dataclasses.field(default_factory=list[str])
     field_mappings: dict[str, str] = dataclasses.field(default_factory=dict[str, str])
 
@@ -314,8 +315,8 @@ class HandlerNode:
     """
 
     name: str
-    handler: typing.Optional[type['Handler']]
-    parent: typing.Optional['HandlerNode']
+    handler: type['Handler'] | None  # Handler for this node, if any
+    parent: 'HandlerNode | None'  # Parent node, if any
     children: dict[str, 'HandlerNode']
 
     def __str__(self) -> str:
@@ -327,7 +328,7 @@ class HandlerNode:
     # Visit all nodes recursively, invoking a callback for each node with the node and path
     def visit(
         self,
-        callback: typing.Callable[
+        callback: collections.abc.Callable[
             ['HandlerNode', str, typing.Literal['handler', 'custom_method', 'detail_method'], int], None
         ],
         path: str = '',
@@ -372,7 +373,7 @@ class HandlerNode:
         self.visit(_tree)
         return ret
 
-    def find_path(self, path: str | list[str]) -> typing.Optional['HandlerNode']:
+    def find_path(self, path: str | list[str]) -> 'HandlerNode | None':
         """
         Returns the node for a given path, or None if not found
         """

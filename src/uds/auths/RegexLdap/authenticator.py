@@ -163,9 +163,9 @@ class RegexLdap(auths.Authenticator):
     # Label for password field
     label_password = _("Password")
 
-    _connection: typing.Optional['ldaputil.LDAPConnection'] = None
+    _connection: 'ldaputil.LDAPConnection | None' = None
 
-    def initialize(self, values: typing.Optional[dict[str, typing.Any]]) -> None:
+    def initialize(self, values: dict[str, typing.Any] | None) -> None:
         if values:
             auth_utils.validate_regex_field(self.username_attr)
             auth_utils.validate_regex_field(self.groupname_attr)
@@ -247,7 +247,7 @@ class RegexLdap(auths.Authenticator):
                 self.password.as_str(),
                 self.host.as_str(),
                 port=int(self.port.as_int()),
-                ssl=self.use_ssl.as_bool(),
+                use_ssl=self.use_ssl.as_bool(),
                 timeout=int(self.timeout.as_int()),
                 debug=False,
             )
@@ -260,12 +260,12 @@ class RegexLdap(auths.Authenticator):
             password,
             self.host.as_str(),
             port=int(self.port.as_int()),
-            ssl=self.use_ssl.as_bool(),
+            use_ssl=self.use_ssl.as_bool(),
             timeout=int(self.timeout.as_int()),
             debug=False,
         )
 
-    def _get_user(self, username: str) -> typing.Optional[ldaputil.LDAPResultType]:
+    def _get_user(self, username: str) -> 'ldaputil.LDAPResultType | None':
         """
         Searchs for the username and returns its LDAP entry
         @param username: username to search, using user provided parameters at configuration to map search entries.
@@ -318,7 +318,7 @@ class RegexLdap(auths.Authenticator):
                             v = [v]
 
                         # Now append to existing values
-                        for x in typing.cast(typing.Iterable[str], v):
+                        for x in typing.cast(collections.abc.Iterable[str], v):
                             user[norm_attrname].append(x)
                     else:
                         user[norm_attrname] = v
@@ -464,9 +464,11 @@ class RegexLdap(auths.Authenticator):
             return types.core.TestResult(False, f'Error connecting to ldap: {e}')
 
         try:
-            con.search_s(  # pyright: ignore reportUnknownMemberType
-                base=self.ldap_base.as_str(),
-                scope=ldaputil.SCOPE_BASE,  # pyright: ignore reportUnknownMemberType
+            con.search(  # pyright: ignore reportUnknownMemberType
+                search_base=self.ldap_base.as_str(),
+                search_scope=ldaputil.SCOPE_BASE,  # pyright: ignore reportUnknownMemberType
+                search_filter='(objectClass=*)',
+                size_limit=1,
             )
         except Exception:
             return types.core.TestResult(False, _('Ldap search base is incorrect'))
@@ -475,11 +477,11 @@ class RegexLdap(auths.Authenticator):
             if (
                 len(
                     ensure.as_list(
-                        con.search_ext_s(  # pyright: ignore reportUnknownMemberType
-                            base=self.ldap_base.as_str(),
-                            scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
-                            filterstr=f'(objectClass={self.user_class.as_str()})',
-                            sizelimit=1,
+                        con.search(  # pyright: ignore reportUnknownMemberType
+                            search_base=self.ldap_base.as_str(),
+                            search_scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
+                            search_filter=f'(objectClass={self.user_class.as_str()})',
+                            size_limit=1,
                         )
                     )
                 )
@@ -498,11 +500,11 @@ class RegexLdap(auths.Authenticator):
             if (
                 len(
                     ensure.as_list(
-                        con.search_ext_s(  # pyright: ignore reportUnknownMemberType
-                            base=self.ldap_base.as_str(),
-                            scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
-                            filterstr=f'(&(objectClass={self.user_class.as_str()})({self.userid_attr.as_str()}=*))',
-                            sizelimit=1,
+                        con.search(  # pyright: ignore reportUnknownMemberType
+                            search_base=self.ldap_base.as_str(),
+                            search_scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
+                            search_filter=f'(&(objectClass={self.user_class.as_str()})({self.userid_attr.as_str()}=*))',
+                            size_limit=1,
                         )
                     )
                 )
@@ -524,11 +526,11 @@ class RegexLdap(auths.Authenticator):
                 if (
                     len(
                         ensure.as_list(
-                            con.search_ext_s(  # pyright: ignore reportUnknownMemberType
-                                base=self.ldap_base.as_str(),
-                                scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
-                                filterstr=f'({vals}=*)',
-                                sizelimit=1,
+                            con.search(  # pyright: ignore reportUnknownMemberType
+                                search_base=self.ldap_base.as_str(),
+                                search_scope=ldaputil.SCOPE_SUBTREE,  # pyright: ignore reportUnknownMemberType
+                                search_filter=f'({vals}=*)',
+                                size_limit=1,
                             )
                         )
                     )
