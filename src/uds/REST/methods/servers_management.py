@@ -222,29 +222,6 @@ class ServersServers(DetailHandler[ServerItem]):
                 .build()
             )
 
-            # return self.add_field(
-            #     [],
-            #     [
-            #         {
-            #             'name': 'server',
-            #             'value': '',
-            #             'label': gettext('Server'),
-            #             'tooltip': gettext('Server to include on group'),
-            #             'type': types.ui.FieldType.CHOICE,
-            #             'choices': [
-            #                 ui.gui.choice_item(item.uuid, item.hostname)
-            #                 for item in models.Server.objects.filter(type=parent.type, subtype=parent.subtype)
-            #                 if item.groups.count() == 0
-            #             ],
-            #             'order': 100,  # At end
-            #         },
-            #         {
-            #             'name': 'title',
-            #             'value': title,
-            #             'type': types.ui.FieldType.INFO,
-            #         },
-            #     ],
-            # )
         return (
             gui_builder.add_choice(
                 name='server',
