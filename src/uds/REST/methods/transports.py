@@ -91,6 +91,8 @@ class Transports(ModelHandler[TransportItem]):
         .numeric_column(name='pools_count', title=_('Service Pools'), width='6em')
         .text_column(name='allowed_oss', title=_('Devices'), width='8em')
         .text_column(name='tags', title=_('tags'), visible=False)
+        .with_field_mappings(type_name='data_type')
+        .with_filter_fields('name', 'data_type', 'comments' )
     ).build()
 
     # Rest api related information to complete the auto-generated API
