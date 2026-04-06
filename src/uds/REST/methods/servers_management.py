@@ -91,7 +91,6 @@ class ServersTokens(ModelHandler[TokenItem]):
         .text_column(name='os', title=_('OS'), visible=True)
         .text_column(name='username', title=_('Issued by'), visible=True)
         .datetime_column(name='stamp', title=_('Date'), visible=True)
-        .text_column(name='mac', title=_('MAC Address'), visible=False)
         .build()
     )
 
