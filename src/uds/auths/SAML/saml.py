@@ -367,7 +367,7 @@ class SAMLAuthenticator(auths.Authenticator):
 
     manage_url = gui.HiddenField(serializable=True, old_field_name='manageUrl')
 
-    def initialize(self, values: typing.Optional[dict[str, typing.Any]]) -> None:
+    def initialize(self, values: dict[str, typing.Any] | None) -> None:
         """
         Simply check if we have
         at least one group in the list
@@ -437,7 +437,7 @@ class SAMLAuthenticator(auths.Authenticator):
     def build_req_from_request(
         self,
         request: 'ExtendedHttpRequest',
-        params: typing.Optional['types.auth.AuthCallbackParams'] = None,
+        params: 'types.auth.AuthCallbackParams | None' = None,
     ) -> dict[str, typing.Any]:
         manage_url_obj = typing.cast('ParseResult', urlparse(self.manage_url.value))
         script_path: str = manage_url_obj.path
@@ -575,7 +575,7 @@ class SAMLAuthenticator(auths.Authenticator):
 
     def get_info(
         self, parameters: collections.abc.Mapping[str, str]
-    ) -> typing.Optional[tuple[str, typing.Optional[str]]]:
+    ) -> tuple[str, str | None] | None:
         """
         Althought this is mainly a get info callback, this can be used for any other purpuse we like.
         In this case, we use it to provide logout callback also
@@ -618,7 +618,7 @@ class SAMLAuthenticator(auths.Authenticator):
         settings = OneLogin_Saml2_Settings(settings=self.build_onelogin_settings())
         auth = OneLogin_Saml2_Auth(req, settings)
 
-        url: str = auth.process_slo(request_id=logout_req_id)  # pyright: ignore reportUnknownVariableType
+        url: str = typing.cast(str, auth.process_slo(request_id=logout_req_id))  # pyright: ignore reportUnknownVariableType
 
         errors = typing.cast(list[str], auth.get_errors())
 
@@ -798,7 +798,7 @@ class SAMLAuthenticator(auths.Authenticator):
             return username
         return data[0]
 
-    def get_javascript(self, request: 'ExtendedHttpRequest') -> typing.Optional[str]:
+    def get_javascript(self, request: 'ExtendedHttpRequest') -> str | None:
         """
         We will here compose the saml request and send it via http-redirect
         """

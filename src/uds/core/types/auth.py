@@ -71,8 +71,8 @@ class AuthenticationInternalUrl(enum.StrEnum):
 @dataclasses.dataclass(frozen=True)
 class AuthenticationResult:
     success: AuthenticationState
-    url: typing.Optional[str] = None
-    username: typing.Optional[str] = None
+    url: str | None = None
+    username: str | None = None
 
 
 # Comodity values
@@ -110,11 +110,11 @@ class AuthCallbackParams:
 
 @dataclasses.dataclass
 class LoginResult:
-    user: typing.Optional['User'] = None
+    user: 'User | None' = None
     password: str = ''
-    errstr: typing.Optional[str] = None
+    errstr: str | None = None
     errid: int = 0
-    url: typing.Optional[str] = None
+    url: str | None = None
 
 
 @dataclasses.dataclass

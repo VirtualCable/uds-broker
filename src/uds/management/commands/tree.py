@@ -56,13 +56,13 @@ CONSIDERED_OLD: typing.Final[datetime.timedelta] = datetime.timedelta(days=365)
 
 def get_serialized_from_managed_object(
     mod: 'models.ManagedObjectModel',
-    removable_fields: typing.Optional[list[str]] = None,
-    callback: typing.Optional[typing.Callable[[models.ManagedObjectModel, dict[str, typing.Any]], None]] = None,
+    removable_fields: list[str] | None = None,
+    callback: collections.abc.Callable[[models.ManagedObjectModel, dict[str, typing.Any]], None] | None = None,
 ) -> collections.abc.Mapping[str, typing.Any]:
     try:
         obj: 'Module' = mod.get_instance()
         gui_types: dict[str, str] = {
-            i['name']: str(i['gui']['type']) for i in obj.gui_description(skip_init_gui=True)
+            i.name: str(i.gui.type) for i in obj.gui_description(skip_init_gui=True)
         }
         values = obj.get_fields_as_dict()
         # Remove password fields
@@ -94,8 +94,8 @@ def get_serialized_from_managed_object(
 
 def get_serialized_from_model(
     mod: 'dbmodels.Model',
-    removable_fields: typing.Optional[list[str]] = None,
-    password_fields: typing.Optional[list[str]] = None,
+    removable_fields: list[str] | None = None,
+    password_fields: list[str] | None = None,
     exclude_uuid: bool = True,
 ) -> collections.abc.Mapping[str, typing.Any]:
     removable_fields = removable_fields or []

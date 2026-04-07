@@ -1,11 +1,11 @@
 project-includes = [
-    "**/*.py*",
-    "**/*.ipynb",
+    "src/**/*.py*",
+    "src/**/*.ipynb",
 ]
 
 # Exclude scripts from transports transports/*/scripts/*
 project-excludes = [
-    "**/transports/**/scripts/**/*.py",
+    "src/**/transports/**/scripts/**/*.py",
 ]
 
 python-platform = "linux"

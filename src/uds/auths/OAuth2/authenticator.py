@@ -166,7 +166,7 @@ class OAuth2Authenticator(auths.Authenticator):
     # Non serializable variables
     session: typing.ClassVar['requests.Session'] = security.secure_requests_session()
 
-    def initialize(self, values: typing.Optional[dict[str, typing.Any]]) -> None:
+    def initialize(self, values: dict[str, typing.Any] | None) -> None:
         if not values:
             return
 
@@ -222,6 +222,9 @@ class OAuth2Authenticator(auths.Authenticator):
             # case 'openid+token_id':
             case oauth2_types.ResponseType.OPENID_ID_TOKEN:
                 return self.auth_callback_openid_id_token(parameters, groups_manager, request)
+            case _:
+                logger.error('Invalid response type: %s', self.response_type.value)
+                return types.auth.FAILED_AUTH
 
     def logout(
         self,
@@ -236,7 +239,7 @@ class OAuth2Authenticator(auths.Authenticator):
             url=self.logout_url.value.replace('{token}', urllib.parse.quote(token)),
         )
 
-    def get_javascript(self, request: 'HttpRequest') -> typing.Optional[str]:
+    def get_javascript(self, request: 'HttpRequest') -> str | None:
         """
         We will here compose the azure request and send it via http-redirect
         """
@@ -324,7 +327,7 @@ class OAuth2Authenticator(auths.Authenticator):
 
         return self.authorization_endpoint.value + '?' + params
 
-    def request_token(self, code: str, code_verifier: typing.Optional[str] = None) -> 'oauth2_types.TokenInfo':
+    def request_token(self, code: str, code_verifier: str | None = None) -> 'oauth2_types.TokenInfo':
         """Request a token from the token endpoint using the code received from the authorization endpoint
 
         Args:

@@ -120,7 +120,7 @@ class gui:
     callbacks: typing.ClassVar[
         dict[
             str,
-            collections.abc.Callable[[dict[str, str]], list[types.ui.CallbackResultItem]],
+            collections.abc.Callable[[dict[str, str]], collections.abc.Sequence[types.ui.CallbackResultItem]],
         ]
     ] = {}
 
