@@ -48,4 +48,4 @@ class ExtendedHttpRequest(HttpRequest):
 
 
 class ExtendedHttpRequestWithUser(ExtendedHttpRequest):
-    user: 'User' # pyright: ignore[reportIncompatibleVariableOverride]
+    user: 'User' # pyright: ignore[reportIncompatibleVariableOverride]  # pyrefly: ignore[bad-override]

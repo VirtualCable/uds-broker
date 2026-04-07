@@ -31,7 +31,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 '''
 import logging
 import typing
-import collections.abc
 
 from django.utils.translation import gettext_noop as _
 
@@ -183,7 +182,7 @@ class TRDPTransport(BaseRDPTransport):
         r.enforced_shares = self.enforce_drives.value
         r.redir_usb = self.allow_usb_redirection.value
 
-        sp: collections.abc.MutableMapping[str, typing.Any] = {
+        sp: dict[str, typing.Any] = {
             'tunnel': {
                 'host': tunnel_host,
                 'port': tunnel_port,

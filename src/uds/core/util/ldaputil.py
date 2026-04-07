@@ -48,6 +48,9 @@ MODIFY_DELETE = LDAP_MODIFY_DELETE
 MODIFY_REPLACE = LDAP_MODIFY_REPLACE
 MODIFY_INCREMENT = LDAP_MODIFY_INCREMENT
 
+LDAP_ALREADY_EXISTS_RESULT_CODES = frozenset({20, 68})
+LDAP_ALREADY_EXISTS_DESCRIPTIONS = frozenset({'attributeOrValueExists', 'entryAlreadyExists'})
+
 LDAPResultType = collections.abc.MutableMapping[str, typing.Any]
 LDAPSearchResultType = list[dict[str, typing.Any]] | None
 
@@ -60,6 +63,32 @@ class LDAPError(Exception):
         _str = _('Connection error: ')
         _str += str(e)
         raise LDAPError(_str) from e
+
+
+class AlreadyExistsError(LDAPError):
+    pass
+
+
+ALREADY_EXISTS = AlreadyExistsError
+
+
+def _raise_for_result(operation: str, result: collections.abc.Mapping[str, typing.Any]) -> typing.NoReturn:
+    result_code = result.get('result')
+    description = str(result.get('description', ''))
+    message = f'{operation} operation failed: {result}'
+
+    try:
+        numeric_result = int(typing.cast(str | int, result_code))
+    except (TypeError, ValueError):
+        numeric_result = None
+
+    if (
+        numeric_result in LDAP_ALREADY_EXISTS_RESULT_CODES
+        or description in LDAP_ALREADY_EXISTS_DESCRIPTIONS
+    ):
+        raise ALREADY_EXISTS(message)
+
+    raise LDAPError(message)
 
 
 def escape(value: str) -> str:
@@ -223,8 +252,10 @@ def add(
     try:
         result = typing.cast(typing.Any, con.add(dn, attributes))
         if not result:
-            raise LDAPError(f'Add operation failed: {con.result}')
+            _raise_for_result('Add', typing.cast(collections.abc.Mapping[str, typing.Any], con.result))
         return True
+    except LDAPError:
+        raise
     except Exception as e:
         logger.exception('Exception in add:')
         raise LDAPError(str(e)) from e
@@ -283,8 +314,10 @@ def modify(
     try:
         result = typing.cast(typing.Any, con.modify(dn, changes, controls=controls))
         if not result:
-            raise LDAPError(f'Modify operation failed: {con.result}')
+            _raise_for_result('Modify', typing.cast(collections.abc.Mapping[str, typing.Any], con.result))
         return True
+    except LDAPError:
+        raise
     except Exception as e:
         logger.exception('Exception in modify:')
         raise LDAPError(str(e)) from e
