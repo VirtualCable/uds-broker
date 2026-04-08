@@ -9,8 +9,19 @@ if (!mstscPath) {
     throw new Error('Unable to find mstsc.exe.');
 }
 
-const password = Utils.cryptProtectData(data.password);
-Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', data.ip, 255); // Register to allow redirection
+let password = '';
+try {
+    password = Utils.cryptProtectData(data.password);
+} catch (e) {
+    Logger.info('Could not encrypt password via DPAPI, user will be prompted: ' + e);
+}
+
+try {
+    Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', data.ip, 255);
+} catch (e) {
+    Logger.info('Could not write registry key for device redirection: ' + e);
+}
+
 let content = data.as_file.replace(/\{password\}/g, password);
 let rdpFilePath = File.createTempFile(null, content, '.rdp');
 let process = Process.launch(mstscPath, [rdpFilePath]);

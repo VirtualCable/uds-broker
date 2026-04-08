@@ -120,7 +120,7 @@ class TX2GOTransport(BaseX2GOTransport):
             pack=self.pack.value,
             quality=self.quality.value,
             sound=self.sound.as_bool(),
-            sound_system=self.sound.value,
+            sound_system=self.sound_type.value,
             window_manager=desktop,
             exports=self.exports.as_bool(),
             rootless=rootless,
@@ -139,11 +139,13 @@ class TX2GOTransport(BaseX2GOTransport):
         tunnel_host, tunnel_port = tunnel_field.host, tunnel_field.port
 
         sp = {
-            'tunHost': tunnel_host,
-            'tunPort': tunnel_port,
-            'tunWait': self.startup_time.as_int() * 1000,  # In milliseconds
-            'tunChk': self.verify_certificate.as_bool(),
-            'ticket': ticket,
+            'tunnel': {
+                'host': tunnel_host,
+                'port': tunnel_port,
+                'ticket': ticket,
+                'startup_time': self.startup_time.as_int() * 1000,  # In milliseconds
+                'verify_ssl': self.verify_certificate.as_bool(),
+            },
             'key': private_key,
             'xf': xf,
         }
