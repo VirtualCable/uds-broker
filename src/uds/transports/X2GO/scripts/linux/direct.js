@@ -50,7 +50,6 @@ logType('sessionConf', sessionConf);
 const sessionFile = File.createTempFile(File.getHomeDirectory(), sessionConf, '.conf');
 logType('sessionFile', sessionFile);
 Logger.debug('Session file created at: ' + sessionFile);
-Logger.debug('Session file content: ' + sessionConf);
 Tasks.addEarlyUnlinkableFile(sessionFile);
 
 const params = [

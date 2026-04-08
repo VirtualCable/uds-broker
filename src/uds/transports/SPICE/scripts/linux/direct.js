@@ -19,7 +19,6 @@ if (data.as_file) {
     // Create and save the temp file
     let spiceFilePath = File.createTempFile(File.getHomeDirectory(), data.as_file, '.vv');
     Logger.debug(`SPICE temp file created at ${spiceFilePath}`);
-    Logger.debug(`fila content: ${data.as_file}`);
 
     // Append to removable task to delete the file later
     Tasks.addEarlyUnlinkableFile(spiceFilePath);

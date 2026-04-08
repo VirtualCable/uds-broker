@@ -10,8 +10,19 @@ if (!mstscPath) {
 }
 Logger.info(`Using RDP client at ${mstscPath}`);
 
-const password = Utils.cryptProtectData(data.password);
-Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', '127.0.0.1', 255); // Register to allow redirection
+let password = '';
+try {
+    password = Utils.cryptProtectData(data.password);
+} catch (e) {
+    Logger.info('Could not encrypt password via DPAPI, user will be prompted: ' + e);
+}
+
+try {
+    Utils.writeHkcuDword('Software\\Microsoft\\Terminal Server Client\\LocalDevices', '127.0.0.1', 255);
+} catch (e) {
+    Logger.info('Could not write registry key for device redirection: ' + e);
+}
+
 Logger.info(
     `Tunnel data: host=${data.tunnel.host}, port=${data.tunnel.port}, ticket=${data.tunnel.ticket}, verify_ssl=${data.tunnel.verify_ssl}, timeout=${data.tunnel.timeout}`,
 );
