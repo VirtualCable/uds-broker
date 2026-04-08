@@ -48,8 +48,11 @@ MODIFY_DELETE = LDAP_MODIFY_DELETE
 MODIFY_REPLACE = LDAP_MODIFY_REPLACE
 MODIFY_INCREMENT = LDAP_MODIFY_INCREMENT
 
+LDAP_ALREADY_EXISTS_RESULT_CODES = frozenset({20, 68})
+LDAP_ALREADY_EXISTS_DESCRIPTIONS = frozenset({'attributeOrValueExists', 'entryAlreadyExists'})
+
 LDAPResultType = collections.abc.MutableMapping[str, typing.Any]
-LDAPSearchResultType = typing.Optional[list[dict[str, typing.Any]]]
+LDAPSearchResultType = list[dict[str, typing.Any]] | None
 
 LDAPConnection: typing.TypeAlias = Connection
 
@@ -60,6 +63,32 @@ class LDAPError(Exception):
         _str = _('Connection error: ')
         _str += str(e)
         raise LDAPError(_str) from e
+
+
+class AlreadyExistsError(LDAPError):
+    pass
+
+
+ALREADY_EXISTS = AlreadyExistsError
+
+
+def _raise_for_result(operation: str, result: collections.abc.Mapping[str, typing.Any]) -> typing.NoReturn:
+    result_code = result.get('result')
+    description = str(result.get('description', ''))
+    message = f'{operation} operation failed: {result}'
+
+    try:
+        numeric_result = int(typing.cast(str | int, result_code))
+    except (TypeError, ValueError):
+        numeric_result = None
+
+    if (
+        numeric_result in LDAP_ALREADY_EXISTS_RESULT_CODES
+        or description in LDAP_ALREADY_EXISTS_DESCRIPTIONS
+    ):
+        raise ALREADY_EXISTS(message)
+
+    raise LDAPError(message)
 
 
 def escape(value: str) -> str:
@@ -87,7 +116,7 @@ def connection(
     timeout: int = 3,
     debug: bool = False,
     verify_ssl: bool = False,
-    certificate_data: typing.Optional[str] = None,  # Content of the certificate, not the file itself
+    certificate_data: str | None = None,  # Content of the certificate, not the file itself
 ) -> 'LDAPConnection':
     """
     Tries to connect to ldap using ldap3. If username is None, it tries to connect using user provided credentials.
@@ -152,10 +181,10 @@ def as_dict(
     base: str,
     ldap_filter: str,
     *,
-    attributes: typing.Optional[collections.abc.Iterable[str]] = None,
+    attributes: collections.abc.Iterable[str] | None = None,
     limit: int = 100,
     scope: typing.Any = SCOPE_SUBTREE,
-) -> typing.Generator[LDAPResultType, None, None]:
+) -> collections.abc.Generator[LDAPResultType, None, None]:
     """
     Makes a search on LDAP, returns a generator with the results, where each result is a dictionary where values are always a list of strings
     """
@@ -187,9 +216,9 @@ def first(
     field: str,
     value: str,
     *,
-    attributes: typing.Optional[collections.abc.Iterable[str]] = None,
+    attributes: collections.abc.Iterable[str] | None = None,
     max_entries: int = 50,
-) -> typing.Optional[LDAPResultType]:
+) -> 'LDAPResultType | None':
     """
     Searchs for the username and returns its LDAP entry
     """
@@ -223,8 +252,10 @@ def add(
     try:
         result = typing.cast(typing.Any, con.add(dn, attributes))
         if not result:
-            raise LDAPError(f'Add operation failed: {con.result}')
+            _raise_for_result('Add', typing.cast(collections.abc.Mapping[str, typing.Any], con.result))
         return True
+    except LDAPError:
+        raise
     except Exception as e:
         logger.exception('Exception in add:')
         raise LDAPError(str(e)) from e
@@ -283,14 +314,16 @@ def modify(
     try:
         result = typing.cast(typing.Any, con.modify(dn, changes, controls=controls))
         if not result:
-            raise LDAPError(f'Modify operation failed: {con.result}')
+            _raise_for_result('Modify', typing.cast(collections.abc.Mapping[str, typing.Any], con.result))
         return True
+    except LDAPError:
+        raise
     except Exception as e:
         logger.exception('Exception in modify:')
         raise LDAPError(str(e)) from e
 
 
-def get_root_dse(con: Connection) -> typing.Optional[LDAPResultType]:
+def get_root_dse(con: Connection) -> 'LDAPResultType | None':
     con.search('', '(objectClass=*)', search_scope=SCOPE_BASE)
     if con.entries:
         entry = typing.cast(typing.Any, con.entries[0])

@@ -56,6 +56,7 @@ class UsageSummaryByUsersPool(StatsReport):
 
     # UserInterface will ignore all fields that are not from FINAL class
     # so we must redeclare them here
+    # pyrefly: ignore[bad-override]
     pool = ui.gui.ChoiceField(
         order=1,
         label=_('Pool'),

@@ -52,13 +52,13 @@ if typing.TYPE_CHECKING:
     pass
 
 T = typing.TypeVar('T', bound=models.Model)
-
+T_Item = typing.TypeVar('T_Item', bound=types.rest.BaseRestItem)
 
 logger = logging.getLogger(__name__)
 
 
 # pylint: disable=unused-argument
-class BaseModelHandler(Handler, abc.ABC, typing.Generic[types.rest.T_Item]):
+class BaseModelHandler(Handler, abc.ABC, typing.Generic[T_Item]):
     """
     Base Handler for Master & Detail Handlers
     """

@@ -142,14 +142,17 @@ class Image(UUIDModel):
             return PIL.Image.new('RGBA', Image.MAX_IMAGE_SIZE)
 
     @image.setter
-    def image(self, value: typing.Union[bytes, str, PIL.Image.Image]) -> None:
+    def image(self, value: bytes | str | PIL.Image.Image) -> None:
         """Set image from bytes, base64 string or PIL Image
         Bytes: raw data
         String: base64 encoded data
         Image: PIL Image
 
         Args:
-            value (typing.Union[bytes, str, Image.Image]): Image data
+            value: Image data to set
+              * bytes: raw image data
+              * str: base64 encoded image data
+              * PIL.Image.Image: PIL Image object
 
         Raises:
             ValueError: Invalid image type
@@ -174,7 +177,7 @@ class Image(UUIDModel):
             # Setup thumbnail
             with io.BytesIO(self.data) as input:
                 with PIL.Image.open(input) as img:
-                    img.thumbnail(Image.THUMBNAIL_SIZE, PIL.Image.LANCZOS)
+                    img.thumbnail(Image.THUMBNAIL_SIZE, PIL.Image.LANCZOS)  # pyrefly: ignore[missing-attribute]  # LANCZOS is THERE :)
                     with io.BytesIO() as output:
                         img.save(output, format='PNG')
                         self.thumb = output.getvalue()

@@ -56,7 +56,7 @@ USE_LOCK: typing.Final[bool] = False
 
 
 @contextlib.contextmanager
-def _access_lock() -> typing.Generator[None, None, None]:
+def _access_lock() -> collections.abc.Generator[None, None, None]:
     if USE_LOCK:
         _lock.acquire()
     try:
@@ -88,7 +88,7 @@ class Client:
     _timeout: int
     _cache: 'Cache'
 
-    _api: typing.Optional[ovirtsdk4.Connection] = None
+    _api: ovirtsdk4.Connection | None = None
 
     @property
     def api(self) -> ovirtsdk4.Connection:
@@ -173,7 +173,11 @@ class Client:
         with _access_lock():
             try:
                 return ov_types.VMInfo.from_data(
-                    typing.cast(typing.Any, self.api.system_service().vms_service().service(vmid).get())
+                    typing.cast(
+                        typing.Any,
+                        # pyrefly: ignore[missing-attribute]
+                        self.api.system_service().vms_service().service(vmid).get(),
+                    )  # pyrefly: ignore[missing-attribute]
                 )
             except Exception:
                 return ov_types.VMInfo.missing()
@@ -209,6 +213,7 @@ class Client:
         """
         with _access_lock():
             return ov_types.ClusterInfo.from_data(
+                # pyrefly: ignore[missing-attribute]
                 typing.cast(typing.Any, self.api.system_service().clusters_service().service(cluster_id).get())
             )
 
@@ -256,7 +261,9 @@ class Client:
         with _access_lock():
             return ov_types.StorageInfo.from_data(
                 typing.cast(
-                    typing.Any, self.api.system_service().storage_domains_service().service(storage_id).get()
+                    typing.Any,
+                    # pyrefly: ignore[missing-attribute]
+                    self.api.system_service().storage_domains_service().service(storage_id).get(),
                 )
             )
 
@@ -300,7 +307,9 @@ class Client:
             vms = typing.cast(typing.Any, self.api.system_service().vms_service().service(vmid))
 
             cluster: typing.Any = typing.cast(
-                typing.Any, self.api.system_service().clusters_service().service(cluster_id).get()
+                typing.Any,
+                # pyrefly: ignore[missing-attribute]
+                self.api.system_service().clusters_service().service(cluster_id).get(),
             )
             vm: typing.Any = vms.get()  # pyright: ignore
 
@@ -343,6 +352,7 @@ class Client:
                 return ov_types.TemplateInfo.from_data(
                     typing.cast(
                         ovirtsdk4.types.Template,
+                        # pyrefly: ignore[missing-attribute]
                         self.api.system_service().templates_service().service(template_id).get(),
                     )
                 )
@@ -415,6 +425,7 @@ class Client:
         Returns nothing, and raises an Exception if it fails
         """
         with _access_lock():
+            # pyrefly: ignore[missing-attribute]
             self.api.system_service().templates_service().service(template_id).remove()
             # This returns nothing, if it fails it raises an exception
 
@@ -596,7 +607,7 @@ class Client:
             vmu = ovirtsdk4.types.Vm(usb=usb)
             vms.update(vmu)
 
-    def get_console_connection_info(self, vmid: str) -> typing.Optional[types.services.ConsoleConnectionInfo]:
+    def get_console_connection_info(self, vmid: str) -> types.services.ConsoleConnectionInfo | None:
         """
         Gets the connetion info for the specified machine
         """
@@ -623,6 +634,7 @@ class Client:
                     ):
                         for k in typing.cast(
                             collections.abc.Iterable[typing.Any],
+                            # pyrefly: ignore[missing-attribute]
                             self.api.system_service()
                             .hosts_service()
                             .service(i.id)

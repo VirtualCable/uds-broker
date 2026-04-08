@@ -120,7 +120,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
         self._pool_name = self._api_version = ''
 
     @staticmethod
-    def to_mb(number: typing.Union[str, int]) -> int:
+    def to_mb(number: str | int) -> int:
         return int(number) // (1024 * 1024)
 
     # Properties to access private vars
@@ -210,7 +210,8 @@ class XenClient:  # pylint: disable=too-many-public-methods
             self._logged_in = True
             self._api_version = self._session.API_version
             self._pool_name = self.get_pool_name(force=True)
-            logger.debug('Connected to XenServer %s, API version %s, pool name: %s',
+            logger.debug(
+                'Connected to XenServer %s, API version %s, pool name: %s',
                 self._host,
                 self._api_version,
                 self._pool_name,
@@ -275,7 +276,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
             sr = xen_types.StorageInfo.from_dict(sr_raw, sr_id)
             if sr.is_usable():
                 return_list.append(sr)
-        
+
         logger.debug('Srs: %s', return_list)
         return return_list
 
@@ -310,7 +311,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
             vm = xen_types.VMInfo.from_dict(vm_raw, vm_id)
             if vm.is_usable():
                 return_list.append(vm)
-        
+
         logger.debug('VMs: %s', return_list)
         return return_list
 
@@ -420,7 +421,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
         self._shutdown_vm(vm_opaque_ref, False)
 
     @exceptions.catched
-    def clone_vm(self, vm_opaque_ref: str, target_name: str, target_sr: typing.Optional[str] = None) -> str:
+    def clone_vm(self, vm_opaque_ref: str, target_name: str, target_sr: str | None = None) -> str:
         """
         If target_sr is NONE:
             Clones the specified VM, making a new VM.
@@ -489,8 +490,8 @@ class XenClient:  # pylint: disable=too-many-public-methods
         self,
         vm_opaque_ref: str,
         *,  # All following args are keyword only
-        mac_info: typing.Optional[xen_types.MacTypeSetter] = None,
-        memory: typing.Optional[int] = None,
+        mac_info: xen_types.MacTypeSetter | None = None,
+        memory: int | None = None,
     ) -> None:
         """
         Optional args:
@@ -538,14 +539,14 @@ class XenClient:  # pylint: disable=too-many-public-methods
         Returns:
             A list of 'folders' (organizations, str) in the XenServer
         """
-        folders: set[str]|list[str] = set('/')  # Add root folder for machines without folder
+        folders: set[str] = set('/')  # Add root folder for machines without folder
         for vm in self.list_vms():
             if vm.folder:
                 folders.add(vm.folder)
 
-        folders = sorted(folders)
-        logger.debug('Folders: %s', folders)
-        return folders
+        folders_str = sorted(folders)
+        logger.debug('Folders: %s', folders_str)
+        return folders_str
 
     @exceptions.catched
     def list_vms_in_folder(self, folder: str) -> list[xen_types.VMInfo]:
@@ -563,7 +564,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
         for vm in self.list_vms():
             if vm.folder.upper() == folder:
                 result_list.append(vm)
-                
+
         logger.debug('VMs in folder %s: %s', folder, result_list)
         return result_list
 
@@ -571,7 +572,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
     def get_first_ip(
         self,
         vm_opaque_ref: str,
-        ip_version: typing.Optional[typing.Union[typing.Literal['4'], typing.Literal['6']]] = None,
+        ip_version: typing.Literal['4'] | typing.Literal['6'] | None = None,
     ) -> str:
         """Returns the first IP of the machine, or '' if not found"""
         guest_metric_opaque_ref = self.VM.get_guest_metrics(vm_opaque_ref)
@@ -600,7 +601,7 @@ class XenClient:  # pylint: disable=too-many-public-methods
         if not vifs:
             return ''
         vif = self.VIF.get_record(vifs[0])
-        
+
         logger.info('MAC: %s', vif['MAC'])
         return vif['MAC']
 

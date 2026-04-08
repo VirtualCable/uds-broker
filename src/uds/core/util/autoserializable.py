@@ -73,7 +73,7 @@ UNASSIGNED: typing.Final[_Unassigned] = _Unassigned()
 T = typing.TypeVar('T')
 V = typing.TypeVar('V')
 
-DefaultValueType = typing.Union[T, collections.abc.Callable[[], T], _Unassigned]
+DefaultValueType = T | collections.abc.Callable[[], T] | _Unassigned
 
 logger = logging.getLogger(__name__)
 
@@ -250,7 +250,7 @@ class _MarshalInfo:
         )
 
     @staticmethod
-    def unmarshal(data: bytes) -> typing.Tuple['_MarshalInfo', bytes]:
+    def unmarshal(data: bytes) -> tuple['_MarshalInfo', bytes]:
         """Field data unmarshalling
 
         Args:
@@ -289,13 +289,13 @@ class _SerializableField(typing.Generic[T]):
         if isinstance(self.default, _Unassigned):
             return self.obj_type()
         if callable(self.default):
-            return typing.cast(T, self.default())
-        return typing.cast(T, self.default)  # For type checkers
+            return typing.cast(T, self.default())  # pyrefly: ignore[redundant-cast]
+        return typing.cast(T, self.default)  # pyrefly: ignore[redundant-cast]
 
     def __get__(
         self,
         instance: 'AutoSerializable',
-        _objtype: typing.Optional['type[AutoSerializable]'] = None,
+        _objtype: 'type[AutoSerializable] | None' = None,
     ) -> T:
         """Get field value
 
@@ -327,7 +327,7 @@ class _SerializableField(typing.Generic[T]):
                         value = typing.cast(T, _ObservableDict(instance, value))
                     else:
                         value = self.obj_type(**value)  # Hopes that obj_type knows how to convert
-                elif isinstance(value, collections.abc.Iterable):  # IF a list, tuple, etc... try to convert
+                elif isinstance(value, collections.abc.Sequence):  # IF a list, tuple, etc... try to convert
                     # If inner type is an ObservableList, ensure to provider owner
                     # so dirty can be controlled on list modifications
                     if self.obj_type is _ObservableList:
@@ -335,7 +335,7 @@ class _SerializableField(typing.Generic[T]):
                     else:
                         value = self.obj_type(*value)  # Hopes that obj_type knows how to convert
                 else:  # Maybe it has a constructor that accepts a single value or is a callable...
-                    value = typing.cast(typing.Callable[..., typing.Any], self.obj_type)(value)
+                    value = typing.cast(collections.abc.Callable[..., typing.Any], self.obj_type)(value)
             except Exception as e:
                 raise ValueError(
                     f"Field {self.name} cannot be set to {value} (type {self.obj_type.__name__})"
@@ -355,7 +355,7 @@ class _SerializableField(typing.Generic[T]):
         Note:
             Only str, int, and float are supported in this base class.
         """
-        if typing.cast(typing.Type[typing.Any], self.obj_type) in (str, int, float):
+        if typing.cast(type[typing.Any], self.obj_type) in (str, int, float):
             return str(self.__get__(instance)).encode()
         raise TypeError(f"Field {self.name} cannot be marshalled (type {self.obj_type})")
 
@@ -372,8 +372,8 @@ class _SerializableField(typing.Generic[T]):
         Note:
             Only str, int, and float are supported in this base class.
         """
-        if typing.cast(typing.Type[typing.Any], self.obj_type) in (str, int, float):
-            tp: typing.Type[T] = self.obj_type
+        if typing.cast(type[typing.Any], self.obj_type) in (str, int, float):
+            tp: type[T] = self.obj_type
             self.__set__(instance, tp(data.decode()))  # type: ignore  # mypy complains about calling tp(...)
             return
         raise TypeError(f"Field {self.name} cannot be unmarshalled (type {self.obj_type})")
@@ -419,12 +419,12 @@ class ListField(_SerializableField[list[T]], list[T]):
         (Take into account this when using enumerations in lists. The values will be compatible, but not the types)
     """
 
-    _cast: typing.Optional[typing.Callable[[typing.Any], T]]
+    _cast: collections.abc.Callable[[typing.Any], T] | None
 
     def __init__(
         self,
-        default: typing.Union[list[T], collections.abc.Callable[[], list[T]]] = lambda: [],
-        cast: typing.Optional[typing.Callable[[typing.Any], T]] = None,
+        default: list[T] | collections.abc.Callable[[], list[T]] = lambda: [],
+        cast: collections.abc.Callable[[typing.Any], T] | None = None,
     ):
         super().__init__(_ObservableList, default)
         self._cast = cast
@@ -455,12 +455,12 @@ class DictField(_SerializableField[dict[T, V]], dict[T, V]):
         Also, values of enumerations will be serialized as integers or strings.
     """
 
-    _cast: typing.Optional[typing.Callable[[T, V], tuple[T, V]]]
+    _cast: collections.abc.Callable[[T, V], tuple[T, V]] | None
 
     def __init__(
         self,
-        default: typing.Union[dict[T, V], collections.abc.Callable[[], dict[T, V]]] = lambda: {},
-        cast: typing.Optional[typing.Callable[[T, V], tuple[T, V]]] = None,
+        default: dict[T, V] | collections.abc.Callable[[], dict[T, V]] = lambda: {},
+        cast: collections.abc.Callable[[T, V], tuple[T, V]] | None = None,
     ):
         super().__init__(_ObservableDict, default)
         self._cast = cast
@@ -585,7 +585,7 @@ class PasswordField(StringField):
 class _FieldNameSetter(abc.ABCMeta, type):
     """Simply adds the name of the field in the class to the field object"""
 
-    def __new__(mcs, name: str, bases: typing.Tuple[type, ...], attrs: dict[str, typing.Any]) -> type:
+    def __new__(mcs, name: str, bases: tuple[type, ...], attrs: dict[str, typing.Any]) -> type:
         for k, v in attrs.items():
             if isinstance(v, _SerializableField):
                 v.name = k

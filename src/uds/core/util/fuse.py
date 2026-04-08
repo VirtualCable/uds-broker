@@ -18,6 +18,7 @@
 # pyright: reportConstantRedefinition=false,reportUnknownVariableType=false,reportUnknownMemberType=false
 
 import sys
+import platform
 import os
 import ctypes
 import errno
@@ -26,19 +27,16 @@ import collections.abc
 import logging
 
 from ctypes.util import find_library
-from platform import machine, system
 from signal import signal, SIGINT, SIG_DFL
 from stat import S_IFDIR
 from functools import partial
 
 logger = logging.getLogger(__name__)
-_system = system()
-_machine = machine()
 
-c_win_long: typing.Type[ctypes.c_int32 | ctypes.c_int64] = ctypes.c_int32
-c_win_ulong: typing.Type[ctypes.c_uint32 | ctypes.c_uint64] = ctypes.c_uint32
+c_win_long: type[ctypes.c_int32 | ctypes.c_int64] = ctypes.c_int32
+c_win_ulong: type[ctypes.c_uint32 | ctypes.c_uint64] = ctypes.c_uint32
 
-if _system == 'Windows':
+if sys.platform == 'win32':
     # NOTE:
     #
     # sizeof(long)==4 on Windows 32-bit and 64-bit
@@ -50,7 +48,7 @@ if _system == 'Windows':
         c_win_long = ctypes.c_int64
         c_win_ulong = ctypes.c_uint64
 
-if _system == 'Windows' or _system.startswith('CYGWIN'):
+if sys.platform == 'win32' or sys.platform.startswith('cygwin'):
 
     class c_timespec(ctypes.Structure):  # pyright: ignore
         _fields_ = [('tv_sec', c_win_long), ('tv_nsec', c_win_long)]
@@ -71,18 +69,15 @@ class c_stat(ctypes.Structure):
 
 _libfuse_path = os.environ.get('FUSE_LIBRARY_PATH')
 if not _libfuse_path:
-    if _system == 'Darwin':
+    if sys.platform == 'darwin':
         # libfuse dependency
         _libiconv = ctypes.CDLL(find_library('iconv'), ctypes.RTLD_GLOBAL)
 
         _libfuse_path = find_library('fuse4x') or find_library('osxfuse') or find_library('fuse')
-    elif _system == 'Windows':
-        try:
-            import _winreg as reg  # pyright: ignore
-        except ImportError:
-            import winreg as reg
+    elif sys.platform == 'win32':
+        import winreg as reg
 
-        def Reg32GetValue(rootkey: typing.Any, keyname: str, valname: str) -> typing.Optional[str]:
+        def Reg32GetValue(rootkey: typing.Any, keyname: str, valname: str) -> str | None:
             key, val = None, None
             try:
                 key = reg.OpenKey(  # pyright: ignore
@@ -111,22 +106,22 @@ if not _libfuse_path:
 
 _libfuse = ctypes.CDLL(_libfuse_path)
 
-if _system == 'Darwin' and hasattr(_libfuse, 'macfuse_version'):
+if sys.platform == 'darwin' and hasattr(_libfuse, 'macfuse_version'):
     _system = 'Darwin-MacFuse'
 
 
-c_dev_t: typing.Type[typing.Any]
-c_fsblkcnt_t: typing.Type[typing.Any]
-c_fsfilcnt_t: typing.Type[typing.Any]
-c_gid_t: typing.Type[typing.Any]
-c_mode_t: typing.Type[typing.Any]
-c_off_t: typing.Type[typing.Any]
-c_pid_t: typing.Type[typing.Any]
-c_uid_t: typing.Type[typing.Any]
-setxattr_t: typing.Type[typing.Any]
-getxattr_t: typing.Type[typing.Any]
+c_dev_t: type[typing.Any]
+c_fsblkcnt_t: type[typing.Any]
+c_fsfilcnt_t: type[typing.Any]
+c_gid_t: type[typing.Any]
+c_mode_t: type[typing.Any]
+c_off_t: type[typing.Any]
+c_pid_t: type[typing.Any]
+c_uid_t: type[typing.Any]
+setxattr_t: type[typing.Any]
+getxattr_t: type[typing.Any]
 
-if _system in ('Darwin', 'Darwin-MacFuse', 'FreeBSD'):
+if sys.platform in ('darwin', 'freebsd'):
     ENOTSUP = 45
     c_dev_t = ctypes.c_int32
     c_fsblkcnt_t = ctypes.c_ulong
@@ -153,7 +148,7 @@ if _system in ('Darwin', 'Darwin-MacFuse', 'FreeBSD'):
         ctypes.c_size_t,
         ctypes.c_uint32,
     )
-    if _system == 'Darwin':
+    if sys.platform == 'darwin':
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('st_mode', c_mode_t),
@@ -190,7 +185,7 @@ if _system in ('Darwin', 'Darwin-MacFuse', 'FreeBSD'):
             ('st_blocks', ctypes.c_int64),
             ('st_blksize', ctypes.c_int32),
         ]
-elif _system == 'Linux':
+elif sys.platform == 'linux':
     ENOTSUP = 95
 
     c_dev_t = ctypes.c_ulonglong
@@ -218,7 +213,7 @@ elif _system == 'Linux':
         ctypes.c_size_t,
     )
 
-    if _machine == 'x86_64':
+    if platform.machine() == 'x86_64':
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('st_ino', ctypes.c_ulong),
@@ -235,7 +230,7 @@ elif _system == 'Linux':
             ('st_mtimespec', c_timespec),
             ('st_ctimespec', c_timespec),
         ]
-    elif _machine == 'mips':
+    elif platform.machine() == 'mips':
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('__pad1_1', ctypes.c_ulong),
@@ -274,7 +269,7 @@ elif _system == 'Linux':
             ('__pad7_13', ctypes.c_ulong),
             ('__pad7_14', ctypes.c_ulong),
         ]
-    elif _machine == 'ppc':
+    elif platform.machine() == 'ppc':
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('st_ino', ctypes.c_ulonglong),
@@ -291,7 +286,7 @@ elif _system == 'Linux':
             ('st_mtimespec', c_timespec),
             ('st_ctimespec', c_timespec),
         ]
-    elif _machine in ('ppc64', 'ppc64le'):
+    elif platform.machine() in ('ppc64', 'ppc64le'):
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('st_ino', ctypes.c_ulong),
@@ -308,7 +303,7 @@ elif _system == 'Linux':
             ('st_mtimespec', c_timespec),
             ('st_ctimespec', c_timespec),
         ]
-    elif _machine == 'aarch64':
+    elif platform.machine() == 'aarch64':
         c_stat._fields_ = [
             ('st_dev', c_dev_t),
             ('st_ino', ctypes.c_ulong),
@@ -346,8 +341,8 @@ elif _system == 'Linux':
             ('st_ctimespec', c_timespec),
             ('st_ino', ctypes.c_ulonglong),
         ]
-elif _system == 'Windows' or _system.startswith('CYGWIN'):
-    ENOTSUP = 129 if _system == 'Windows' else 134
+elif sys.platform == 'win32' or sys.platform.startswith('cygwin'):
+    ENOTSUP = 129 if sys.platform == 'win32' else 134
     c_dev_t = ctypes.c_uint
     c_fsblkcnt_t = c_win_ulong
     c_fsfilcnt_t = c_win_ulong
@@ -391,7 +386,7 @@ else:
     raise NotImplementedError(f'{_system} is not supported.')
 
 
-if _system == 'FreeBSD':
+if sys.platform == 'freebsd':
     c_fsblkcnt_t = ctypes.c_uint64
     c_fsfilcnt_t = ctypes.c_uint64
     setxattr_t = ctypes.CFUNCTYPE(
@@ -424,7 +419,7 @@ if _system == 'FreeBSD':
             ('f_frsize', ctypes.c_ulong),
         ]
 
-elif _system == 'Windows' or _system.startswith('CYGWIN'):
+elif sys.platform == 'win32' or sys.platform.startswith('cygwin'):
 
     class c_statvfs(ctypes.Structure):  # type: ignore
         _fields_ = [
@@ -460,7 +455,7 @@ else:
         ]
 
 
-if _system == 'Windows' or _system.startswith('CYGWIN'):
+if sys.platform == 'win32' or sys.platform.startswith('cygwin'):
 
     class fuse_file_info(ctypes.Structure):  # pyright: ignore
         _fields_ = [
@@ -698,7 +693,7 @@ def time_of_timespec(ts: c_timespec, use_ns: bool = False) -> float:
 def set_st_attrs(st: c_stat, attrs: collections.abc.Mapping[str, int]) -> None:
     for key, val in attrs.items():
         if key in ('st_atime', 'st_mtime', 'st_ctime', 'st_birthtime'):
-            timespec: typing.Optional[c_timespec] = getattr(st, key + 'spec', None)
+            timespec: c_timespec | None = getattr(st, key + 'spec', None)
             if timespec is None:
                 continue
 
@@ -707,7 +702,7 @@ def set_st_attrs(st: c_stat, attrs: collections.abc.Mapping[str, int]) -> None:
             setattr(st, key, val)
 
 
-def fuse_get_context() -> typing.Tuple[int, int, int]:
+def fuse_get_context() -> tuple[int, int, int]:
     'Returns a (uid, gid, pid) tuple'
 
     ctxp = _libfuse.fuse_get_context()
@@ -753,7 +748,7 @@ class FUSE:
         mountpoint: str,
         *,
         raw_fi: bool = False,
-        encoding: typing.Optional[str] = None,
+        encoding: str | None = None,
         **kwargs: typing.Any,
     ) -> None:
         '''
@@ -822,7 +817,7 @@ class FUSE:
             raise RuntimeError(err)
 
     @staticmethod
-    def _normalize_fuse_options(**kwargs: typing.Any) -> typing.Generator[str, None, None]:
+    def _normalize_fuse_options(**kwargs: typing.Any) -> collections.abc.Generator[str, None, None]:
         for key, value in kwargs.items():
             if isinstance(value, bool):
                 if value is True:
@@ -884,7 +879,7 @@ class FUSE:
             fuse_exit()
             return -errno.EFAULT
 
-    def _decode_optional_path(self, path: typing.Optional[bytes]) -> typing.Optional[str]:
+    def _decode_optional_path(self, path: bytes | None) -> str | None:
         # NB: this method is intended for fuse operations that
         #     allow the path argument to be NULL,
         #     *not* as a generic path decoding method
@@ -973,7 +968,7 @@ class FUSE:
 
     def write(
         self,
-        path: typing.Optional[bytes],
+        path: bytes | None,
         buf: typing.Any,
         size: int,
         offset: int,
@@ -997,7 +992,7 @@ class FUSE:
             if hasattr(stv, key):
                 setattr(stv, key, val)
 
-    def flush(self, path: typing.Optional[bytes], fip: typing.Any) -> None:
+    def flush(self, path: bytes | None, fip: typing.Any) -> None:
         if self.raw_fi:
             fh = fip.contents
         else:
@@ -1005,7 +1000,7 @@ class FUSE:
 
         self.operations.flush(self._decode_optional_path(path), fh)
 
-    def release(self, path: typing.Optional[bytes], fip: typing.Any) -> None:
+    def release(self, path: bytes | None, fip: typing.Any) -> None:
         if self.raw_fi:
             fh = fip.contents
         else:
@@ -1013,7 +1008,7 @@ class FUSE:
 
         return self.operations.release(self._decode_optional_path(path), fh)
 
-    def fsync(self, path: typing.Optional[bytes], datasync: bool, fip: typing.Any) -> None:
+    def fsync(self, path: bytes | None, datasync: bool, fip: typing.Any) -> None:
         if self.raw_fi:
             fh = fip.contents
         else:
@@ -1108,11 +1103,11 @@ class FUSE:
             if filler(buf, name.encode(self.encoding), st, offset) != 0:
                 break
 
-    def releasedir(self, path: typing.Optional[bytes], fip: typing.Any) -> None:
+    def releasedir(self, path: bytes | None, fip: typing.Any) -> None:
         # Ignore raw_fi
         return self.operations.releasedir(self._decode_optional_path(path), fip.contents.fh)
 
-    def fsyncdir(self, path: typing.Optional[bytes], datasync: bool, fip: typing.Any) -> None:
+    def fsyncdir(self, path: bytes | None, datasync: bool, fip: typing.Any) -> None:
         # Ignore raw_fi
         return self.operations.fsyncdir(self._decode_optional_path(path), datasync, fip.contents.fh)
 
@@ -1133,7 +1128,7 @@ class FUSE:
         else:
             fi.fh = self.operations.create(path.decode(self.encoding), mode, None)
 
-    def ftruncate(self, path: typing.Optional[bytes], length: int, fip: typing.Any) -> int:
+    def ftruncate(self, path: bytes | None, length: int, fip: typing.Any) -> int:
         if self.raw_fi:
             fh = fip.contents
         else:
@@ -1142,7 +1137,7 @@ class FUSE:
         self.operations.truncate(self._decode_optional_path(path), length, fh)
         return 0
 
-    def fgetattr(self, path: typing.Optional[bytes], buf: typing.Any, fip: typing.Any) -> None:
+    def fgetattr(self, path: bytes | None, buf: typing.Any, fip: typing.Any) -> None:
         ctypes.memset(buf, 0, ctypes.sizeof(c_stat))
 
         st: c_stat = buf.contents
@@ -1158,7 +1153,7 @@ class FUSE:
 
     def lock(
         self,
-        path: typing.Optional[bytes],
+        path: bytes | None,
         fip: typing.Any,
         cmd: bytes,
         lock: typing.Any,
@@ -1171,7 +1166,7 @@ class FUSE:
         return self.operations.lock(self._decode_optional_path(path), fh, cmd, lock)
 
     def utimens(self, path: bytes, buf: typing.Any) -> int:
-        times: typing.Optional[tuple[float, float]] = None
+        times: tuple[float, float] | None = None
         times = (
             (
                 time_of_timespec(buf.contents.actime),
@@ -1244,16 +1239,16 @@ class Operations:
     def destroy(self, path: str) -> None:
         '''Called on filesystem destruction. Path is always /'''
 
-    def flush(self, path: typing.Optional[str], fh: typing.Any) -> None:
+    def flush(self, path: str | None, fh: typing.Any) -> None:
         pass
 
-    def fsync(self, path: typing.Optional[str], datasync: bool, fh: typing.Any) -> None:
+    def fsync(self, path: str | None, datasync: bool, fh: typing.Any) -> None:
         pass
 
-    def fsyncdir(self, path: typing.Optional[str], datasync: bool, fh: typing.Any) -> None:
+    def fsyncdir(self, path: str | None, datasync: bool, fh: typing.Any) -> None:
         pass
 
-    def getattr(self, path: typing.Optional[str], fh: typing.Any = None) -> dict[str, int]:
+    def getattr(self, path: str | None, fh: typing.Any = None) -> dict[str, int]:
         '''
         Returns a dictionary with keys identical to the stat C structure of
         stat(2).
@@ -1288,7 +1283,7 @@ class Operations:
     def listxattr(self, path: str) -> list[str]:
         return []
 
-    def lock(self, path: typing.Optional[str], fh: typing.Any, cmd: bytes, lock: typing.Any) -> int:
+    def lock(self, path: str | None, fh: typing.Any, cmd: bytes, lock: typing.Any) -> int:
         return 0
 
     def mkdir(self, path: str, mode: int) -> None:
@@ -1313,14 +1308,14 @@ class Operations:
         'Returns a numerical file handle.'
         return 0
 
-    def read(self, path: typing.Optional[str], size: int, offset: int, fh: typing.Any) -> bytes:
+    def read(self, path: str | None, size: int, offset: int, fh: typing.Any) -> bytes:
         'Returns a string containing the data requested.'
 
         raise FuseOSError(errno.EIO)
 
     def readdir(
         self, path: str, fh: typing.Any
-    ) -> typing.Union[list[str], list[tuple[str, dict[str, int], int]]]:
+    ) -> list[str] | list[tuple[str, dict[str, int], int]]:
         '''
         Can return either a list of names, or a list of (name, attrs, offset)
         tuples. attrs is a dict as in getattr.
@@ -1331,10 +1326,10 @@ class Operations:
     def readlink(self, path: str) -> str:
         raise FuseOSError(errno.ENOENT)
 
-    def release(self, path: typing.Optional[str], fh: typing.Any) -> None:
+    def release(self, path: str | None, fh: typing.Any) -> None:
         pass
 
-    def releasedir(self, path: typing.Optional[str], fh: typing.Any) -> None:
+    def releasedir(self, path: str | None, fh: typing.Any) -> None:
         pass
 
     def removexattr(self, path: str, name: str) -> None:
@@ -1349,7 +1344,7 @@ class Operations:
     def setxattr(self, path: str, name: str, value: str, options: int, position: int = 0) -> None:
         raise FuseOSError(ENOTSUP)
 
-    def statfs(self, path: str) -> dict[str, typing.Union[int, float]]:
+    def statfs(self, path: str) -> dict[str, int | float]:
         '''
         Returns a dictionary with keys identical to the statvfs C structure of
         statvfs(3).
@@ -1365,16 +1360,16 @@ class Operations:
 
         raise FuseOSError(errno.EROFS)
 
-    def truncate(self, path: typing.Optional[str], length: int, fh: typing.Any = None) -> None:
+    def truncate(self, path: str | None, length: int, fh: typing.Any = None) -> None:
         raise FuseOSError(errno.EROFS)
 
     def unlink(self, path: str) -> None:
         raise FuseOSError(errno.EROFS)
 
-    def utimens(self, path: str, times: typing.Optional[tuple[float, float]] = None) -> int:
+    def utimens(self, path: str, times: tuple[float, float]| None = None) -> int:
         'Times is a (atime, mtime) tuple. If None use current time.'
 
         return 0
 
-    def write(self, path: typing.Optional[str], data: bytes, offset: int, fh: typing.Any) -> int:
+    def write(self, path: str | None, data: bytes, offset: int, fh: typing.Any) -> int:
         raise FuseOSError(errno.EROFS)

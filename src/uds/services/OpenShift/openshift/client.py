@@ -118,7 +118,7 @@ class OpenshiftClient:
         url = self.api_url + path
         if parameters:
             url += '?' + urllib.parse.urlencode(
-                parameters, doseq=True, safe='[]', quote_via=urllib.parse.quote_plus
+                parameters, doseq=True, safe='[]'
             )
         return url
 

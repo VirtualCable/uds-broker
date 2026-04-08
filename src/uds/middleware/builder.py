@@ -26,20 +26,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
- Author: Adolfo Gómez, dkmaster at dkmon dot com
+Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
+import inspect
 import logging
 import typing
 import collections.abc
-import asyncio
 
 from django.utils.decorators import sync_and_async_middleware
 
 from django.conf import settings
 
-if typing.TYPE_CHECKING:
-    from django.http import HttpResponse
-    from uds.core.types.requests import ExtendedHttpRequest
+from django.http import HttpResponse
+from uds.core.types.requests import ExtendedHttpRequest
 
 
 logger = logging.getLogger(__name__)
@@ -47,14 +46,16 @@ logger = logging.getLogger(__name__)
 # How often to check the requests cache for stuck objects
 CHECK_SECONDS = 3600 * 24  # Once a day is more than enough
 
-RequestMiddelwareProcessorType = collections.abc.Callable[['ExtendedHttpRequest'], typing.Optional['HttpResponse']]
-ResponseMiddelwareProcessorType = collections.abc.Callable[['ExtendedHttpRequest', 'HttpResponse'], 'HttpResponse']
+RequestMiddelwareProcessorType = collections.abc.Callable[[ExtendedHttpRequest], HttpResponse|None]
+ResponseMiddelwareProcessorType = collections.abc.Callable[[ExtendedHttpRequest, HttpResponse], HttpResponse]
 
 
 def build_middleware(
     request_processor: RequestMiddelwareProcessorType,
     response_processor: ResponseMiddelwareProcessorType,
-) -> collections.abc.Callable[[typing.Any], typing.Union[collections.abc.Callable[..., typing.Any], typing.Coroutine[typing.Any, None, None]]]:
+) -> collections.abc.Callable[
+    [typing.Any], collections.abc.Callable[..., typing.Any] | collections.abc.Coroutine[typing.Any, None, None]
+]:
     """
     Creates a method to be used as a middleware, synchronously or asynchronously.
     Currently, the is forced to sync an production, but it will be changed in the future to allow async
@@ -63,8 +64,8 @@ def build_middleware(
     @sync_and_async_middleware
     def middleware(
         get_response: typing.Any,
-    ) -> typing.Union[collections.abc.Callable[..., typing.Any], typing.Coroutine[typing.Any, None, None]]:
-        if settings.DEBUG and asyncio.iscoroutinefunction(get_response):
+    ) -> collections.abc.Callable[..., typing.Any] | collections.abc.Coroutine[typing.Any, None, None]:
+        if settings.DEBUG and inspect.iscoroutinefunction(get_response):
 
             async def async_middleware(
                 request: 'ExtendedHttpRequest',

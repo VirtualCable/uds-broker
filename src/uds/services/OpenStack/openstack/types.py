@@ -34,6 +34,7 @@ import datetime
 import typing
 import dataclasses
 import enum
+import collections.abc
 
 from django.utils import timezone
 
@@ -266,7 +267,7 @@ class ServerInfo:
 
         @staticmethod
         def from_addresses(adresses: dict[str, list[dict[str, typing.Any]]]) -> list['ServerInfo.AddresInfo']:
-            def _build() -> typing.Generator['ServerInfo.AddresInfo', None, None]:
+            def _build() -> collections.abc.Generator['ServerInfo.AddresInfo', None, None]:
                 for net_name, inner_addresses in adresses.items():
                     for address in inner_addresses:
                         address_info = ServerInfo.AddresInfo.from_dict(address)
@@ -284,7 +285,7 @@ class ServerInfo:
     addresses: list[AddresInfo]  # network_name: AddresInfo
     access_addr_ipv4: str
     access_addr_ipv6: str
-    fault: typing.Optional[str]
+    fault: str | None
     admin_pass: str
 
     def validated(self) -> 'ServerInfo':
@@ -315,7 +316,7 @@ class ServerInfo:
         flavor = d.get('flavor', {}).get('id', '')
         return ServerInfo(
             id=d['id'],
-            name=d.get('name', d['id']),  # On create server, name is not returned, so use id
+            name=d.get('name') or d['id'],  # On create server, name is not returned, so use id
             href=href,
             flavor=flavor,
             status=ServerStatus.from_str(d.get('status', ServerStatus.UNKNOWN.value)),

@@ -188,7 +188,7 @@ class WinDomainOsManager(WindowsOsManager):
             yield (str(server.target)[:-1], server.port)
 
     def _connect_ldap(
-        self, servers: typing.Optional[collections.abc.Iterable[tuple[str, int]]] = None
+        self, servers: collections.abc.Iterable[tuple[str, int]] | None = None
     ) -> typing.Any:
         """
         Tries to connect to LDAP
@@ -223,10 +223,10 @@ class WinDomainOsManager(WindowsOsManager):
 
         raise ldaputil.LDAPError(_error_string)
 
-    def _get_group(self, ldap_connection: 'ldaputil.LDAPConnection') -> typing.Optional[str]:
+    def _get_group(self, ldap_connection: 'ldaputil.LDAPConnection') -> str | None:
         base = ','.join(['DC=' + i for i in self.domain.as_str().split('.')])
         group = ldaputil.escape(self.grp.as_str())
-        obj: typing.Optional[collections.abc.MutableMapping[str, typing.Any]]
+        obj: collections.abc.MutableMapping[str, typing.Any] | None
         try:
             obj = next(
                 ldaputil.as_dict(
@@ -245,14 +245,14 @@ class WinDomainOsManager(WindowsOsManager):
 
         return obj['dn']  # Returns the DN
 
-    def _get_machine(self, ldap_connection: 'ldaputil.LDAPConnection', machine_name: str) -> typing.Optional[str]:
+    def _get_machine(self, ldap_connection: 'ldaputil.LDAPConnection', machine_name: str) -> str | None:
         # if self.ou.as_str():
         #     base = self.ou.as_str()
         # else:
         base = ','.join(['DC=' + i for i in self.domain.as_str().split('.')])
 
         fltr = f'(&(objectClass=computer)(sAMAccountName={ldaputil.escape(machine_name)}$))'
-        obj: typing.Optional[collections.abc.MutableMapping[str, typing.Any]]
+        obj: collections.abc.MutableMapping[str, typing.Any] | None
         try:
             obj = next(
                 ldaputil.as_dict(
@@ -281,7 +281,7 @@ class WinDomainOsManager(WindowsOsManager):
             return
 
         # The machine is on a AD for sure, and maybe they are not already sync
-        error: typing.Optional[str] = None
+        error: str | None = None
         for s in self._get_server_list():
             try:
                 ldap_connection = self._connect_ldap(servers=(s,))

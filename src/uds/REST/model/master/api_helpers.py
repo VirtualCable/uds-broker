@@ -48,10 +48,11 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T = typing.TypeVar('T', bound=models.Model)
+T_Item = typing.TypeVar('T_Item', bound=types.rest.BaseRestItem)
 
 
 def api_paths(
-    cls: type['ModelHandler[types.rest.T_Item]'], path: str, tags: list[str], security: str
+    cls: type['ModelHandler[T_Item]'], path: str, tags: list[str], security: str
 ) -> dict[str, types.rest.api.PathItem]:
     """
     Returns the API operations that should be registered

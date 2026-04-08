@@ -40,6 +40,7 @@ from django.db import models
 from django.utils.translation import gettext as _
 
 from uds.core import consts, exceptions, types, module
+from uds.core.types.rest import T_Item
 from uds.core.util.model import process_uuid
 from uds.core.util import api as api_utils, model as model_utils
 from uds.REST.utils import rest_result
@@ -48,6 +49,7 @@ from uds.REST.model.base import BaseModelHandler
 from uds.REST.utils import camel_and_snake_case_from
 
 T = typing.TypeVar('T', bound=models.Model)
+T_Item = typing.TypeVar('T_Item', bound=types.rest.BaseRestItem)
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
@@ -64,7 +66,7 @@ logger = logging.getLogger(__name__)
 # noinspection PyMissingConstructor
 
 
-class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
+class DetailHandler(BaseModelHandler[T_Item], abc.ABC):
     """
     Detail handler (for relations such as provider-->services, authenticators-->users,groups, deployed services-->cache,assigned, groups, transports
     Urls recognized for GET are:
@@ -87,7 +89,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
     """
 
     CUSTOM_METHODS: typing.ClassVar[list[str]] = []
-    _parent: 'ModelHandler[types.rest.T_Item] | None'  # Parent handler, that is the ModelHandler that contains this detail
+    _parent: 'ModelHandler[T_Item] | None'  # Parent handler, that is the ModelHandler that contains this detail
     _path: str
     _params: typing.Any  # _params is deserialized object from request
     _args: list[str]
@@ -96,7 +98,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
 
     def __init__(
         self,
-        parent_handler: 'ModelHandler[types.rest.T_Item]',
+        parent_handler: 'ModelHandler[T_Item]',
         path: str,
         params: typing.Any,
         *args: str,
@@ -253,7 +255,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
     # Override this to provide functionality
     # Default (as sample) get_items
     @abc.abstractmethod
-    def get_items(self, parent: models.Model) -> types.rest.ItemsResult[types.rest.T_Item]:
+    def get_items(self, parent: models.Model) -> types.rest.ItemsResult[T_Item]:
         """
         This MUST be overridden by derived classes
         Excepts to return a list of dictionaries or a single dictionary, depending on "item" param
@@ -266,7 +268,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         raise NotImplementedError(f'Must provide an get_items method for {self.__class__} class')
 
     @abc.abstractmethod
-    def get_item(self, parent: models.Model, item: str) -> types.rest.T_Item:
+    def get_item(self, parent: models.Model, item: str) -> T_Item:
         """
         Utility method to get a single item by uuid
         :param parent: Parent model
@@ -276,7 +278,7 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         raise NotImplementedError(f'Must provide an get_item method for {self.__class__} class')
 
     # Default save
-    def save_item(self, parent: models.Model, item: str | None) -> types.rest.T_Item:
+    def save_item(self, parent: models.Model, item: str | None) -> T_Item:
         """
         Invoked for a valid "put" operation
         If this method is not overridden, the detail class will not have "Save/modify" operations.
@@ -410,6 +412,6 @@ class DetailHandler(BaseModelHandler[types.rest.T_Item], abc.ABC):
         """
         Returns the API operations that should be registered
         """
-        from .api_helpers import api_paths
+        from .api_helpers import api_paths  # Avoid circular import
 
         return api_paths(cls, path, tags=tags, security=security)

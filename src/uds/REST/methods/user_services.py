@@ -118,7 +118,7 @@ class AssignedUserService(DetailHandler[UserServiceItem]):
             os_state=item.os_state,
             state_date=item.state_date,
             creation_date=item.creation_date,
-            revision=item.publication and str(item.publication.revision) or '',
+            revision=f'{item.publication.revision if item.publication else ""}',
             ip=props.get('ip', _('unknown')),
             actor_version=props.get('actor_version', _('unknown')),
         )

@@ -134,7 +134,7 @@ class Authenticators(ModelHandler[AuthenticatorItem]):
     @classmethod
     def extra_type_info(
         cls: type[typing.Self], type_: type['Module']
-    ) -> typing.Optional[AuthenticatorTypeInfo]:
+    ) -> AuthenticatorTypeInfo | None:
         if issubclass(type_, auths.Authenticator):
             return AuthenticatorTypeInfo(
                 search_users_supported=type_.search_users != auths.Authenticator.search_users,

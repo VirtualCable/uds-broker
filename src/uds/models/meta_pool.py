@@ -102,7 +102,7 @@ class MetaPool(UUIDModel, TaggingMixin):
     # "fake" declarations for type checking
     # objects: 'models.BaseManager["MetaPool"]'
     calendarAccess: 'models.manager.RelatedManager[CalendarAccessMeta]'
-    members: 'models.manager.RelatedManager["MetaPoolMember"]'
+    members: 'models.manager.RelatedManager[MetaPoolMember]'
 
     class Meta(UUIDModel.Meta):  # pyright: ignore
         """
@@ -142,7 +142,7 @@ class MetaPool(UUIDModel, TaggingMixin):
                 maintenance += 1
         return total == maintenance
 
-    def is_access_allowed(self, check_datetime: typing.Optional['datetime.datetime'] = None) -> bool:
+    def is_access_allowed(self, check_datetime: 'datetime.datetime | None' = None) -> bool:
         """
         Checks if the access for a service pool is allowed or not (based esclusively on associated calendars)
         """
@@ -216,7 +216,7 @@ class MetaPool(UUIDModel, TaggingMixin):
 
     @staticmethod
     def metapools_for_groups(
-        groups: collections.abc.Iterable['Group'], user: typing.Optional['User'] = None
+        groups: collections.abc.Iterable['Group'], user: 'User | None' = None
     ) -> 'QuerySet[MetaPool]':
         """
         Return deployed services with publications for the groups requested.

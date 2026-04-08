@@ -32,7 +32,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import logging
 import os
-import typing
 
 from django.utils.translation import gettext_lazy
 from django.utils.translation import gettext_noop as _
@@ -225,7 +224,7 @@ class BaseX2GOTransport(transports.Transport):
 
     def process_user_password(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
     ) -> types.connections.ConnectionData:
@@ -254,7 +253,7 @@ class BaseX2GOTransport(transports.Transport):
 
     def get_connection_info(
         self,
-        userservice: typing.Union['models.UserService', 'models.ServicePool'],
+        userservice: 'models.UserService | models.ServicePool',
         user: 'models.User',
         password: str,
         *,

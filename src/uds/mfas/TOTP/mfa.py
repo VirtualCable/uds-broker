@@ -150,7 +150,7 @@ class TOTP_MFA(mfas.MFA):
         # Compose the QR code from provisioning URI
         totp = self.get_totp(userid, username)
         uri = totp.provisioning_uri()
-        img: bytes = qrcode.make(uri)  # pyright: ignore
+        img = qrcode.make(uri)  # pyright: ignore
         img_bytestream = io.BytesIO()
         img.save(img_bytestream, format='PNG')  # type: ignore  # pylance complains abot format, but it is ok
         # Convert to base64 to be used in html img tag

@@ -98,7 +98,7 @@ class Dispatcher(View):
 
         # Now, service points to the class that will process the request
         # We get the '' node, that is the "current" node, and get the class from it
-        cls: typing.Optional[type[Handler]] = handler_node.handler
+        cls: type[Handler] | None = handler_node.handler
         if not cls:
             return http.HttpResponseNotFound('Method not found', content_type="text/plain")
 
@@ -117,7 +117,7 @@ class Dispatcher(View):
         # Path here has "remaining" path, that is, method part has been removed
         args = path[len(node_full_path) :].split('/')[1:]  # First element is always empty, so we skip it
 
-        handler: typing.Optional[Handler] = None
+        handler: Handler | None = None
 
         try:
             handler = cls(

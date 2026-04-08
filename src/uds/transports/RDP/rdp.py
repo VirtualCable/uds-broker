@@ -32,7 +32,6 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 '''
 import logging
 import typing
-import collections.abc
 
 from django.utils.translation import gettext_noop as _
 
@@ -157,7 +156,7 @@ class RDPTransport(BaseRDPTransport):
             r.password = '__NO_PASSWORD__'
             r.domain = 'UDS'  # Fake in fact for SSO, but needed so xfreerdp3 do not ask for domain
 
-        sp: collections.abc.MutableMapping[str, typing.Any] = {
+        sp: dict[str, typing.Any] = {
             'password': ci.password,
             'this_server': request.build_absolute_uri('/'),
             'ip': ip,
