@@ -17,7 +17,7 @@ let fss = null;
 let theFile = data.as_file_ns;
 
 if (data.ticket) {
-    // Abrir túnel
+    // Open tunnel
     fs = await Tasks.startTunnel(
         data.tunHost,
         parseInt(data.tunPort),
@@ -25,14 +25,14 @@ if (data.ticket) {
         data.tunWait,
         data.tunChk,
     );
-    // Comprobar que el túnel funciona
+    // Check that the tunnel works
     if (!fs) {
         throw new Error('<p>Could not connect to tunnel server.</p><p>Please, check your network settings.</p>');
     }
 }
 
 if (data.ticket_secure) {
-    // Abrir túnel seguro
+    // Open secure tunnel
     theFile = data.as_file;
     fss = await Tasks.startTunnel(
         data.tunHost,
@@ -41,13 +41,13 @@ if (data.ticket_secure) {
         data.tunWait,
         data.tunChk,
     );
-    // Comprobar que el túnel seguro funciona
+    // Check that the secure tunnel works
     if (!fss) {
         throw new Error('<p>Could not connect to tunnel server 2.</p><p>Please, check your network settings.</p>');
     }
 }
 
-// Formatear el archivo con los puertos de los túneles
+// Format the file with the tunnel ports
 theFile = theFile
     .replace('{secure_port}', fss ? fss.port : '-1')
     .replace('{port}', fs ? fs.port : '-1');

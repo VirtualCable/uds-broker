@@ -52,7 +52,7 @@ const thincast_list = [
     '/Applications/ThinCast Remote Desktop Client.localized/ThinCast Remote Desktop Client.app',
 ];
 
-const xfreerdp_list = ['udsrdp', 'xfreerdp', 'xfreerdp3', 'xfreerdp2'];
+const xfreerdp_list = ['xfreerdp3', 'xfreerdp2', 'xfreerdp'];
 
 // Look for msrdc, and if allow_msrdc is set, prepare error message
 let msrdExecutable = null;
@@ -74,6 +74,7 @@ if (data.allow_msrdc) {
         }
     }
 }
+const udsrdpExecutable = Process.findExecutable('udsrdp');
 let xfreeRdpExecutable = null;
 for (let executable of xfreerdp_list) {
     if (Process.findExecutable(executable)) {
@@ -89,7 +90,7 @@ for (let appPath of thincast_list) {
     }
 }
 
-if (!thincastExecutable && !xfreeRdpExecutable && !msrdExecutable) {
+if (!udsrdpExecutable && !thincastExecutable && !xfreeRdpExecutable && !msrdExecutable) {
     Logger.error('No RDP client found on system');
     throw new Error(errorString.replace('{msrd}', msrd).replace('{msrd_li}', msrd_li));
 }
@@ -108,9 +109,9 @@ const tunnelAddress = `127.0.0.1:${tunnel.port}`;
 
 let params = [];
 
-// First preference is thincast, then freerdp and then msrdc (if allowed)
-if (thincastExecutable || xfreeRdpExecutable) {
-    let executablePath = thincastExecutable || xfreeRdpExecutable;
+// Preference order: 1st udsrdp, 2nd thincast, 3rd xfreerdp, 4th msrdc (if allowed)
+if (udsrdpExecutable || thincastExecutable || xfreeRdpExecutable) {
+    let executablePath = udsrdpExecutable || thincastExecutable || xfreeRdpExecutable;
     Logger.info(`Using RDP client at ${executablePath}`);
     // We have thincast or xfreerdp: if rdp file is provided, use it
     if (data.as_file) {
