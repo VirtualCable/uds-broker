@@ -35,7 +35,7 @@ import dataclasses
 import logging
 import typing
 
-from django.db.models import Model
+from django.db.models import Count, Model
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
@@ -45,6 +45,9 @@ from uds.core.util import ensure, permissions
 from uds.core.util import ui as ui_utils
 from uds.models import OSManager
 from uds.REST.model import ModelHandler
+
+if typing.TYPE_CHECKING:
+    from django.db.models.query import QuerySet
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +77,8 @@ class OsManagers(ModelHandler[OsManagerItem]):
         .text_column(name='comments', title=_('Comments'))
         .numeric_column(name='deployed_count', title=_('Used by'), width='8em')
         .text_column(name='tags', title=_('Tags'), visible=False)
+        .with_field_mappings(type_name='data_type')
+        .with_filter_fields('name', 'data_type', 'comments')
         .build()
     )
 
@@ -81,6 +86,13 @@ class OsManagers(ModelHandler[OsManagerItem]):
     REST_API_INFO = types.rest.api.RestApiInfo(
         typed=types.rest.api.RestApiInfoGuiType.MULTIPLE_TYPES,
     )
+
+    def apply_sort(self, qs: 'QuerySet[typing.Any]') -> 'list[typing.Any] | QuerySet[typing.Any]':
+        if field_info := self.get_sort_field_info('deployed_count'):
+            _, is_descending = field_info
+            order_by_field = '-deployed_count' if is_descending else 'deployed_count'
+            return qs.annotate(deployed_count=Count('deployedServices')).order_by(order_by_field)
+        return super().apply_sort(qs)
 
     def os_manager_as_dict(self, item: OSManager) -> OsManagerItem:
         type_ = item.get_type()

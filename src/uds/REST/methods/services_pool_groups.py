@@ -71,6 +71,7 @@ class ServicesPoolGroups(ModelHandler[ServicePoolGroupItem]):
         .image(name='thumb', title=_('Image'), width='96px')
         .text_column(name='name', title=_('Name'))
         .text_column(name='comments', title=_('Comments'))
+        .with_filter_fields('name', 'comments')
         .build()
     )
 

@@ -91,6 +91,8 @@ class ServersTokens(ModelHandler[TokenItem]):
         .text_column(name='os', title=_('OS'), visible=True)
         .text_column(name='username', title=_('Issued by'), visible=True)
         .datetime_column(name='stamp', title=_('Date'), visible=True)
+        .with_field_mappings(username='register_username', os='os_type')
+        .with_filter_fields('hostname', 'ip', 'mac', 'register_username', 'os_type')
         .build()
     )
 

@@ -32,6 +32,7 @@ import re
 import contextvars
 import logging
 import hashlib
+import collections.abc
 
 import lark
 
@@ -55,7 +56,7 @@ _DB_QUERY_PARSER_VAR: typing.Final[contextvars.ContextVar[lark.Lark]] = contextv
     "db_query_parser"
 )
 
-_REMOVE_QUOTES_RE: typing.Final[typing.Pattern[str]] = re.compile(r"^(['\"])(.*)\1$")
+_REMOVE_QUOTES_RE: typing.Final[re.Pattern[str]] = re.compile(r"^(['\"])(.*)\1$")
 
 
 class FieldName(str):
@@ -70,7 +71,7 @@ class AnnotatedField(str):
     pass
 
 
-_UNARY_FUNCTIONS: typing.Final[dict[str, typing.Callable[[F], typing.Any]]] = {
+_UNARY_FUNCTIONS: typing.Final[dict[str, collections.abc.Callable[[F], typing.Any]]] = {
     'tolower': Lower,
     'toupper': Upper,
     'trim': lambda arg: Func(arg, function='TRIM'),

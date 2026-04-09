@@ -83,6 +83,7 @@ class Accounts(ModelHandler[AccountItem]):
         .text_column(name='comments', title=_('Comments'))
         .datetime_column(name='time_mark', title=_('Time mark'))
         .text_column(name='tags', title=_('tags'), visible=False)
+        .with_filter_fields('name', 'comments')
         .build()
     )
 
