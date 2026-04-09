@@ -97,7 +97,7 @@ class X2GOTransport(BaseX2GOTransport):
             pack=self.pack.value,
             quality=self.quality.value,
             sound=self.sound.as_bool(),
-            sound_system=self.sound.value,
+            sound_system=self.sound_type.value,
             window_manager=desktop,
             exports=self.exports.as_bool(),
             rootless=rootless,

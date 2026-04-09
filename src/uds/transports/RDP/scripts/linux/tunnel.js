@@ -15,7 +15,7 @@ const executablePath =
     Process.findExecutable('thincast-client') ||
     Process.findExecutable('thincast') ||
     Process.findExecutable('xfreerdp3') ||
-    Process.findExecutable('xfreerdp') ||
+    Process.findExecutable('xfreerdp2') ||
     Process.findExecutable('xfreerdp');
 
 if (!executablePath) {
@@ -27,13 +27,14 @@ if (!executablePath) {
 let parameters = data.freerdp_params.map((param) => Utils.expandVars(param));
 
 // Raises an exception if tunnel cannot be started
-let tunnel = await Tasks.startTunnel(
-    data.tunnel.host,
-    data.tunnel.port,
-    data.tunnel.ticket,
-    data.tunnel.startup_time,
-    data.tunnel.verify_ssl,
-);
+const tunnel = await Tasks.startTunnel({
+    addr: data.tunnel.host,
+    port: data.tunnel.port,
+    ticket: data.tunnel.ticket,
+    startup_time_ms: data.tunnel.startup_time,
+    check_certificate: data.tunnel.verify_ssl,
+    shared_secret: data.shared_secret
+});
 
 let process = null;
 
