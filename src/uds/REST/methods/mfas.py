@@ -46,6 +46,9 @@ from uds.core.util import ensure, permissions
 from uds.core.util import ui as ui_utils
 from uds.REST.model import ModelHandler
 
+if typing.TYPE_CHECKING:
+    from django.db.models.query import QuerySet
+
 logger = logging.getLogger(__name__)
 
 # Enclosed methods under /item path
@@ -75,6 +78,8 @@ class MFA(ModelHandler[MFAItem]):
         .text_column(name='type_name', title=_('Type'))
         .text_column(name='comments', title=_('Comments'))
         .text_column(name='tags', title=_('tags'), visible=False)
+        .with_field_mappings(type_name='data_type')
+        .with_filter_fields('name', 'data_type', 'comments')
         .build()
     )
 
@@ -86,6 +91,13 @@ class MFA(ModelHandler[MFAItem]):
     @classmethod
     def possible_types(cls: type[typing.Self]) -> collections.abc.Iterable[type[mfas.MFA]]:
         return mfas.factory().providers().values()
+
+    def apply_sort(self, qs: 'QuerySet[typing.Any]') -> 'list[typing.Any] | QuerySet[typing.Any]':
+        if field_info := self.get_sort_field_info('type_name'):
+            _, is_descending = field_info
+            order_by_field = '-data_type' if is_descending else 'data_type'
+            return qs.order_by(order_by_field)
+        return super().apply_sort(qs)
 
     def get_gui(self, for_type: str) -> list[types.ui.GuiElement]:
         mfa_type = mfas.factory().lookup(for_type)

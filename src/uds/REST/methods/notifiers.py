@@ -47,6 +47,9 @@ from uds.core.util import ui as ui_utils
 from uds.models import LogLevel, Notifier
 from uds.REST.model import ModelHandler
 
+if typing.TYPE_CHECKING:
+    from django.db.models.query import QuerySet
+
 logger = logging.getLogger(__name__)
 
 # Enclosed methods under /item path
@@ -85,6 +88,8 @@ class Notifiers(ModelHandler[NotifierItem]):
         .boolean(name='enabled', title=_('Enabled'))
         .text_column(name='comments', title=_('Comments'))
         .text_column(name='tags', title=_('Tags'), visible=False)
+        .with_field_mappings(type_name='data_type')
+        .with_filter_fields('name', 'data_type', 'comments')
     ).build()
 
     # Rest api related information to complete the auto-generated API
@@ -128,6 +133,13 @@ class Notifiers(ModelHandler[NotifierItem]):
                 )
                 .build()
             )
+
+    def apply_sort(self, qs: 'QuerySet[typing.Any]') -> 'list[typing.Any] | QuerySet[typing.Any]':
+        if field_info := self.get_sort_field_info('type_name'):
+            _, is_descending = field_info
+            order_by_field = '-data_type' if is_descending else 'data_type'
+            return qs.order_by(order_by_field)
+        return super().apply_sort(qs)
 
     def get_item(self, item: 'Model') -> NotifierItem:
         item = ensure.is_instance(item, Notifier)

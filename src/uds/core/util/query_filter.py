@@ -88,7 +88,7 @@ T = typing.TypeVar('T')
 
 _QUERY_PARSER_VAR: typing.Final[contextvars.ContextVar[lark.Lark]] = contextvars.ContextVar("query_parser")
 
-_REMOVE_QUOTES_RE: typing.Final[typing.Pattern[str]] = re.compile(r"^(['\"])(.*)\1$")
+_REMOVE_QUOTES_RE: typing.Final[re.Pattern[str]] = re.compile(r"^(['\"])(.*)\1$")
 
 _FUNCTIONS_PARAMS_NUM: dict[str, int] = {
     # Variable parameters
@@ -142,7 +142,7 @@ class QueryTransformer(lark.Transformer[typing.Any, _T_Result]):
                     value = typing.cast(str, arg.value).lower() == 'true'
                 case _:
                     raise ValueError(f"Unexpected token type: {arg.type}")
-        elif isinstance(arg, typing.Callable):
+        elif isinstance(arg, collections.abc.Callable):
             return arg
 
         return lambda _obj: value
@@ -303,9 +303,9 @@ class QueryTransformer(lark.Transformer[typing.Any, _T_Result]):
             )
         match func_name:
             case 'substringof':
-                return lambda obj: str(args[1](obj)).find(str(args[0](obj))) != -1
+                return lambda obj: str(args[1](obj)).lower().find(str(args[0](obj)).lower()) != -1
             case 'contains':
-                return lambda obj: str(args[0](obj)).find(str(args[1](obj))) != -1
+                return lambda obj: str(args[0](obj)).lower().find(str(args[1](obj)).lower()) != -1
             case 'substring':
                 if len(args) == 2:
                     return lambda obj: str(args[0](obj))[int(args[1](obj)) :]
@@ -314,9 +314,9 @@ class QueryTransformer(lark.Transformer[typing.Any, _T_Result]):
                 else:
                     raise ValueError(f"substring function requires 2 or 3 arguments")
             case 'startswith':
-                return lambda obj: str(args[0](obj)).startswith(str(args[1](obj)))
+                return lambda obj: str(args[0](obj)).lower().startswith(str(args[1](obj)).lower())
             case 'endswith':
-                return lambda obj: str(args[0](obj)).endswith(str(args[1](obj)))
+                return lambda obj: str(args[0](obj)).lower().endswith(str(args[1](obj)).lower())
             case 'indexof':
                 return lambda obj: str(args[0](obj)).find(str(args[1](obj)))
             case 'concat':

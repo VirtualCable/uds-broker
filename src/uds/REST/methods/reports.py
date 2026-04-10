@@ -86,6 +86,7 @@ class Reports(model.BaseModelHandler[ReportItem]):
         .text_column(name='description', title=_('Description'), visible=True)
         .text_column(name='mime_type', title=_('Generates'), visible=True)
         .row_style(prefix='row-state-', field='state')
+        .with_filter_fields('group', 'name', 'description', 'mime_type')
         .build()
     )
 
@@ -122,7 +123,7 @@ class Reports(model.BaseModelHandler[ReportItem]):
             self._args,
             error,
             ((), lambda: list(self.filter_odata_data(self.get_items()))),
-            ((consts.rest.OVERVIEW,), lambda: list(self.get_items())),
+            ((consts.rest.OVERVIEW,), lambda: list(self.filter_odata_data(self.get_items()))),
             (
                 (consts.rest.TABLEINFO,),
                 lambda: self.TABLE.as_dict(),

@@ -484,11 +484,17 @@ class Handler(abc.ABC):
         else:
             data = list(data)
 
-        # Get total items and set it on X-Total-Count
+        # Get total items and set it on X-Total-Count (before pagination)
         try:
             self.add_header('X-Total-Count', len(data))
         except Exception as e:
             raise exceptions.rest.RequestError(f'Invalid odata: {e}')
+
+        # Apply pagination (consistent with filter_odata_queryset)
+        if self.odata.start is not None:
+            data = data[self.odata.start :]
+        if self.odata.limit is not None:
+            data = data[: self.odata.limit]
 
         return data
 

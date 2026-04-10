@@ -119,6 +119,7 @@ class Authenticators(ModelHandler[AuthenticatorItem]):
         .text_column(name='mfa_name', title=_('MFA'))
         .text_column(name='tags', title=_('tags'), visible=False)
         .row_style(prefix='row-state-', field='state')
+        .with_filter_fields('name', 'data_type', 'comments', 'small_name')
         .build()
     )
 
