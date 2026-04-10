@@ -72,34 +72,15 @@ class UDSAppConfig(AppConfig):
         # Now, ensures that all dynamic elements are loaded and present
         # To make sure that the packages are already initialized at this point
 
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import services
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import auths
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import mfas
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import osmanagers
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import notifiers
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import transports
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import reports
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import dispatchers
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import plugins
-
-        # pylint: disable=unused-import,import-outside-toplevel
         from . import REST
 
 
@@ -113,10 +94,13 @@ def extend_sqlite(connection: typing.Any = None, **kwargs: typing.Any) -> None:
     if connection and connection.vendor == "sqlite":
         logger.debug(f'Connection vendor for %s is sqlite, extending methods', connection)
         cursor = connection.cursor()
-        cursor.execute('PRAGMA synchronous=OFF')
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.execute('PRAGMA cache_size=-16384')
-        cursor.execute('PRAGMA temp_store=MEMORY')
-        cursor.execute('PRAGMA journal_mode=WAL')
+        cursor.execute("PRAGMA temp_store=MEMORY")
         cursor.execute('PRAGMA mmap_size=67108864')
-        connection.connection.create_function("MIN", 2, min)
-        connection.connection.create_function("MAX", 2, max)
+        cursor.execute("PRAGMA journal_size_limit=6144000")
+        cursor.execute("PRAGMA busy_timeout=5000")    
+        # Sqlite 3.x has already these functions, kept for reference
+        # connection.connection.create_function("MIN", 2, min)
+        # connection.connection.create_function("MAX", 2, max)
