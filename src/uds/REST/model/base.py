@@ -42,6 +42,7 @@ from uds.core import exceptions
 from uds.core import types
 from uds.core.util import permissions
 from uds.core.module import Module
+from uds.REST.utils import sanitize_params
 
 # from uds.models import ManagedObjectModel
 
@@ -170,7 +171,7 @@ class BaseModelHandler(Handler, abc.ABC, typing.Generic[T_Item]):
         """
         Invokes a test for an item
         """
-        logger.debug('Called base test for %s --> %s', self.__class__.__name__, self._params)
+        logger.debug('Called base test for %s --> %s', self.__class__.__name__, sanitize_params(self._params))
         raise exceptions.rest.NotSupportedError(_('Testing not supported'))
 
     @classmethod

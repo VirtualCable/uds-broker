@@ -64,9 +64,7 @@ class Handler(abc.ABC):
     REST requests handler base class
     """
 
-    NAME: typing.ClassVar[str | None] = (
-        None  # If name is not used, name will be the class name in lower case
-    )
+    NAME: typing.ClassVar[str | None] = None  # If name is not used, name will be the class name in lower case
     PATH: typing.ClassVar[str | None] = (
         None  # Path for this method, so we can do /auth/login, /auth/logout, /auth/auths in a simple way
     )
@@ -219,6 +217,10 @@ class Handler(abc.ABC):
         if self._session is None:
             raise Exception('No session available')
         return self._session
+    
+    @property
+    def full_path(self) -> str:
+        return self._path
 
     # Auth related
     def get_auth_token(self) -> str | None:
@@ -513,3 +515,9 @@ class Handler(abc.ABC):
         Returns the API operations that should be registered
         """
         return {}
+
+
+class ErrorHandler(Handler):
+    """
+    This handler is used to return errors in a consistent way, and to log them properly
+    """

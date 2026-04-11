@@ -49,7 +49,7 @@ from uds.core.util import log, permissions, model as model_utils, api as api_uti
 from uds.models import ManagedObjectModel, Tag, TaggingMixin
 
 from uds.REST.model.base import BaseModelHandler
-from uds.REST.utils import camel_and_snake_case_from
+from uds.REST.utils import camel_and_snake_case_from, sanitize_params
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
@@ -171,7 +171,7 @@ class ModelHandler(BaseModelHandler[T_Item], abc.ABC):
     # Helper to process detail
     # Details can be managed (writen) by any user that has MANAGEMENT permission over parent
     def process_detail(self) -> typing.Any:
-        logger.debug('Processing detail %s for with params %s', self._path, self._params)
+        logger.debug('Processing detail %s for with params %s', self._path, sanitize_params(self._params))
         try:
             item: models.Model = self.MODEL.objects.get(uuid__iexact=self._args[0])
             # If we do not have access to parent to, at least, read...
@@ -304,7 +304,7 @@ class ModelHandler(BaseModelHandler[T_Item], abc.ABC):
                             'Invalid custom method exception %s/%s/%s: %s',
                             self.__class__.__name__,
                             self._args,
-                            self._params,
+                            sanitize_params(self._params),
                             e,
                         )
                         raise exceptions.rest.ResponseError(
@@ -409,7 +409,7 @@ class ModelHandler(BaseModelHandler[T_Item], abc.ABC):
         try:
             # Extract fields
             args = self.fields_from_params(self.FIELDS_TO_SAVE)
-            logger.debug('Args: %s', args)
+            logger.debug('Args: %s', sanitize_params(args))
             self.pre_save(fields=args)
             # If tags is in save fields, treat it "specially"
             if 'tags' in self.FIELDS_TO_SAVE:

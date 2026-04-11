@@ -46,7 +46,7 @@ from uds.core.util import api as api_utils, model as model_utils
 from uds.REST.utils import rest_result
 
 from uds.REST.model.base import BaseModelHandler
-from uds.REST.utils import camel_and_snake_case_from
+from uds.REST.utils import camel_and_snake_case_from, sanitize_params
 
 T = typing.TypeVar('T', bound=models.Model)
 T_Item = typing.TypeVar('T_Item', bound=types.rest.BaseRestItem)
@@ -201,7 +201,7 @@ class DetailHandler(BaseModelHandler[T_Item], abc.ABC):
         Evaluates if it is a new element or a "modify" operation (based on if it has parameter),
         and invokes "save_item" with parent & item (that can be None for a new Item)
         """
-        logger.debug('Detail args for PUT: %s, %s', self._args, self._params)
+        logger.debug('Detail args for PUT: %s, %s', self._args, sanitize_params(self._params))
 
         parent: models.Model = self._parent_item
 

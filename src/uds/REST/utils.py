@@ -42,7 +42,13 @@ def rest_result(result: typing.Any, **kwargs: typing.Any) -> dict[str, typing.An
     Returns a REST result
     '''
     # A common possible value in kwargs is "error"
-    return {'result': result, 'stamp': sql_stamp_seconds(), 'version': consts.system.VERSION, 'build': consts.system.VERSION_STAMP,**kwargs}
+    return {
+        'result': result,
+        'stamp': sql_stamp_seconds(),
+        'version': consts.system.VERSION,
+        'build': consts.system.VERSION_STAMP,
+        **kwargs,
+    }
 
 
 def camel_and_snake_case_from(text: str) -> tuple[str, str]:
@@ -59,7 +65,7 @@ def camel_and_snake_case_from(text: str) -> tuple[str, str]:
 
 
 def to_incremental_json(
-    source: collections.abc.Generator[typing.Any, None, None]
+    source: collections.abc.Generator[typing.Any, None, None],
 ) -> collections.abc.Generator[str, None, None]:
     '''
     Converts a generator to a json incremental string
@@ -73,3 +79,25 @@ def to_incremental_json(
             yield ','
         yield json.dumps(item)
     yield ']'
+
+
+def sanitize_params(params: dict[str, typing.Any]) -> dict[str, typing.Any]:
+    '''
+    Sanitizes parameters for logging, hiding sensitive info like passwords, tokens, etc.
+    '''
+    sensitive_keys = ('password', 'token', 'secret', 'pass')
+    res: dict[str, typing.Any] = {}
+    for k, v in params.items():
+        match v:
+            case str() if any(s in k.lower() for s in sensitive_keys):
+                res[k] = '********'
+            case dict():
+                res[k] = sanitize_params(typing.cast(dict[str, typing.Any], v))
+            case list():
+                res[k] = [
+                    sanitize_params(x) if isinstance(x, dict) else x
+                    for x in typing.cast(dict[str, typing.Any], v)
+                ]
+            case _:
+                res[k] = v
+    return res

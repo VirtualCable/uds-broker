@@ -35,8 +35,10 @@ import sys
 import typing
 import collections.abc
 import traceback
+import json
 
 from django import http
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ObjectDoesNotExist
 from django.views.decorators.csrf import csrf_exempt
@@ -47,7 +49,7 @@ from uds.core.util import modfinder
 from uds.core.util.model import sql_stamp_seconds
 
 from . import processors, log
-from .handlers import Handler
+from .handlers import Handler, ErrorHandler
 from . import model as rest_model
 
 # Not imported at runtime, just for type checking
@@ -58,6 +60,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['Handler', 'Dispatcher']
 
+T = typing.TypeVar('T', bound=http.HttpResponse)
+
 
 class Dispatcher(View):
     """
@@ -66,6 +70,22 @@ class Dispatcher(View):
 
     # This attribute will contain all paths--> handler relations, filled at Initialized method
     root_node: typing.ClassVar[types.rest.HandlerNode] = types.rest.HandlerNode('', None, None, {})
+
+    @staticmethod
+    def error_response(err_cls: type[T], handler: Handler | None, msg: str, exc: Exception | None = None) -> T:
+
+        # If debug, log the error with traceback
+        if getattr(settings, 'DEBUG', False):
+            trace_back = traceback.format_exc()
+            logger.error('Exception processing request: %s', handler.full_path if handler else 'unknown')
+            for i in trace_back.splitlines():
+                logger.error('* %s', i)
+            # Append error exception to message response
+            msg = f'{msg}: {str(exc)}' if exc else msg
+
+        if handler:
+            log.log_operation(handler, err_cls.status_code, types.log.LogLevel.ERROR)
+        return err_cls(json.dumps({"error": msg}).encode(), content_type="application/json")
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: 'http.request.HttpRequest', path: str) -> 'http.HttpResponse':
@@ -100,7 +120,11 @@ class Dispatcher(View):
         # We get the '' node, that is the "current" node, and get the class from it
         cls: type[Handler] | None = handler_node.handler
         if not cls:
-            return http.HttpResponseNotFound('Method not found', content_type="text/plain")
+            return Dispatcher.error_response(
+                http.HttpResponseNotFound,
+                ErrorHandler(request, handler_node.full_path(), 'get', {}),
+                'Method not found',
+            )
 
         processor = processors.available_processors_mime_dict.get(content_type, processors.default_processor)(
             request
@@ -110,7 +134,11 @@ class Dispatcher(View):
         http_method: str = request.method.lower() if request.method else ''
         # ensure method is recognized
         if http_method not in ('get', 'post', 'put', 'delete'):
-            return http.HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'], content_type="text/plain")
+            return Dispatcher.error_response(
+                http.HttpResponseNotAllowed,
+                ErrorHandler(request, handler_node.full_path(), http_method, {}),
+                f'Method {http_method.upper()} not allowed',
+            )
 
         node_full_path: typing.Final[str] = handler_node.full_path()
 
@@ -130,32 +158,19 @@ class Dispatcher(View):
             processor.set_odata(handler.odata)
             operation: collections.abc.Callable[[], typing.Any] = getattr(handler, http_method)
         except processors.ParametersException as e:
-            logger.debug(
-                'Path: %s',
-            )
-            logger.debug('Error: %s', e)
+            return Dispatcher.error_response(http.HttpResponseBadRequest, handler, 'Invalid parameters', e)
 
-            log.log_operation(handler, 400, types.log.LogLevel.ERROR)
-            return http.HttpResponseBadRequest(
-                f'Invalid parameters invoking {handler_node.full_path()}: {e}',
-                content_type="text/plain",
-            )
         except AttributeError:
+            # Special case, allowed methods must be on response, so not using Dispatcher.error_response
             allowed_methods: list[str] = [n for n in ['get', 'post', 'put', 'delete'] if hasattr(handler, n)]
             log.log_operation(handler, 405, types.log.LogLevel.ERROR)
             return http.HttpResponseNotAllowed(
                 allowed_methods, content=b'{"error": "Invalid method"}', content_type="application/json"
             )
         except exceptions.rest.AccessDenied:
-            log.log_operation(handler, 403, types.log.LogLevel.ERROR)
-            return http.HttpResponseForbidden(b'{"error": "Access denied"}', content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseForbidden, handler, 'Access denied')
         except Exception:
-            log.log_operation(handler, 500, types.log.LogLevel.ERROR)
-            logger.exception('error accessing attribute')
-            logger.debug('Getting attribute %s for %s', http_method, handler_node.full_path())
-            return http.HttpResponseServerError(
-                b'{"error": "Unexpected error"}', content_type="application/json"
-            )
+            return Dispatcher.error_response(http.HttpResponseServerError, handler, 'Unexpected error')
 
         # Invokes the handler's operation, add headers to response and returns
         try:
@@ -177,6 +192,12 @@ class Dispatcher(View):
             # Set response headers
             response['UDS-Version'] = f'{consts.system.VERSION};{consts.system.VERSION_STAMP}'
             response['Response-Stamp'] = sql_stamp_seconds()
+
+            # Security headers for REST API
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+
             for k, val in handler.headers().items():
                 response[k] = val
 
@@ -187,40 +208,25 @@ class Dispatcher(View):
             # Note that the order of exceptions is important
             # because some exceptions are subclasses of others
         except exceptions.rest.NotSupportedError as e:
-            log.log_operation(handler, 501, types.log.LogLevel.ERROR)
-            return http.HttpResponseBadRequest(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseBadRequest, handler, 'Not supported', e)
         except exceptions.rest.AccessDenied as e:
-            log.log_operation(handler, 403, types.log.LogLevel.ERROR)
-            return http.HttpResponseForbidden(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseForbidden, handler, 'Access denied', e)
         except exceptions.rest.NotFound as e:
-            log.log_operation(handler, 404, types.log.LogLevel.ERROR)
-            return http.HttpResponseNotFound(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseNotFound, handler, 'Not found', e)
         except exceptions.rest.RequestError as e:
-            log.log_operation(handler, 400, types.log.LogLevel.ERROR)
-            return http.HttpResponseBadRequest(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            # Request Error has an error message implicit
+            return Dispatcher.error_response(http.HttpResponseBadRequest, handler, f'Request error: {e}')
         except exceptions.rest.ResponseError as e:
-            log.log_operation(handler, 500, types.log.LogLevel.ERROR)
-            return http.HttpResponseServerError(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            # Response Error has an error message implicit
+            return Dispatcher.error_response(http.HttpResponseServerError, handler, f'Response error: {e}')
         except exceptions.rest.HandlerError as e:
-            log.log_operation(handler, 500, types.log.LogLevel.ERROR)
-            return http.HttpResponseBadRequest(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseBadRequest, handler, 'Handler error', e)
         except exceptions.services.generics.Error as e:
-            log.log_operation(handler, 503, types.log.LogLevel.ERROR)
-            return http.HttpResponseServerError(
-                f'{{"error": "{e}"}}'.encode(), content_type="application/json", status=503
-            )
+            return Dispatcher.error_response(http.HttpResponseServerError, handler, 'Service error', e)
         except ObjectDoesNotExist as e:  # All DoesNotExist exceptions are not found
-            log.log_operation(handler, 404, types.log.LogLevel.ERROR)
-            return http.HttpResponseNotFound(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseNotFound, handler, 'Not found', e)
         except Exception as e:
-            log.log_operation(handler, 500, types.log.LogLevel.ERROR)
-            # Get ecxeption backtrace
-            trace_back = traceback.format_exc()
-            logger.error('Exception processing request: %s', handler_node.full_path())
-            for i in trace_back.splitlines():
-                logger.error('* %s', i)
-
-            return http.HttpResponseServerError(f'{{"error": "{e}"}}'.encode(), content_type="application/json")
+            return Dispatcher.error_response(http.HttpResponseServerError, handler, 'Unexpected error', e)
 
     @staticmethod
     def register_handler(type_: type[Handler]) -> None:

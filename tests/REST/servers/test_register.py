@@ -30,6 +30,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import typing
 import logging
+import collections.abc
 
 from uds import models
 from uds.core import types, consts
@@ -65,7 +66,7 @@ class ServerRegisterTest(rest.test.RESTTestCase):
         }
         self.login(as_admin=False)  # As staff
         
-    def ip_type_os_generator(self) -> typing.Generator[tuple[str, int, str], None, None]:
+    def ip_type_os_generator(self) -> collections.abc.Generator[tuple[str, int, str], None, None]:
         for ip_v in 4, 6:
             for type in types.servers.ServerType:
                 for os in types.os.KnownOS:
