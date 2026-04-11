@@ -65,7 +65,7 @@ def _encode_value(key: str, value: typing.Any) -> str:
     return base64.b64encode(pickle.dumps((MARK, key, value))).decode()
 
 
-def _decode_value(dbk: str, value: typing.Optional[str]) -> tuple[str, typing.Any]:
+def _decode_value(dbk: str, value: str | None) -> tuple[str, typing.Any]:
     if value:
         try:
             v = pickle.loads(base64.b64decode(value.encode()))  # nosec: This is e controled pickle loading
@@ -95,7 +95,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
         def __contains__(self, key: object) -> bool:
             return key in self._storage
 
-        def __iter__(self) -> typing.Iterator[tuple[str, typing.Any]]:
+        def __iter__(self) -> collections.abc.Iterator[tuple[str, typing.Any]]:
             return self._storage.items_iter()
 
         def __len__(self) -> int:
@@ -110,7 +110,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
         def __contains__(self, key: object) -> bool:
             return key in self._storage
 
-        def __iter__(self) -> typing.Iterator[str]:
+        def __iter__(self) -> collections.abc.Iterator[str]:
             return self._storage.keys_iter()
 
         def __len__(self) -> int:
@@ -125,7 +125,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
         def __contains__(self, value: object) -> bool:
             return value in self._storage.values_iter()
 
-        def __iter__(self) -> typing.Iterator[typing.Any]:
+        def __iter__(self) -> collections.abc.Iterator[typing.Any]:
             return self._storage.values_iter()
 
         def __len__(self) -> int:
@@ -138,7 +138,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
     def __init__(
         self,
         owner: str,
-        group: typing.Optional[str],
+        group: str | None,
         atomic: bool = False,
     ) -> None:
         """Initializes an storage as dict accesor
@@ -156,7 +156,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
 
     def _db(
         self, *, skip_locked: bool = False
-    ) -> typing.Union[models.QuerySet[DBStorage], models.Manager[DBStorage]]:
+    ) -> 'models.QuerySet[DBStorage] | models.Manager[DBStorage]':
         if self._atomic:
             if skip_locked:
                 # TODO: add skip_locked (as select_for_update(...) argument) ASAP (mariadb 10.6+)
@@ -219,7 +219,7 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
         dbk = self._key(key)
         DBStorage.objects.filter(key=dbk).delete()
 
-    def __iter__(self) -> typing.Iterator[str]:
+    def __iter__(self) -> collections.abc.Iterator[str]:
         """
         Iterates through keys
         """
@@ -233,16 +233,16 @@ class StorageAsDict(collections.abc.MutableMapping[str, typing.Any]):
     def __len__(self) -> int:
         return self._filtered().count()
 
-    def items_iter(self) -> typing.Iterator[tuple[str, typing.Any]]:
+    def items_iter(self) -> collections.abc.Iterator[tuple[str, typing.Any]]:
         return iter(_decode_value(i.key, i.data) for i in self._filtered())
 
-    def keys_iter(self) -> typing.Iterator[str]:
+    def keys_iter(self) -> collections.abc.Iterator[str]:
         return iter(_decode_value(i.key, i.data)[0] for i in self._filtered())
 
-    def values_iter(self) -> typing.Iterator[typing.Any]:
+    def values_iter(self) -> collections.abc.Iterator[typing.Any]:
         return iter(_decode_value(i.key, i.data)[1] for i in self._filtered())
 
-    def unlocked_items(self) -> typing.Iterator[tuple[str, typing.Any]]:
+    def unlocked_items(self) -> collections.abc.Iterator[tuple[str, typing.Any]]:
         return iter(_decode_value(i.key, i.data) for i in self._filtered(skip_locked=True))
 
     # Optimized methods, avoid re-reading from DB
@@ -278,7 +278,7 @@ class Storage:
     _owner: str
     _bownwer: bytes
 
-    def __init__(self, owner: typing.Union[str, bytes]):
+    def __init__(self, owner: str | bytes):
         if isinstance(owner, bytes):
             self._owner = owner.decode('utf-8')
             self._bowner = owner
@@ -290,7 +290,7 @@ class Storage:
         else:
             raise TypeError(f'Owner must be str or bytes, {type(owner)} found')
 
-    def get_key(self, key: typing.Union[str, bytes], old_method: bool = False) -> str:
+    def get_key(self, key: str | bytes, old_method: bool = False) -> str:
         bkey: bytes = key.encode('utf8') if isinstance(key, str) else key
         if not old_method:
             return _calculate_key(self._bowner, bkey)
@@ -298,9 +298,9 @@ class Storage:
 
     def save_to_db(
         self,
-        skey: typing.Union[str, bytes],
+        skey: str | bytes,
         data: typing.Any,
-        attr1: typing.Optional[str] = None,
+        attr1: str | None = None,
     ) -> None:
         # If None is to be saved, remove
         if not data:
@@ -320,14 +320,14 @@ class Storage:
                     owner=self._owner, data=data_encoded, attr1=attr1
                 )  # @UndefinedVariable
 
-    def put(self, skey: typing.Union[str, bytes], data: typing.Any) -> None:
+    def put(self, skey: str | bytes, data: typing.Any) -> None:
         return self.save_to_db(skey, data)
 
     def save_pickled(
         self,
-        skey: typing.Union[str, bytes],
+        skey: str | bytes,
         data: typing.Any,
-        attr1: typing.Optional[str] = None,
+        attr1: str | None = None,
     ) -> None:
         return self.save_to_db(
             skey,
@@ -342,15 +342,15 @@ class Storage:
 
     def update_to_db(
         self,
-        skey: typing.Union[str, bytes],
+        skey: str | bytes,
         data: typing.Any,
-        attr1: typing.Optional[str] = None,
+        attr1: str | None = None,
     ) -> None:
         self.save_to_db(skey, data, attr1)
 
     def read_from_db(
-        self, skey: typing.Union[str, bytes], from_pickle: bool = False
-    ) -> typing.Optional[typing.Union[str, bytes]]:
+        self, skey: str | bytes, from_pickle: bool = False
+    ) -> str | bytes | None:
         for use_old_method in (False, True):
             try:
                 key = self.get_key(skey, old_method=use_old_method)
@@ -375,22 +375,22 @@ class Storage:
                 pass
         return None
 
-    def read(self, skey: typing.Union[str, bytes]) -> typing.Optional[typing.Union[str, bytes]]:
+    def read(self, skey: str | bytes) -> str | bytes | None:
         return self.read_from_db(skey)
 
-    def read_string(self, skey: typing.Union[str, bytes]) -> typing.Optional[str]:
+    def read_string(self, skey: str | bytes) -> str | None:
         data = self.read(skey)
         if isinstance(data, bytes):
             return data.decode('utf-8')
         return data
 
-    def read_bytes(self, skey: typing.Union[str, bytes]) -> typing.Optional[bytes]:
+    def read_bytes(self, skey: str | bytes) -> bytes | None:
         data = self.read(skey)
         if isinstance(data, str):
             return data.encode('utf-8')
         return data
 
-    def read_pickled(self, skey: typing.Union[str, bytes]) -> typing.Any:
+    def read_pickled(self, skey: str | bytes) -> typing.Any:
         v = self.read_from_db(skey, True)
         if v:
             return pickle.loads(typing.cast(bytes, v))  # nosec: This is e controled pickle loading
@@ -408,9 +408,9 @@ class Storage:
             return None
 
     def remove(
-        self, skey: typing.Union[collections.abc.Iterable[typing.Union[str, bytes]], str, bytes]
+        self, skey: collections.abc.Iterable[str | bytes] | str | bytes
     ) -> None:
-        keys: 'collections.abc.Iterable[str|bytes]'
+        keys: collections.abc.Iterable[str | bytes]
         if isinstance(skey, (str, bytes)):
             keys = [skey]
         else:
@@ -425,9 +425,9 @@ class Storage:
     @contextlib.contextmanager
     def as_dict(
         self,
-        group: typing.Optional[str] = None,
+        group: str | None = None,
         atomic: bool = False,
-    ) -> typing.Iterator[StorageAsDict]:
+    ) ->collections.abc.Generator[StorageAsDict]:
         if atomic:
             with transaction.atomic():
                 yield StorageAsDict(self._owner, group=group, atomic=True)
@@ -435,7 +435,7 @@ class Storage:
             yield StorageAsDict(self._owner, group=group, atomic=False)
 
     def search_by_attr1(
-        self, attr1: typing.Union[collections.abc.Iterable[str], str]
+        self, attr1: collections.abc.Iterable[str] | str
     ) -> collections.abc.Iterable[bytes]:
         if isinstance(attr1, str):
             query = DBStorage.objects.filter(owner=self._owner, attr1=attr1)  # @UndefinedVariable
@@ -446,7 +446,7 @@ class Storage:
             yield codecs.decode(v.data.encode(), 'base64')
 
     def filter(
-        self, attr1: typing.Optional[str] = None, for_update: bool = False
+        self, attr1: str | None = None, for_update: bool = False
     ) -> collections.abc.Iterable[tuple[str, bytes, 'str|None']]:
         if attr1 is None:
             query = DBStorage.objects.filter(owner=self._owner)  # @UndefinedVariable
@@ -460,7 +460,7 @@ class Storage:
             yield (v.key, codecs.decode(v.data.encode(), 'base64'), v.attr1)
 
     def filter_unpickle_by_attr(
-        self, attr1: typing.Optional[str] = None, for_update: bool = False
+        self, attr1: str | None = None, for_update: bool = False
     ) -> collections.abc.Iterable[tuple[str, typing.Any, 'str|None']]:
         for v in self.filter(attr1, for_update):
             yield (v[0], pickle.loads(v[1]), v[2])  # nosec: secure pickle load
