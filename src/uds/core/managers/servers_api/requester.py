@@ -85,8 +85,8 @@ class ServerApiRequester:
 
     @contextlib.contextmanager
     def setup_session(
-        self, *, min_server_version: typing.Optional[str] = None
-    ) -> typing.Generator['requests.Session', None, None]:
+        self, *, min_server_version: str | None = None
+    ) -> collections.abc.Generator['requests.Session', None, None]:
         """
         Sets up the request for the server
         """
@@ -96,7 +96,7 @@ class ServerApiRequester:
                 f'Server version {self.server.version} is lower than minimum required {min_server_version}'
             )
         # If server has a cert, save it to a file
-        verify: typing.Union[str, bool] = False
+        verify: str | bool = False
         try:
             if self.server.certificate:
                 # Generate temp file, and delete it after
@@ -129,7 +129,7 @@ class ServerApiRequester:
                 except Exception:
                     logger.error('Error removing temp file %s', verify)
 
-    def get_comms_endpoint(self, method: str, min_version: typing.Optional[str]) -> typing.Optional[str]:
+    def get_comms_endpoint(self, method: str, min_version: str | None) -> str | None:
         """
         Returns the url for a method on the server
         """
@@ -140,7 +140,7 @@ class ServerApiRequester:
 
         return self.server.get_comms_endpoint(path=method)
 
-    def get(self, method: str, *, min_server_version: typing.Optional[str] = None) -> typing.Any:
+    def get(self, method: str, *, min_server_version: str | None = None) -> typing.Any:
         url = self.get_comms_endpoint(method, min_server_version)
         if not url:
             return None
@@ -158,7 +158,7 @@ class ServerApiRequester:
             return response.json()
 
     def post(
-        self, method: str, data: typing.Any, *, min_server_version: typing.Optional[str] = None
+        self, method: str, data: typing.Any, *, min_server_version: str | None = None
     ) -> typing.Any:
         url = self.get_comms_endpoint(method, min_server_version)
         if not url:
@@ -263,7 +263,7 @@ class ServerApiRequester:
 
         return True
 
-    def get_stats(self, enable_refresh: bool = False) -> typing.Optional['types.servers.ServerStats']:
+    def get_stats(self, enable_refresh: bool = False) -> 'types.servers.ServerStats | None':
         """
         Returns the stats of a server
         """

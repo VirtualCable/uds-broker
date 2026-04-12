@@ -61,7 +61,7 @@ class Login(Handler):
     @staticmethod
     def result(
         result: str = 'error',
-        token: typing.Optional[str] = None,
+        token: str | None = None,
         **kwargs: typing.Any,
     ) -> collections.abc.MutableMapping[str, typing.Any]:
         # Valid kwargs are: error, scrambler
@@ -127,18 +127,18 @@ class Login(Handler):
             ):
                 raise exceptions.rest.RequestError('Invalid parameters (no auth)')
 
-            auth_id: typing.Optional[str] = self._params.get(
+            auth_id: str | None = self._params.get(
                 'auth_id',
                 self._params.get('authId', None),  # Old compat, alias
             )
-            auth_label: typing.Optional[str] = self._params.get(
+            auth_label: str | None = self._params.get(
                 'auth_label',
                 self._params.get(
                     'authSmallName',  # Old compat name
                     self._params.get('authLabel', None),  # Old compat name
                 ),
             )
-            auth_name: typing.Optional[str] = self._params.get('auth', None)
+            auth_name: str | None = self._params.get('auth', None)
             platform: str = self._params.get('platform', self._request.os.os.value[0])
 
             username: str = self._params['username']

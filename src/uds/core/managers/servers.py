@@ -70,7 +70,7 @@ class ServerManager(metaclass=singleton.Singleton):
         return ServerManager()  # Singleton pattern will return always the same instance
 
     @contextlib.contextmanager
-    def counter_storage(self) -> collections.abc.Iterator[StorageAsDict]:
+    def counter_storage(self) -> collections.abc.Generator[StorageAsDict, None, None]:
         with Storage(self.STORAGE_NAME).as_dict(atomic=True, group='counters') as storage:
             # If counters are too old, restart them
             if timezone.localtime() - self.last_counters_clean > self.MAX_COUNTERS_AGE:
