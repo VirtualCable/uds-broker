@@ -826,6 +826,12 @@ class GlobalConfig:
         type=Config.FieldType.BOOLEAN,
         help=_('Allow animated backgrounds'),
     )
+    ALLOW_BIOMETRIC_AUTH: Config.Value = Config.section(Config.SectionType.SECURITY).value(
+        'Allow biometric authentication',
+        '0',
+        type=Config.FieldType.BOOLEAN,
+        help=_('Allow biometric authentication'),
+    )
 
     @staticmethod
     def is_initialized() -> bool:
