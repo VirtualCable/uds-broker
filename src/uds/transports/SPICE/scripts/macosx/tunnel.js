@@ -1,8 +1,6 @@
 'use strict';
 import { Process, Tasks, Logger, File } from 'runtime';
 
-// We receive data in "data" variable, which is an object from json readonly
-
 const remoteViewer = '/Applications/RemoteViewer.app/Contents/MacOS/RemoteViewer';
 
 const errorString = `<p>You need to have installed virt-viewer to connect to this UDS service.</p>
@@ -21,30 +19,24 @@ let fs = null;
 let fss = null;
 
 if (data.ticket) {
-    fs = await Tasks.startTunnel(
-        data.tunHost,
-        parseInt(data.tunPort),
-        data.ticket,
-        data.tunWait,
-        data.tunChk,
-    );
-    if (!fs) {
-        throw new Error('<p>Could not connect to tunnel server.</p><p>Please, check your network settings.</p>');
-    }
+    fs = await Tasks.startTunnel({
+        addr: data.tunHost,
+        port: data.tunPort,
+        ticket: data.ticket,
+        startup_time_ms: data.tunWait,
+        check_certificate: data.tunChk,
+    });
 }
 
 if (data.ticket_secure) {
     theFile = data.as_file;
-    fss = await Tasks.startTunnel(
-        data.tunHost,
-        parseInt(data.tunPort),
-        data.ticket_secure,
-        data.tunWait,
-        data.tunChk,
-    );
-    if (!fss) {
-        throw new Error('<p>Could not connect to tunnel server 2.</p><p>Please, check your network settings.</p>');
-    }
+    fss = await Tasks.startTunnel({
+        addr: data.tunHost,
+        port: data.tunPort,
+        ticket: data.ticket_secure,
+        startup_time_ms: data.tunWait,
+        check_certificate: data.tunChk,
+    });
 }
 
 theFile = theFile
@@ -53,7 +45,6 @@ theFile = theFile
 
 const filename = File.createTempFile(File.getHomeDirectory(), theFile, '.vv');
 Tasks.addEarlyUnlinkableFile(filename);
-
 Logger.debug(`Launching SPICE client (${remoteViewer}) with ${filename}`);
 const process = Process.launch(remoteViewer, [filename]);
 Tasks.addWaitableApp(process);
