@@ -9,12 +9,6 @@ if (!executablePath) {
         '<p>You must have installed latest X2GO Client in order to connect to this UDS service.</p>\n<p>Please, install the required packages for your platform</p>'
     );
 }
-Logger.info(`Using X2GO client at ${executablePath}`);
-
-Logger.info(
-    `Tunnel data: host=${data.tunnel.host}, port=${data.tunnel.port}, ticket=${data.tunnel.ticket}, verify_ssl=${data.tunnel.verify_ssl}, timeout=${data.tunnel.timeout}`,
-);
-
 const tunnel = await Tasks.startTunnel({
     addr: data.tunnel.host,
     port: data.tunnel.port,
@@ -37,7 +31,6 @@ const sessionConf = data.xf
 const sessionFile = File.createTempFile(File.getHomeDirectory(), sessionConf, '.conf');
 Tasks.addEarlyUnlinkableFile(sessionFile);
 
-Logger.debug(`Launching x2goclient: ${executablePath}`);
 const process = Process.launch(executablePath, [
     `--session-conf=${sessionFile}`,
     '--session=UDS/connect',
@@ -46,5 +39,4 @@ const process = Process.launch(executablePath, [
     '--no-menu',
     '--add-to-known-hosts',
 ]);
-Logger.info(`Created X2GO process with PID ${process}`);
 Tasks.addWaitableApp(process);
