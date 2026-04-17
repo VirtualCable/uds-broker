@@ -105,6 +105,14 @@ class Client(Handler):
         """
         return Client.result(_('Correct'))
 
+    def sign_rdp(self, rdp: str) -> dict[str, typing.Any]:
+        try:
+            # TODO: Finish this
+            # return Client.result(crypto.CryptoManager.manager().sign_rdp(rdp))
+            return {}
+        except Exception as e:
+            return Client.result(error=str(e))
+
     def process(self, ticket: str, scrambler: str, kem_key: str | None = None) -> dict[str, typing.Any]:
         """
         Processes a client request
@@ -265,6 +273,8 @@ class Client(Handler):
                         except Exception:
                             # If something goes wrong, log it as debug
                             pass
+                case 'rdp_signature':
+                    return self.sign_rdp(self._params.get('rdp') or '')
                 case _:
                     return Client.result(error='Invalid command')
 
