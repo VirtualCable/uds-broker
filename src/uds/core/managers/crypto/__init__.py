@@ -70,6 +70,7 @@ from uds.core.util import singleton
 from uds.core import types
 
 from . import kem
+from . import rdp
 
 logger = logging.getLogger(__name__)
 
@@ -403,6 +404,13 @@ class CryptoManager(metaclass=singleton.Singleton):
             value = value.encode()
 
         return hashlib.sha3_256(value).hexdigest()
+
+    # RDP related
+    def sign_rdp(self, data: str) -> str:
+        """
+        Signs the data using the key and returns the signature.
+        """
+        return rdp.sign_rdp(data)
 
     def derive_tunnel_material(self, shared_secret: bytes, ticket_id: bytes) -> types.crypto.TunnelMaterial:
         """
