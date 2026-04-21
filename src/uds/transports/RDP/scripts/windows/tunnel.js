@@ -1,5 +1,5 @@
 'use strict';
-import { Process, Tasks, Logger, File, Utils } from 'runtime';
+import { Process, Tasks, Logger, File, Utils, RDP } from 'runtime';
 
 // Try, in order of preference, to find other RDP clients
 const mstscPath = Process.findExecutable('mstsc.exe', ['C:\\Windows\\System32', 'C:\\Windows\\SysWOW64']);
@@ -32,6 +32,11 @@ const tunnel = await Tasks.startTunnel({
 
 let content = data.as_file.replace(/\{password\}/g, password);
 content = content.replace(/\{address\}/g, `127.0.0.1:${tunnel.port}`);
+
+// sign after {address} substitution, otherwise full address won't match
+if (data.ticket_sign) {
+    content = await RDP.sign(content, data.ticket_sign);
+}
 
 let rdpFilePath = File.createTempFile(null, content, '.rdp');
 let process = Process.launch(mstscPath, [rdpFilePath]);

@@ -107,10 +107,12 @@ class Client(Handler):
 
     def sign_rdp(self, rdp: str) -> dict[str, typing.Any]:
         try:
-            # TODO: Finish this
-            # return Client.result(crypto.CryptoManager.manager().sign_rdp(rdp))
-            return {}
+            logger.debug('Signing RDP (input):\n%s', rdp)
+            signed = CryptoManager.manager().sign_rdp(rdp)
+            logger.debug('Signed RDP (output):\n%s', signed)
+            return Client.result(signed)
         except Exception as e:
+            logger.exception('Error signing RDP')
             return Client.result(error=str(e))
 
     def process(self, ticket: str, scrambler: str, kem_key: str | None = None) -> dict[str, typing.Any]:
@@ -273,8 +275,6 @@ class Client(Handler):
                         except Exception:
                             # If something goes wrong, log it as debug
                             pass
-                case 'rdp_signature':
-                    return self.sign_rdp(self._params.get('rdp') or '')
                 case _:
                     return Client.result(error='Invalid command')
 
@@ -282,6 +282,31 @@ class Client(Handler):
             return Client.result(error=str(e))
 
         return Client.result(result='Ok')
+
+    def put(self) -> dict[str, typing.Any]:
+        """
+        Processes put requests
+
+        put /client/<ticket>/rdp_sign  (body: {"rdp": "..."})
+        """
+        logger.debug('Client args for PUT: %s', self._args)
+        try:
+            ticket, command = self._args[:2]
+        except ValueError:
+            return Client.result(error='Invalid request')
+
+        if command != 'rdp_sign':
+            return Client.result(error='Invalid command')
+
+        try:
+            data: dict[str, typing.Any] = TicketStore.get(ticket)
+        except TicketStore.DoesNotExist:
+            return Client.result(error=types.errors.Error.ACCESS_DENIED)
+
+        if data.get('type') != 'rdp':
+            return Client.result(error=types.errors.Error.ACCESS_DENIED)
+
+        return self.sign_rdp(self._params.get('rdp') or '')
 
     def get(self) -> dict[str, typing.Any]:
         """
