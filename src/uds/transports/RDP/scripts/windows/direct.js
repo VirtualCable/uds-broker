@@ -23,6 +23,9 @@ try {
 }
 
 let content = data.as_file.replace(/\{password\}/g, password);
+if (data.ticket_sign) {
+    content = await RDP.sign(content, data.ticket_sign);
+}
 let rdpFilePath = File.createTempFile(null, content, '.rdp');
 let process = Process.launch(mstscPath, [rdpFilePath]);
 Tasks.addEarlyUnlinkableFile(rdpFilePath);
