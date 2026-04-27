@@ -126,7 +126,8 @@ def _verify_issued_by(cert: x509.Certificate, issuer: x509.Certificate, label: s
         ) from e
 
 
-def _walk_chain(leaf: x509.Certificate, chain: list[x509.Certificate]) -> None:
+def check_chain(leaf: x509.Certificate, chain: list[x509.Certificate]) -> None:
+    # in-memory variant — used by the PFX path where there's no on-disk chain file
     now = datetime.datetime.now(datetime.timezone.utc)
     for c in (leaf, *chain):
         if not (c.not_valid_before_utc <= now <= c.not_valid_after_utc):
@@ -164,11 +165,6 @@ def _walk_chain(leaf: x509.Certificate, chain: list[x509.Certificate]) -> None:
         current = nxt
 
     raise ValueError(f'Chain depth exceeded {_MAX_CHAIN_DEPTH} (possible loop)')
-
-
-def check_chain(leaf: x509.Certificate, chain: list[x509.Certificate]) -> None:
-    # in-memory variant, for callers that already hold parsed certs (e.g. PKCS12)
-    _walk_chain(leaf, chain)
 
 
 def check_cert_chain(cert_chain: pathlib.Path | str) -> None:

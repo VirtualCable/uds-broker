@@ -28,10 +28,11 @@
 """
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
-# Shared cert/key factory for crypto manager tests.
-# Not a test module (filename does not start with ``test_``), so pytest skips collection.
+# Cert/key helpers for crypto manager tests. Underscore prefix keeps pytest from collecting it.
 import datetime
+import pathlib
 import secrets
+import tempfile
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -39,21 +40,57 @@ from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.x509.oid import NameOID
 
+from django.test import override_settings
+
+from uds.core.managers.crypto import certs as _certs
+
+from ...utils.test import UDSTestCase
+
 _PrivateKey = RSAPrivateKey | ec.EllipticCurvePrivateKey
+
+# 1024 here only because keygen dominates test runtime; not for production
+_TEST_RSA_BITS = 1024
+
+
+class CertTestCase(UDSTestCase):
+    _tmpdir: tempfile.TemporaryDirectory[str]
+    tmp: pathlib.Path
+
+    def setUp(self) -> None:
+        super().setUp()
+        _certs._system_trust_cache = None  # type: ignore[attr-defined]
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.tmp = pathlib.Path(self._tmpdir.name)
+
+    def tearDown(self) -> None:
+        _certs._system_trust_cache = None  # type: ignore[attr-defined]
+        self._tmpdir.cleanup()
+        super().tearDown()
+
+    def write(self, name: str, data: bytes) -> pathlib.Path:
+        p = self.tmp / name
+        p.write_bytes(data)
+        return p
+
+    def install_trust(self, *roots: x509.Certificate) -> None:
+        bundle = self.write('trust.pem', chain_to_pem(*roots))
+        ov = override_settings(RDP_SIGN_CA_BUNDLE=str(bundle))
+        ov.enable()
+        self.addCleanup(ov.disable)
 
 
 def _name(cn: str) -> x509.Name:
     return x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
 
 
-def make_rsa_key(size: int = 2048) -> RSAPrivateKey:
+def make_rsa_key(size: int = _TEST_RSA_BITS) -> RSAPrivateKey:
     return rsa.generate_private_key(public_exponent=65537, key_size=size)
 
 
 def build_cert(
-    subject_cn: str,
+    subject_name: x509.Name,
     subject_key: _PrivateKey,
-    issuer_cn: str,
+    issuer_name: x509.Name,
     issuer_key: _PrivateKey,
     *,
     is_ca: bool = False,
@@ -65,8 +102,8 @@ def build_cert(
     na = not_after or (now + datetime.timedelta(days=365))
     builder = (
         x509.CertificateBuilder()
-        .subject_name(_name(subject_cn))
-        .issuer_name(_name(issuer_cn))
+        .subject_name(subject_name)
+        .issuer_name(issuer_name)
         .public_key(subject_key.public_key())
         .serial_number(secrets.randbits(63))
         .not_valid_before(nb)
@@ -86,7 +123,8 @@ def self_signed(
     not_after: datetime.datetime | None = None,
 ) -> tuple[x509.Certificate, _PrivateKey]:
     key = key or make_rsa_key()
-    cert = build_cert(cn, key, cn, key, is_ca=is_ca, not_before=not_before, not_after=not_after)
+    name = _name(cn)
+    cert = build_cert(name, key, name, key, is_ca=is_ca, not_before=not_before, not_after=not_after)
     return cert, key
 
 
@@ -101,13 +139,10 @@ def issue(
     not_after: datetime.datetime | None = None,
 ) -> tuple[x509.Certificate, _PrivateKey]:
     key = key or make_rsa_key()
-    issuer_cn = issuer_cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
-    if isinstance(issuer_cn, bytes):
-        issuer_cn = issuer_cn.decode('utf-8')
     cert = build_cert(
-        cn,
+        _name(cn),
         key,
-        issuer_cn,
+        issuer_cert.subject,
         issuer_key,
         is_ca=is_ca,
         not_before=not_before,
