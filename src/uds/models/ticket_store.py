@@ -234,7 +234,6 @@ class TicketStore(UUIDModel):
         remotes: list[types.tickets.TunnelTicketRemote] | None = None,
         host: str | None = None,  # Easy single remote support
         port: int | None = None,  # Easy single remote support
-        tunnel_token: str = '',  # Tunnel identifier (tunnel token)
         extra: dict[str, typing.Any] | None = None,
     ) -> str:
         owner = CryptoManager.manager().random_string(length=8)
@@ -255,7 +254,6 @@ class TicketStore(UUIDModel):
         data = types.tickets.TunnelTicket(
             userservice=userservice,
             remotes=remotes,
-            tunnel_token=tunnel_token,
             shared_secret=None,
         )
         return (

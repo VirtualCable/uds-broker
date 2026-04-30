@@ -64,7 +64,6 @@ class TunnelTicket:
     userservice: 'UserService | None'
     remotes: list[TunnelTicketRemote] = dataclasses.field(default_factory=list[TunnelTicketRemote])
     started: datetime.datetime = dataclasses.field(default_factory=sql_now)
-    tunnel_token: str = ''
     shared_secret: bytes | None = None
 
     def remotes_as_str(self) -> str:
@@ -77,7 +76,6 @@ class TunnelTicket:
             'userservice_uuid': self.userservice.uuid if self.userservice else '',
             'remotes': '#'.join(f'{r.host},{r.port}' for r in self.remotes),
             'started': self.started.isoformat(),
-            'tunnel_token': self.tunnel_token,
             'shared_secret': self.shared_secret.hex() if self.shared_secret else '',
         }
 
@@ -101,7 +99,6 @@ class TunnelTicket:
             userservice=userservice,
             remotes=[get_remote(part) for part in data['remotes'].split('#') if part],
             started=datetime.datetime.fromisoformat(data['started']),
-            tunnel_token=data['tunnel_token'],
             shared_secret=bytes.fromhex(data['shared_secret']) if data['shared_secret'] else None,
         )
 
