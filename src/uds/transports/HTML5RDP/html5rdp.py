@@ -527,6 +527,4 @@ class HTML5RDPTransport(transports.Transport):
         path = path.rstrip('/')
 
         tunnel_server = fields.get_tunnel_from_field(self.tunnel)
-        return str(
-            f'https://{tunnel_server.host}:{tunnel_server.port}{path}/#/?data={ticket}.{scrambler}{onw}{extra_params}'
-        )
+        return f'https://{tunnel_server.host}:{tunnel_server.port}{path}/#/?data={ticket}.{scrambler}{onw}{extra_params}'

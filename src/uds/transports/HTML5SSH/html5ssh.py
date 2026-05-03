@@ -37,11 +37,8 @@ from django.utils.translation import gettext_noop as _
 
 from uds import models
 from uds.core import consts, transports, types
-from uds.core.managers.crypto import CryptoManager
 from uds.core.ui import gui
 from uds.core.util import fields
-
-from ..HTML5RDP.html5rdp import HTML5RDPTransport
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
@@ -70,94 +67,112 @@ class HTML5SSHTransport(transports.Transport):
 
     tunnel = fields.tunnel_field()
 
-    use_glyptodon = HTML5RDPTransport.use_glyptodon
-
     username = gui.TextField(
         label=_('Username'),
         order=20,
         tooltip=_('Username for SSH connection authentication.'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='username'
+        old_field_name='username',
     )
 
-    # password = gui.PasswordField(
-    #     label=_('Password'),
-    #     order=21,
-    #     tooltip=_('Password for SSH connection authentication'),
-    #     tab=types.ui.Tab.CREDENTIALS,
-    # )
-    # sshPrivateKey = gui.TextField(
-    #     label=_('SSH Private Key'),
-    #     order=22,
-    #     lines=4,
-    #     tooltip=_(
-    #         'Private key for SSH authentication. If not provided, password authentication is used.'
-    #     ),
-    #     tab=types.ui.Tab.CREDENTIALS,
-    # )
-    # sshPassphrase = gui.PasswordField(
-    #     label=_('SSH Private Key Passphrase'),
-    #     order=23,
-    #     tooltip=_(
-    #         'Passphrase for SSH private key if it is required. If not provided, but it is needed, user will be prompted for it.'
-    #     ),
-    #     tab=types.ui.Tab.CREDENTIALS,
-    # )
-
     ssh_command = gui.TextField(
-        label=_('SSH Command'),
+        label=_('SSH Command (not used right now)'),
         order=30,
         tooltip=_(
             'Command to execute on the remote server. If not provided, an interactive shell will be executed.'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshCommand'
+        old_field_name='sshCommand',
     )
-    enable_file_sharing = HTML5RDPTransport.enable_file_sharing
+
+    max_upload_size = gui.NumericField(
+        label=_('Max Upload Size (MB)'),
+        order=33,
+        default=32,
+        tooltip=_('Maximum size of uploaded files in MB. 0 means no limit (or server default).'),
+        tab=types.ui.Tab.PARAMETERS,
+    )
+
+    enable_file_sharing = gui.ChoiceField(
+        label=_('File Sharing'),
+        order=24,
+        tooltip=_('File upload/download redirection policy'),
+        default='false',
+        choices=[
+            gui.choice_item('false', _('Disable file sharing')),
+            gui.choice_item('down', _('Allow download only')),
+            gui.choice_item('up', _('Allow upload only')),
+            gui.choice_item('true', _('Allow both upload and download')),
+        ],
+        tab=types.ui.Tab.PARAMETERS,
+    )
+
     filesharing_root = gui.TextField(
         label=_('File Sharing Root'),
-        order=32,
+        order=34,
         tooltip=_('Root path for file sharing. If not provided, root directory will be used.'),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='fileSharingRoot'
+        old_field_name='fileSharingRoot',
     )
     ssh_port = gui.NumericField(
         length=40,
         label=_('SSH Server port'),
         default=22,
-        order=33,
+        order=35,
         tooltip=_('Port of the SSH server.'),
         required=True,
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshPort'
+        old_field_name='sshPort',
     )
     ssh_host_key = gui.TextField(
         label=_('SSH Host Key'),
         length=512,
-        order=34,
-        tooltip=_('Host key of the SSH server. If not provided, no verification of host identity is done. (as the line in known_hosts file)'),
+        order=36,
+        tooltip=_(
+            'Host key of the SSH server. If not provided, no verification of host identity is done. (as the line in known_hosts file)'
+        ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshHostKey'
+        old_field_name='sshHostKey',
     )
     server_keep_alive = gui.NumericField(
         length=3,
         label=_('Server Keep Alive'),
         default=30,
-        order=35,
+        order=37,
         tooltip=_(
             'Time in seconds between keep alive messages sent to server. If not provided, no keep alive messages are sent.'
         ),
         required=True,
         min_value=0,
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='serverKeepAlive'
+        old_field_name='serverKeepAlive',
+    )
+
+    enable_clipboard = gui.CheckBoxField(
+        label=_('Enable Clipboard'),
+        order=25,
+        tooltip=_(
+            'If checked, the clipboard will be redirected to remote session (if client browser supports it)'
+        ),
+        tab=types.ui.Tab.PARAMETERS,
+        default=True,
     )
 
     ticket_validity = fields.tunnel_ticket_validity_field()
 
-    force_new_window = HTML5RDPTransport.force_new_window
-    custom_glyptodon_path = HTML5RDPTransport.custom_glyptodon_path
-
+    force_new_window = gui.ChoiceField(
+        label=_('New window'),
+        order=40,
+        choices=[
+            gui.choice_item(consts.TRUE_STR, _('Always')),
+            gui.choice_item(consts.FALSE_STR, _('Never')),
+            gui.choice_item('overwrite', _('Overwrite')),
+        ],
+        default=consts.TRUE_STR,
+        tooltip=_('If true, the transport will always open in a new window'),
+        tab=types.ui.Tab.PARAMETERS,
+        old_field_name='newWindow',
+    )
 
     def is_ip_allowed(self, userservice: 'models.UserService', ip: str) -> bool:
         """
@@ -176,63 +191,41 @@ class HTML5SSHTransport(transports.Transport):
 
     def get_link(
         self,
-        userservice: 'models.UserService',  # pylint: disable=unused-argument
+        userservice: 'models.UserService',
         transport: 'models.Transport',
         ip: str,
-        os: 'types.os.DetectedOsInfo',  # pylint: disable=unused-argument
-        user: 'models.User',  # pylint: disable=unused-argument
-        password: str,  # pylint: disable=unused-argument
-        request: 'ExtendedHttpRequestWithUser',  # pylint: disable=unused-argument
+        os: 'types.os.DetectedOsInfo',
+        user: 'models.User',
+        password: str,
+        request: 'ExtendedHttpRequestWithUser',
     ) -> str:
-        # Build params dict
-        params = {
-            'protocol': 'ssh',
-            'hostname': ip,
-            'port': str(self.ssh_port.as_int()),
+        # Build extra params dict for sshhtml5 gateway
+        extra = {
+            'username': self.username.value.strip(),
+            'command': self.ssh_command.value.strip(),
+            'host_key': self.ssh_host_key.value.strip(),
+            'keepalive_interval': self.server_keep_alive.as_int(),
+            'enable_sftp': self.enable_file_sharing.value in ('up', 'down', 'true'),
+            'sftp_root': self.filesharing_root.value.strip(),
+            'allow_upload': self.enable_file_sharing.value in ('up', 'true'),
+            'allow_download': self.enable_file_sharing.value in ('down', 'true'),
+            'allow_clipboard': self.enable_clipboard.value,
+            'max_upload_size': self.max_upload_size.as_int() * 1024 * 1024,
+            'title': f'SSH {ip}',
         }
 
-        # Optional numeric keep alive. If less than 2, it is not sent
-        if self.server_keep_alive.as_int() >= 2:
-            params['server-alive-interval'] = str(self.server_keep_alive.as_int())
-
-        # Add optional parameters (strings only)
-        for i in (
-            ('username', self.username),
-            # ('password', self.password),
-            # ('private-key', self.sshPrivateKey),
-            # ('passphrase', self.sshPassphrase),
-            ('command', self.ssh_command),
-            ('host-key', self.ssh_host_key),
-        ):
-            if i[1].value.strip():
-                params[i[0]] = i[1].value.strip()
-
-        # Filesharing using guacamole sftp
-        if self.enable_file_sharing.value != 'false':
-            params['enable-sftp'] = 'true'
-
-            if self.filesharing_root.value.strip():
-                params['sftp-root-directory'] = self.filesharing_root.value.strip()
-
-            if self.enable_file_sharing.value not in ('down', 'true'):
-                params['sftp-disable-download'] = 'true'
-
-            if self.enable_file_sharing.value not in ('up', 'true'):
-                params['sftp-disable-upload'] = 'true'
-
-        logger.debug('SSH Params: %s', params)
-
-        scrambler = CryptoManager.manager().random_string(32)
-        ticket = models.TicketStore.create(params, validity=self.ticket_validity.as_int())
+        ticket = models.TicketStore.create_for_tunnel(
+            userservice=userservice,
+            port=self.ssh_port.as_int(),
+            extra=extra,
+            validity=self.ticket_validity.as_int(),
+        )
 
         onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={transport.uuid}'
         if self.force_new_window.value == consts.TRUE_STR:
             onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={userservice.deployed_service.uuid}'
         elif self.force_new_window.value == 'overwrite':
             onw = f'&{consts.transports.ON_SAME_WINDOW_VAR}=yes'
-        path = self.custom_glyptodon_path.value if self.use_glyptodon.as_bool() else '/guacamole'
-        # Remove trailing /
-        path = path.rstrip('/')
 
         tunnel_server = fields.get_tunnel_from_field(self.tunnel)
-        return f'https://{tunnel_server.host}:{tunnel_server.port}{path}/#/?data={ticket}.{scrambler}{onw}'
+        return f'https://{tunnel_server.host}:{tunnel_server.port}/ssh/?ticket={ticket}{onw}'
