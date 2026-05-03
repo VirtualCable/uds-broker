@@ -48,6 +48,28 @@ logger = logging.getLogger(__name__)
 class Stats(Handler):
     ROLE = consts.UserRole.ADMIN
 
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='Get usage statistics',
+            description='Returns usage statistics for the last 24 hours',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Usage statistics',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            additionalProperties=types.rest.api.SchemaProperty(
+                                type='array',
+                                items=types.rest.api.SchemaProperty(type='object'),
+                            ),
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
+
     def _usage_stats(self, since: datetime.datetime) -> dict[str, list[dict[str, typing.Any]]]:
         """
         Returns usage stats

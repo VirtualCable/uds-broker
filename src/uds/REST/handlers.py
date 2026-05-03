@@ -30,6 +30,7 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import abc
+import dataclasses
 import typing
 import logging
 import codecs
@@ -72,6 +73,7 @@ class Handler(abc.ABC):
     ROLE: typing.ClassVar[consts.UserRole] = consts.UserRole.USER  # By default, only users can access
 
     REST_API_INFO: typing.ClassVar[types.rest.api.RestApiInfo] = types.rest.api.RestApiInfo()
+    API_OPERATIONS: typing.ClassVar[dict[str, types.rest.api.Operation]] = {}
 
     _request: 'ExtendedHttpRequestWithUser'  # It's a modified HttpRequest
     _path: str
@@ -514,7 +516,27 @@ class Handler(abc.ABC):
         """
         Returns the API operations that should be registered
         """
-        return {}
+        if not cls.API_OPERATIONS:
+            return {}
+
+        def _update_op(
+            op: types.rest.api.Operation | None,
+        ) -> types.rest.api.Operation | None:
+            if op is None:
+                return None
+            kw: dict[str, typing.Any] = {'tags': tags}
+            if security:
+                kw['security'] = security
+            return dataclasses.replace(op, **kw)
+
+        return {
+            path: types.rest.api.PathItem(
+                get=_update_op(cls.API_OPERATIONS.get('get')),
+                post=_update_op(cls.API_OPERATIONS.get('post')),
+                put=_update_op(cls.API_OPERATIONS.get('put')),
+                delete=_update_op(cls.API_OPERATIONS.get('delete')),
+            )
+        }
 
 
 class ErrorHandler(Handler):
