@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 MUST_HAVE: typing.Final[list[str]] = [
     'html5rdptransport',
     'html5sshtransport',
-    'html5vnctransport',
     # 'nicedcvtunneltransport',
     # 'tsnomachinetransport',
     'rdptransport',
