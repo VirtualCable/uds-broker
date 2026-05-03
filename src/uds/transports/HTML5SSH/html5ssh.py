@@ -211,7 +211,7 @@ class HTML5SSHTransport(transports.Transport):
             'allow_download': self.enable_file_sharing.value in ('down', 'true'),
             'allow_clipboard': self.enable_clipboard.value,
             'max_upload_size': self.max_upload_size.as_int() * 1024 * 1024,
-            'title': f'SSH {ip}',
+            'title': f'UDS SSH {ip}',
         }
 
         ticket = models.TicketStore.create_for_tunnel(
