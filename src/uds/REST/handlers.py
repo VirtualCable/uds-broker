@@ -340,11 +340,11 @@ class Handler(abc.ABC):
             return net.contains(GlobalConfig.ADMIN_TRUSTED_SOURCES.get(True), self._request.ip)
         except Exception:
             logger.warning(
-                'Error checking truted ADMIN source: "%s" does not seems to be a valid network string. Using Unrestricted access.',
+                'Error checking trusted ADMIN source: "%s" does not seem to be a valid network string. Denying access.',
                 GlobalConfig.ADMIN_TRUSTED_SOURCES.get(),
             )
 
-        return True
+        return False
 
     def is_admin(self) -> bool:
         """
