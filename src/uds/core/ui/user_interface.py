@@ -138,7 +138,7 @@ class gui:
         """
         Helper method to create a single choice item with image.
         """
-        return types.ui.ChoiceItem(id=id_, text=str(text), img=img)
+        return types.ui.ChoiceItem(id=id_, text=text, img=img)
 
     # Helpers
     @staticmethod
@@ -169,7 +169,7 @@ class gui:
 
         # If is a dict
         if isinstance(vals, dict):
-            return [gui.choice_item(str(k), v) for k, v in typing.cast(dict[str, str], vals).items()]
+            return [gui.choice_item(k, v) for k, v in typing.cast(dict[str, str], vals).items()]
 
         if isinstance(vals, str):
             return [gui.choice_item(vals, vals)]
@@ -539,7 +539,7 @@ class gui:
                 value=value,
                 type=types.ui.FieldType.TEXT,
             )
-            self._field_info.lines = min(max(int(lines), 0), 8)
+            self._field_info.lines = min(max(lines, 0), 8)
             # Pattern to validate the value
             # Can contain an regex or PatternType
             #   - 'ipv4'     # IPv4 address
@@ -1816,13 +1816,11 @@ def password_compat_field_decoder(value: str) -> str:
 
 # Dictionaries used to encode/decode fields to be stored on database
 FIELDS_ENCODERS: typing.Final[
-    collections.abc.Mapping[
-        types.ui.FieldType, collections.abc.Callable[[gui.InputField], str | None]
-    ]
+    collections.abc.Mapping[types.ui.FieldType, collections.abc.Callable[[gui.InputField], str | None]]
 ] = {
     types.ui.FieldType.TEXT: lambda x: x.value,
     types.ui.FieldType.TEXT_AUTOCOMPLETE: lambda x: x.value,
-    types.ui.FieldType.NUMERIC: lambda x: str(int(gui.as_int(x.value))),
+    types.ui.FieldType.NUMERIC: lambda x: str(gui.as_int(x.value)),
     types.ui.FieldType.PASSWORD: lambda x: (
         CryptoManager.manager().aes256_cbc_encrypt(x.value.encode('utf8'), UDSK, True).decode()
     ),

@@ -96,7 +96,7 @@ class HTML5SSHTest(UDSTestCase):
                 self.assertEqual(extra['allow_download'], True)
                 self.assertEqual(extra['allow_clipboard'], True)
                 self.assertEqual(extra['max_upload_size'], 64 * 1024 * 1024)
-                self.assertEqual(extra['title'], 'SSH 1.2.3.4')
+                self.assertEqual(extra['title'], 'UDS SSH 1.2.3.4')
                 
                 # Check link format
                 self.assertIn('https://tunnel-host:443/ssh/?ticket=', link)

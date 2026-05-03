@@ -72,7 +72,6 @@ class HTML5SSHTransport(transports.Transport):
         order=20,
         tooltip=_('Username for SSH connection authentication.'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='username',
     )
 
     ssh_command = gui.TextField(
@@ -82,7 +81,6 @@ class HTML5SSHTransport(transports.Transport):
             'Command to execute on the remote server. If not provided, an interactive shell will be executed.'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshCommand',
     )
 
     max_upload_size = gui.NumericField(
@@ -112,7 +110,6 @@ class HTML5SSHTransport(transports.Transport):
         order=34,
         tooltip=_('Root path for file sharing. If not provided, root directory will be used.'),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='fileSharingRoot',
     )
     ssh_port = gui.NumericField(
         length=40,
@@ -122,7 +119,6 @@ class HTML5SSHTransport(transports.Transport):
         tooltip=_('Port of the SSH server.'),
         required=True,
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshPort',
     )
     ssh_host_key = gui.TextField(
         label=_('SSH Host Key'),
@@ -132,7 +128,6 @@ class HTML5SSHTransport(transports.Transport):
             'Host key of the SSH server. If not provided, no verification of host identity is done. (as the line in known_hosts file)'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='sshHostKey',
     )
     server_keep_alive = gui.NumericField(
         length=3,
@@ -145,7 +140,6 @@ class HTML5SSHTransport(transports.Transport):
         required=True,
         min_value=0,
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='serverKeepAlive',
     )
 
     enable_clipboard = gui.CheckBoxField(
@@ -171,7 +165,6 @@ class HTML5SSHTransport(transports.Transport):
         default=consts.TRUE_STR,
         tooltip=_('If true, the transport will always open in a new window'),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='newWindow',
     )
 
     def is_ip_allowed(self, userservice: 'models.UserService', ip: str) -> bool:
