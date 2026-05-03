@@ -58,6 +58,7 @@ def api_paths(
     """
     Returns the API operations that should be registered
     """
+    from uds.REST.model.detail import DetailHandler
 
     name = cls.REST_API_INFO.name if cls.REST_API_INFO.name else path.split('/')[-1].capitalize()
     get_tags = tags
@@ -138,6 +139,42 @@ def api_paths(
             )
         ),
     }
+
+    if cls.get_logs is not DetailHandler.get_logs:
+        api_desc[f'{path}/{{uuid}}/{consts.rest.LOG}'] = types.rest.api.PathItem(
+            get=types.rest.api.Operation(
+                summary=f'Get logs of {name} item by UUID',
+                description=f'Retrieve logs of a {name} item by UUID',
+                parameters=api_utils.gen_uuid_parameters(with_odata=False),
+                responses=api_utils.gen_response('LogEntry', single=False),
+                tags=get_tags,
+                security=security,
+            )
+        )
+
+    for cm in cls.CUSTOM_METHODS:
+        # Collection custom method
+        api_desc[f'{path}/{cm}'] = types.rest.api.PathItem(
+            get=types.rest.api.Operation(
+                summary=f'Custom method {cm} for {name} collection',
+                description=f'Execute custom method {cm} for {name} collection',
+                parameters=[],
+                responses=api_utils.gen_response('object', single=True),
+                tags=get_tags,
+                security=security,
+            )
+        )
+        # Item custom method
+        api_desc[f'{path}/{{uuid}}/{cm}'] = types.rest.api.PathItem(
+            get=types.rest.api.Operation(
+                summary=f'Custom method {cm} for {name} item',
+                description=f'Execute custom method {cm} for {name} item',
+                parameters=api_utils.gen_uuid_parameters(with_odata=False),
+                responses=api_utils.gen_response('object', single=True),
+                tags=get_tags,
+                security=security,
+            )
+        )
 
     if cls.REST_API_INFO.typed.is_single_type():
         api_desc[f'{path}/{consts.rest.GUI}'] = types.rest.api.PathItem(

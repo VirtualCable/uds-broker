@@ -53,11 +53,11 @@ def _generate_api() -> types.rest.api.OpenAPI:
     comps = model_base.BaseModelHandler.common_components()
     paths = model_base.BaseModelHandler.common_paths()
 
-    def process_node(node: types.rest.HandlerNode) -> None:
+    def process_node(node: types.rest.HandlerNode, path: str | None = None) -> None:
         nonlocal comps
 
         if handler := node.handler:
-            full_path = '/' + node.full_path().lstrip('/')
+            full_path = path or ('/' + node.full_path().lstrip('/'))
             tags = [full_path.split('/')[1].capitalize()] if len(full_path.split('/')) > 1 else []
             security = SECURITY_NAME if handler.ROLE != consts.UserRole.ANONYMOUS else ''
 
@@ -67,8 +67,11 @@ def _generate_api() -> types.rest.api.OpenAPI:
 
             if issubclass(handler, ModelHandler) and handler.DETAIL:
                 for name, detail_cls in handler.DETAIL.items():
-                    comps = comps.union(detail_cls.api_components())
-                    paths.update(detail_cls.api_paths(f'{full_path}/{name}', tags, security))
+                    # Details are always under /{path}/{uuid}/{detail_name}
+                    detail_path = f'{full_path}/{{uuid}}/{name}'
+                    # We process detail_cls as a "node" but it's not in the tree as a node
+                    # So we simulate it
+                    process_node(types.rest.HandlerNode(name, detail_cls, node, {}), path=detail_path)
 
         for child in node.children.values():
             process_node(child)

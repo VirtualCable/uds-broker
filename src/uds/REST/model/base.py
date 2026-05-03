@@ -201,6 +201,7 @@ class BaseModelHandler(Handler, abc.ABC, typing.Generic[T_Item]):
         return (
             api_utils.api_components(types.rest.TypeInfo)
             | api_utils.api_components(types.rest.TableInfo)
+            | api_utils.api_components(types.rest.LogEntry)
             | api_utils.api_components(
                 types.ui.GuiElement,
                 removable_fields=['value', 'gui.old_field_name', 'gui.value', 'gui.field_name'],
