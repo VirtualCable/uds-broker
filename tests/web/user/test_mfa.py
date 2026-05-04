@@ -159,6 +159,23 @@ class WebMFATest(test.WEBTestCase):
         # Cookie should be set
         self.assertIn('mfa_status', response.cookies)
 
+    def test_mfa_remember_device_skips_mfa_on_relogin(self) -> None:
+        mfa_with_remember = mfa_fixtures.create_db_mfa(remember_device=24)
+        self.auth.mfa = mfa_with_remember
+        self.auth.save()
+        # First login: complete MFA with remember=True
+        self.do_login(self.user.name, self.user.name, self.auth.uuid)
+        self.client.get(reverse('page.mfa'))
+        self.client.post(reverse('page.mfa'), {'code': '123456', 'remember': True})
+        # Logout
+        self.client.get(reverse('page.logout'))
+        # Login again
+        response = self.do_login(self.user.name, self.user.name, self.auth.uuid)
+        self.assertRedirects(response, reverse('page.mfa'), status_code=302, fetch_redirect_response=False)
+        # GET MFA -> should skip due to cookie and redirect to index
+        response = self.client.get(reverse('page.mfa'))
+        self.assertRedirects(response, reverse('page.index'), status_code=302, fetch_redirect_response=False)
+
     def test_mfa_skip_mfa_group_skips_mfa(self) -> None:
         group_with_skip = fixtures_authenticators.create_db_groups(self.auth, number_of_groups=1)[0]
         group_with_skip.skip_mfa = types.states.State.ACTIVE
