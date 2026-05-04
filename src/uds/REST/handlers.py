@@ -542,4 +542,9 @@ class Handler(abc.ABC):
 class ErrorHandler(Handler):
     """
     This handler is used to return errors in a consistent way, and to log them properly
+    
+    Note: in fact, ROLE is not important here, we will not instantiate this handler,
+    but use it as a "placeholder" for error logging. But we set this to ANONYMOUS anyway
+    to allow any future upgrade.
     """
+    ROLE = consts.UserRole.ANONYMOUS
