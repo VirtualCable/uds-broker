@@ -65,6 +65,34 @@ class OldHTML5SSHTransport(transports.Transport):
     customGEPath = gui.TextField(label='', default='/')
 
 
+class OldHTML5RDSTransport(transports.Transport):
+    type_name = 'HTML5 RDS for vApps'
+    type_type = 'HTML5RDSTransport'
+
+    tunnel = gui.ChoiceField(label='')
+    useGlyptodonTunnel = gui.CheckBoxField(label='')
+    useEmptyCreds = gui.CheckBoxField(label='')
+    fixedName = gui.TextField(label='')
+    fixedPassword = gui.PasswordField(label='')
+    withoutDomain = gui.CheckBoxField(label='')
+    fixedDomain = gui.TextField(label='')
+    wallpaper = gui.CheckBoxField(label='')
+    desktopComp = gui.CheckBoxField(label='')
+    smooth = gui.CheckBoxField(label='')
+    enableAudio = gui.CheckBoxField(label='', default=True)
+    enableAudioInput = gui.CheckBoxField(label='')
+    enablePrinting = gui.CheckBoxField(label='')
+    enableFileSharing = gui.ChoiceField(label='', default='false')
+    enableClipboard = gui.ChoiceField(label='', default='enabled')
+    serverLayout = gui.ChoiceField(label='', default='-')
+    ticketValidity = gui.NumericField(label='', default=60)
+    forceNewWindow = gui.ChoiceField(label='', default='false')
+    security = gui.ChoiceField(label='', default='any')
+    rdpPort = gui.NumericField(label='', default=3389)
+    customGEPath = gui.TextField(label='', default='/')
+    supportParams = gui.TextField(label='')
+
+
 # ---------------------------------------------------------------------------
 # Frozen NEW layouts: match the current transport field definitions
 # ---------------------------------------------------------------------------
@@ -108,6 +136,30 @@ class NewHTML5SSHTransport(transports.Transport):
     enable_clipboard = gui.CheckBoxField(label='', default=True)
     ticket_validity = gui.NumericField(label='', default=60)
     force_new_window = gui.ChoiceField(label='', default='false')
+
+
+class NewHTML5RDSTransport(transports.Transport):
+    type_name = 'HTML5 RDS for vApps'
+    type_type = 'HTML5RDSTransport'
+
+    tunnel = gui.ChoiceField(label='')
+    force_empty_creds = gui.CheckBoxField(label='')
+    forced_username = gui.TextField(label='')
+    forced_password = gui.PasswordField(label='')
+    force_no_domain = gui.CheckBoxField(label='')
+    forced_domain = gui.TextField(label='')
+    best_experience = gui.CheckBoxField(label='', default=True)
+    enable_audio = gui.CheckBoxField(label='', default=True)
+    enable_microphone = gui.CheckBoxField(label='')
+    enable_printing = gui.CheckBoxField(label='')
+    enable_file_sharing = gui.ChoiceField(label='', default='false')
+    allow_clipboard = gui.CheckBoxField(label='', default=True)
+    ticket_validity = gui.NumericField(label='', default=60)
+    force_new_window = gui.ChoiceField(label='', default='true')
+    nla = gui.CheckBoxField(label='', default=True)
+    rdp_port = gui.NumericField(label='', default=3389)
+    session_quality = gui.ChoiceField(label='', default='2')
+    allow_quality_switch = gui.CheckBoxField(label='', default=True)
 
 
 # ---------------------------------------------------------------------------
@@ -200,10 +252,65 @@ def _migrate_ssh(apps: typing.Any, schema_editor: typing.Any) -> None:
             logger.error('Error migrating HTML5SSH transport %s: %s', t.name, e)
 
 
+def _migrate_rds(apps: typing.Any, schema_editor: typing.Any) -> None:
+    """Migrate HTML5RDS transports: field-by-field conversion from old to new layout."""
+    db_alias = schema_editor.connection.alias
+    Transport: 'type[uds.models.Transport]' = apps.get_model('uds', 'Transport')
+
+    for t in Transport.objects.using(db_alias).filter(data_type=OldHTML5RDSTransport.type_type):
+        try:
+            old = OldHTML5RDSTransport(Environment(t.uuid), None)
+            old.deserialize(t.data)
+
+            new = NewHTML5RDSTransport(Environment(t.uuid), None)
+
+            # --- Direct copies ---
+            new.tunnel.value = old.tunnel.value
+            new.force_empty_creds.value = old.useEmptyCreds.value
+            new.forced_username.value = old.fixedName.value
+            new.forced_password.value = old.fixedPassword.value
+            new.force_no_domain.value = old.withoutDomain.value
+            new.forced_domain.value = old.fixedDomain.value
+            new.enable_audio.value = old.enableAudio.value
+            new.enable_microphone.value = old.enableAudioInput.value
+            new.enable_printing.value = old.enablePrinting.value
+            new.enable_file_sharing.value = old.enableFileSharing.value
+            new.ticket_validity.value = old.ticketValidity.value
+            new.force_new_window.value = old.forceNewWindow.value
+            new.rdp_port.value = old.rdpPort.value
+
+            # --- Conversions ---
+            # wallpaper + desktopComp + smooth → best_experience
+            new.best_experience.value = (
+                old.wallpaper.as_bool()
+                and old.desktopComp.as_bool()
+                and old.smooth.as_bool()
+            )
+
+            # security (any/rdp/nla/nla-ext/tls) → nla bool
+            new.nla.value = old.security.value in ('any', 'nla', 'nla-ext')
+
+            # enableClipboard (disabled/dis-copy/dis-paste/enabled) → allow_clipboard bool
+            new.allow_clipboard.value = old.enableClipboard.value == 'enabled'
+
+            # Default session quality to Balanced (2)
+            new.session_quality.value = '2'
+
+            # allow_quality_switch defaults to True
+            new.allow_quality_switch.value = True
+
+            t.data = new.serialize()
+            t.save(update_fields=['data'])
+            logger.info('Migrated HTML5RDS transport: %s', t.name)
+        except Exception as e:
+            logger.error('Error migrating HTML5RDS transport %s: %s', t.name, e)
+
+
 def migrate_transports(apps: typing.Any, schema_editor: typing.Any) -> None:
     try:
         _migrate_rdp(apps, schema_editor)
         _migrate_ssh(apps, schema_editor)
+        _migrate_rds(apps, schema_editor)
     except Exception as e:
         if 'no such table' not in str(e) and "doesn't exist" not in str(e):
             raise
