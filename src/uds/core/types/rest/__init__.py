@@ -174,6 +174,13 @@ ItemsResult: typing.TypeAlias = list[T_Item] | collections.abc.Iterator[T_Item]
 
 
 @dataclasses.dataclass
+class LogEntry(BaseRestItem):
+    date: str = dataclasses.field(metadata={'description': 'Date of the log entry'})
+    level: int = dataclasses.field(metadata={'description': 'Level of the log entry'})
+    source: str = dataclasses.field(metadata={'description': 'Source of the log entry'})
+    message: str = dataclasses.field(metadata={'description': 'Message of the log entry'})
+
+@dataclasses.dataclass
 class TypeInfo:
     name: str = dataclasses.field(metadata={'description': 'Name of the type (Human readable)'})
     type: str = dataclasses.field(metadata={'description': 'Type name used to identify the type'})

@@ -458,7 +458,8 @@ class ServersGroups(ModelHandler[GroupItem]):
         'comments',
         'type:_',
         'subtype:_',
-        'data_type:_' 'tags',
+        'data_type:_',
+        'tags',
     ]  # Subtype is appended on pre_save
 
     TABLE = (
