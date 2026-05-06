@@ -107,9 +107,7 @@ class Client(Handler):
 
     def sign_rdp(self, rdp: str) -> dict[str, typing.Any]:
         try:
-            logger.debug('Signing RDP (input):\n%s', rdp)
             signed = CryptoManager.manager().sign_rdp(rdp)
-            logger.debug('Signed RDP (output):\n%s', signed)
             return Client.result(signed)
         except Exception as e:
             logger.exception('Error signing RDP')
