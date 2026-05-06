@@ -92,7 +92,7 @@ class TunnelTicket(Handler):
                 except Exception:  # DB may contain old not tz aware dates
                     total_time = sql_now().replace(tzinfo=None) - ticket.started.replace(tzinfo=None)
 
-                msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{sent}/d:{recv}/t:{total_time}.'
+                msg = f'User {ticket.userservice.user.name} stopped tunnel {token[:8]}... to {ticket.remotes_as_str()}: u:{sent}/d:{recv}/t:{total_time}.'
                 log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
                 log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
 
@@ -105,7 +105,7 @@ class TunnelTicket(Handler):
                         duration=total_time,
                         sent=sent,
                         received=recv,
-                        tunnel=ticket.tunnel_token,
+                        tunnel=token,
                     )
 
             else:  # New tunnel request

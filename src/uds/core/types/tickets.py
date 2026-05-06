@@ -32,6 +32,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import dataclasses
 import datetime
 import typing
+import json
 
 from uds.core.util.model import sql_now
 
@@ -64,7 +65,6 @@ class TunnelTicket:
     userservice: 'UserService | None'
     remotes: list[TunnelTicketRemote] = dataclasses.field(default_factory=list[TunnelTicketRemote])
     started: datetime.datetime = dataclasses.field(default_factory=sql_now)
-    tunnel_token: str = ''
     shared_secret: bytes | None = None
 
     def remotes_as_str(self) -> str:
@@ -75,9 +75,8 @@ class TunnelTicket:
         """Returns a dict representation of the ticket"""
         return {
             'userservice_uuid': self.userservice.uuid if self.userservice else '',
-            'remotes': '#'.join(f'{r.host},{r.port}' for r in self.remotes),
+            'remotes': json.dumps([r.as_dict() for r in self.remotes]),
             'started': self.started.isoformat(),
-            'tunnel_token': self.tunnel_token,
             'shared_secret': self.shared_secret.hex() if self.shared_secret else '',
         }
 
@@ -90,18 +89,33 @@ class TunnelTicket:
         userservice = UserService.objects.filter(uuid=data['userservice_uuid']).first()
         userservice_ip = userservice.get_instance().get_ip() if userservice else ''
 
-        def get_remote(part: str) -> TunnelTicketRemote:
-            host, port = part.split(',')
-            return TunnelTicketRemote(
-                host=host or userservice_ip,
-                port=int(port),
-            )
+        remotes: list[TunnelTicketRemote] = []
+        if data['remotes'].startswith('['):
+            # New JSON format
+            for r in json.loads(data['remotes']):
+                remotes.append(
+                    TunnelTicketRemote(
+                        host=r.get('host') or userservice_ip,
+                        port=int(r.get('port', 0)),
+                        extra=r.get('extra') or {},
+                    )
+                )
+        else:
+            # Old format
+            for part in data['remotes'].split('#'):
+                if part:
+                    host, port = part.split(',')
+                    remotes.append(
+                        TunnelTicketRemote(
+                            host=host or userservice_ip,
+                            port=int(port),
+                        )
+                    )
 
         return TunnelTicket(
             userservice=userservice,
-            remotes=[get_remote(part) for part in data['remotes'].split('#') if part],
+            remotes=remotes,
             started=datetime.datetime.fromisoformat(data['started']),
-            tunnel_token=data['tunnel_token'],
             shared_secret=bytes.fromhex(data['shared_secret']) if data['shared_secret'] else None,
         )
 
@@ -176,6 +190,7 @@ class TunnelTicketResponse:
                 TunnelTicketRemote(
                     host=part['host'],
                     port=int(part['port']),
+                    extra=part.get('extra') or {},
                 )
                 for part in data['remotes']
             ],

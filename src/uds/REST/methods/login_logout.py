@@ -35,7 +35,7 @@ import logging
 import time
 import typing
 
-from uds.core import consts, exceptions
+from uds.core import consts, exceptions, types
 from uds.core.auths.auth import authenticate
 from uds.core.managers.crypto import CryptoManager
 from uds.core.util.cache import Cache
@@ -58,6 +58,56 @@ class Login(Handler):
     PATH = 'auth'
     ROLE = consts.UserRole.ANONYMOUS
 
+    API_OPERATIONS = {
+        'post': types.rest.api.Operation(
+            summary='Authenticate a user',
+            description='Authenticates a user against the specified authenticator and returns an auth token',
+            requestBody=types.rest.api.RequestBody(
+                required=True,
+                description='Authentication credentials',
+                content=types.rest.api.Content(
+                    media_type='application/json',
+                    schema=types.rest.api.SchemaProperty(
+                        type='object',
+                        properties={
+                            'username': types.rest.api.SchemaProperty(type='string'),
+                            'password': types.rest.api.SchemaProperty(type='string'),
+                            'auth_id': types.rest.api.SchemaProperty(
+                                type='string', description='Authenticator UUID'
+                            ),
+                            'auth': types.rest.api.SchemaProperty(
+                                type='string', description='Authenticator name'
+                            ),
+                            'label': types.rest.api.SchemaProperty(
+                                type='string', description='Authenticator label'
+                            ),
+                            'platform': types.rest.api.SchemaProperty(
+                                type='string', description='Platform identifier'
+                            ),
+                            'locale': types.rest.api.SchemaProperty(type='string', description='Locale code'),
+                        },
+                    ),
+                ),
+            ),
+            responses={
+                '200': types.rest.api.Response(
+                    description='Authentication result',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            properties={
+                                'result': types.rest.api.SchemaProperty(type='string'),
+                                'token': types.rest.api.SchemaProperty(type='string'),
+                                'scrambler': types.rest.api.SchemaProperty(type='string'),
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
+
     @staticmethod
     def result(
         result: str = 'error',
@@ -76,7 +126,7 @@ class Login(Handler):
             mandatory:
                 username:
                 password:
-                auth_id or auth or auth_label (authId and authSmallName for backwards compat, tbr): (must include at least one. If multiple are used, precedence is the list order)
+                auth_id or auth or label (old kept for backwards compat, tbr): (must include at least one. If multiple are used, precedence is the list order)
             optional:
                 platform: From what platform are we connecting. If not specified, will try to deduct it from user agent.
                 Valid values:
@@ -109,21 +159,10 @@ class Login(Handler):
             raise exceptions.rest.AccessDenied('Too many fails')
 
         try:
-            # if (
-            #     'auth_id' not in self._params
-            #     and 'authId' not in self._params
-            #     and 'auth_id' not in self._params
-            #     and 'authSmallName' not in self._params
-            #     and 'authLabel' not in self._params
-            #     and 'auth_label' not in self._params
-            #     and 'auth' not in self._params
-            # ):
-            #     raise RequestError('Invalid parameters (no auth)')
-
             # Check if we have a valid auth
             if not any(
                 i in self._params
-                for i in ('auth_id', 'authId', 'authSmallName', 'authLabel', 'auth_label', 'auth')
+                for i in ('auth_id', 'authId', 'authSmallName', 'authLabel', 'auth_label', 'auth', 'label')
             ):
                 raise exceptions.rest.RequestError('Invalid parameters (no auth)')
 
@@ -132,10 +171,13 @@ class Login(Handler):
                 self._params.get('authId', None),  # Old compat, alias
             )
             auth_label: str | None = self._params.get(
-                'auth_label',
+                'label',
                 self._params.get(
-                    'authSmallName',  # Old compat name
-                    self._params.get('authLabel', None),  # Old compat name
+                    'auth_label',
+                    self._params.get(
+                        'authSmallName',  # Old compat name
+                        self._params.get('authLabel', None),  # Old compat name
+                    ),
                 ),
             )
             auth_name: str | None = self._params.get('auth', None)
@@ -207,6 +249,45 @@ class Logout(Handler):
     PATH = 'auth'
     ROLE = consts.UserRole.USER  # Must be logged in to logout :)
 
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='Logout current user',
+            description='Invalidates the current authentication token ending the session',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Logout result',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            properties={
+                                'result': types.rest.api.SchemaProperty(type='string'),
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+        'post': types.rest.api.Operation(
+            summary='Logout current user',
+            description='Invalidates the current authentication token ending the session (POST version)',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Logout result',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            properties={
+                                'result': types.rest.api.SchemaProperty(type='string'),
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
+
     def get(self) -> typing.Any:
         # Remove auth token
         self.clear_auth_token()
@@ -220,6 +301,34 @@ class Auths(Handler):
     PATH = 'auth'
     ROLE = consts.UserRole.ANONYMOUS
 
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='List authenticators',
+            description='Returns a list of available authenticators',
+            parameters=[
+                types.rest.api.Parameter(
+                    name='all',
+                    in_='query',
+                    required=False,
+                    description='Include custom and IP authenticators',
+                    schema=types.rest.api.Schema(type='string'),
+                ),
+            ],
+            responses={
+                '200': types.rest.api.Response(
+                    description='List of authenticators',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='array',
+                            items=types.rest.api.SchemaProperty(type='object'),
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
+
     def auths(self) -> collections.abc.Iterable[dict[str, typing.Any]]:
         all_param: bool = self._params.get('all', 'false').lower() == 'true'
         auth: Authenticator
@@ -230,10 +339,10 @@ class Auths(Handler):
                     'authId': auth.uuid,  # Deprecated, use 'auth_id'
                     'auth_id': auth.uuid,  # Deprecated, use 'id'
                     'id': auth.uuid,
-                    'authSmallName': str(auth.small_name),  # Deprecated
-                    'authLabel': str(auth.small_name),  # Deprecated, use 'auth_label'
-                    'auth_label': str(auth.small_name),  # Deprecated, use 'label'
-                    'label': str(auth.small_name),
+                    'authSmallName': auth.small_name,  # Deprecated
+                    'authLabel': auth.small_name,  # Deprecated, use 'auth_label'
+                    'auth_label': auth.small_name,  # Deprecated, use 'label'
+                    'label': auth.small_name,
                     'auth': auth.name,  # Deprecated, use 'name'
                     'name': auth.name,
                     'type': auth_type.type_type,

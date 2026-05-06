@@ -33,7 +33,7 @@ Author: Adolfo Gómez, dkmaster at dkmon dot com
 import typing
 import logging
 
-from uds.core import consts
+from uds.core import consts, types
 from uds.core.util.config import Config as CfgConfig
 from uds.REST import Handler
 
@@ -49,6 +49,43 @@ class Config(Handler):
     """
 
     ROLE = consts.UserRole.ADMIN
+
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='Get configuration',
+            description='Returns the current UDS configuration values',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Configuration values',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(type='object'),
+                    ),
+                ),
+            },
+        ),
+        'put': types.rest.api.Operation(
+            summary='Update configuration',
+            description='Updates UDS configuration values',
+            requestBody=types.rest.api.RequestBody(
+                required=True,
+                description='Configuration values to update',
+                content=types.rest.api.Content(
+                    media_type='application/json',
+                    schema=types.rest.api.SchemaProperty(type='object'),
+                ),
+            ),
+            responses={
+                '200': types.rest.api.Response(
+                    description='Configuration updated',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(type='string'),
+                    ),
+                ),
+            },
+        ),
+    }
 
     def get(self) -> typing.Any:
         return CfgConfig.get_config_values(self.is_admin())

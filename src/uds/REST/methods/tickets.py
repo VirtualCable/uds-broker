@@ -40,7 +40,7 @@ from uds import models
 from uds.core.managers.crypto import CryptoManager
 from uds.core.util.model import process_uuid
 from uds.core.util import ensure
-from uds.core import consts, exceptions
+from uds.core import consts, exceptions, types
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +90,58 @@ class Tickets(Handler):
     """
 
     ROLE = consts.UserRole.ADMIN
+
+    API_OPERATIONS = {
+        'put': types.rest.api.Operation(
+            summary='Create a ticket',
+            description='Creates an access ticket for a user to a service pool',
+            requestBody=types.rest.api.RequestBody(
+                required=True,
+                description='Ticket creation parameters',
+                content=types.rest.api.Content(
+                    media_type='application/json',
+                    schema=types.rest.api.SchemaProperty(
+                        type='object',
+                        properties={
+                            'username': types.rest.api.SchemaProperty(type='string'),
+                            'password': types.rest.api.SchemaProperty(type='string'),
+                            'auth_id': types.rest.api.SchemaProperty(
+                                type='string', description='Authenticator UUID'
+                            ),
+                            'auth': types.rest.api.SchemaProperty(
+                                type='string', description='Authenticator name'
+                            ),
+                            'groups': types.rest.api.SchemaProperty(
+                                type='array', items=types.rest.api.SchemaProperty(type='string')
+                            ),
+                            'servicePool': types.rest.api.SchemaProperty(
+                                type='string', description='Service pool UUID'
+                            ),
+                            'force': types.rest.api.SchemaProperty(
+                                type='string', description='Force group creation'
+                            ),
+                        },
+                    ),
+                ),
+            ),
+            responses={
+                '200': types.rest.api.Response(
+                    description='Ticket creation result',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            properties={
+                                'result': types.rest.api.SchemaProperty(type='string'),
+                                'date': types.rest.api.SchemaProperty(type='string'),
+                                'error': types.rest.api.SchemaProperty(type='string'),
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
 
     @staticmethod
     def result(result: str = '', error: str | None = None) -> dict[str, typing.Any]:
