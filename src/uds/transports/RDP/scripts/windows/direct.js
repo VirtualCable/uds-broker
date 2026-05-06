@@ -23,6 +23,11 @@ try {
 }
 
 let content = data.as_file.replace(/\{password\}/g, password);
+try {
+    content = await Utils.signRdp(content, data.this_server, data.ticket_sign, true);
+} catch (e) {
+    Logger.info('RDP signing failed, using unsigned file: ' + e);
+}
 let rdpFilePath = File.createTempFile(null, content, '.rdp');
 let process = Process.launch(mstscPath, [rdpFilePath]);
 Tasks.addEarlyUnlinkableFile(rdpFilePath);

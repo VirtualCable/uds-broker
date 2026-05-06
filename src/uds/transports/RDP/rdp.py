@@ -36,7 +36,7 @@ import typing
 from django.utils.translation import gettext_noop as _
 
 from uds.core import types
-from uds.core.managers import crypto
+from uds.models import TicketStore
 
 from .rdp_base import BaseRDPTransport
 from .rdp_file import RDPFile
@@ -162,11 +162,23 @@ class RDPTransport(BaseRDPTransport):
             r.password = '__NO_PASSWORD__'
             r.domain = 'UDS'  # Fake in fact for SSO, but needed so xfreerdp3 do not ask for domain
 
+        ticket_for_sign = TicketStore.create(
+            {
+                'user': userservice.user.uuid if userservice.user else None,
+                'userservice': userservice.uuid,
+                'type': 'rdp',
+            },
+            validity=30,
+        )
+
+        logger.debug('Created ticket for RDP signing: %s', ticket_for_sign)
+
         sp: dict[str, typing.Any] = {
             'password': ci.password,
             'ip': ip,
             'port': self.rdp_port.value,  # As string, because we need to use it in the template
             'address': r.address,
+            'ticket_sign': ticket_for_sign,
         }
 
         if os.os == types.os.KnownOS.WINDOWS:
