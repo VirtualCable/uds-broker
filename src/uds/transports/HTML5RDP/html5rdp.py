@@ -31,17 +31,13 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import logging
-import re
 import typing
 
 from django.utils.translation import gettext_noop as _
-from django.conf import settings
 
 from uds import models
 from uds.core import transports, types, ui, consts
-from uds.core.managers.crypto import CryptoManager
 from uds.core.util import fields
-from uds.core.util.model import sql_now
 
 # Not imported at runtime, just for type checking
 if typing.TYPE_CHECKING:
@@ -70,36 +66,23 @@ class HTML5RDPTransport(transports.Transport):
 
     tunnel = fields.tunnel_field()
 
-    use_glyptodon = ui.gui.CheckBoxField(
-        label=_('Use Glyptodon Enterprise tunnel'),
-        order=2,
-        tooltip=_(
-            'If checked, UDS will use Glyptodon Enterprise Tunnel for HTML tunneling instead of UDS Tunnel'
-        ),
-        tab=types.ui.Tab.TUNNEL,
-        old_field_name='useGlyptodonTunnel',
-    )
-
     force_empty_creds = ui.gui.CheckBoxField(
         label=_('Empty creds'),
         order=3,
         tooltip=_('If checked, the credentials used to connect will be emtpy'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='useEmptyCreds',
     )
     forced_username = ui.gui.TextField(
         label=_('Username'),
         order=4,
         tooltip=_('If not empty, this username will be always used as credential'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='fixedName',
     )
     forced_password = ui.gui.PasswordField(
         label=_('Password'),
         order=5,
         tooltip=_('If not empty, this password will be always used as credential'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='fixedPassword',
     )
     force_no_domain = ui.gui.CheckBoxField(
         label=_('Without Domain'),
@@ -108,37 +91,23 @@ class HTML5RDPTransport(transports.Transport):
             'If checked, the domain part will always be emptied (to connecto to xrdp for example is needed)'
         ),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='withoutDomain',
     )
     forced_domain = ui.gui.TextField(
         label=_('Domain'),
         order=7,
         tooltip=_('If not empty, this domain will be always used as credential (used as DOMAIN\\user)'),
         tab=types.ui.Tab.CREDENTIALS,
-        old_field_name='fixedDomain',
     )
-    wallpaper = ui.gui.CheckBoxField(
-        label=_('Show wallpaper'),
+
+    best_experience = ui.gui.CheckBoxField(
+        label=_('Best experience'),
         order=18,
         tooltip=_(
-            'If checked, the wallpaper and themes will be shown on machine (better user experience, more bandwidth)'
+            'If checked, wallpaper, desktop composition and font smoothing will be enabled '
+            '(better user experience, more bandwidth)'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='wallpaper',
-    )
-    allow_destop_composition = ui.gui.CheckBoxField(
-        label=_('Allow Desk.Comp.'),
-        order=19,
-        tooltip=_('If checked, desktop composition will be allowed'),
-        tab=types.ui.Tab.PARAMETERS,
-        old_field_name='desktopComp',
-    )
-    smooth = ui.gui.CheckBoxField(
-        label=_('Font Smoothing'),
-        order=20,
-        tooltip=_('If checked, fonts smoothing will be allowed (windows clients only)'),
-        tab=types.ui.Tab.PARAMETERS,
-        old_field_name='smooth',
+        default=True,
     )
     enable_audio = ui.gui.CheckBoxField(
         label=_('Enable Audio'),
@@ -146,7 +115,6 @@ class HTML5RDPTransport(transports.Transport):
         tooltip=_('If checked, the audio will be redirected to remote session (if client browser supports it)'),
         tab=types.ui.Tab.PARAMETERS,
         default=True,
-        old_field_name='enableAudio',
     )
     enable_microphone = ui.gui.CheckBoxField(
         label=_('Enable Microphone'),
@@ -155,7 +123,6 @@ class HTML5RDPTransport(transports.Transport):
             'If checked, the microphone will be redirected to remote session (if client browser supports it)'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='enableAudioInput',
     )
     enable_printing = ui.gui.CheckBoxField(
         label=_('Enable Printing'),
@@ -164,7 +131,6 @@ class HTML5RDPTransport(transports.Transport):
             'If checked, the printing will be redirected to remote session (if client browser supports it)'
         ),
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='enablePrinting',
     )
     enable_file_sharing = ui.gui.ChoiceField(
         label=_('File Sharing'),
@@ -178,52 +144,13 @@ class HTML5RDPTransport(transports.Transport):
             ui.gui.choice_item('true', _('Enable file sharing')),
         ],
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='enableFileSharing',
     )
-    enable_clipboard = ui.gui.ChoiceField(
-        label=_('Clipboard'),
+    allow_clipboard = ui.gui.CheckBoxField(
+        label=_('Allow clipboard'),
         order=25,
-        tooltip=_('Clipboard redirection policy'),
-        default='enabled',
-        choices=[
-            ui.gui.choice_item('disabled', _('Disable clipboard')),
-            ui.gui.choice_item('dis-copy', _('Disable copy from remote')),
-            ui.gui.choice_item('dis-paste', _('Disable paste to remote')),
-            ui.gui.choice_item('enabled', _('Enable clipboard')),
-        ],
+        tooltip=_('If checked, clipboard redirection will be enabled'),
+        default=True,
         tab=types.ui.Tab.PARAMETERS,
-        old_field_name='enableClipboard',
-    )
-
-    server_layout = ui.gui.ChoiceField(
-        order=26,
-        label=_('Layout'),
-        tooltip=_('Keyboard Layout of server'),
-        required=True,
-        choices=[
-            ui.gui.choice_item('-', 'default'),
-            ui.gui.choice_item('en-us-qwerty', _('English (US) keyboard')),
-            ui.gui.choice_item('en-gb-qwerty', _('English (GB) keyboard')),
-            ui.gui.choice_item('es-es-qwerty', _('Spanish keyboard')),
-            ui.gui.choice_item('es-latam-qwerty', _('Latin American keyboard')),
-            ui.gui.choice_item('da-dk-querty', _('Danish keyboard')),
-            ui.gui.choice_item('de-de-qwertz', _('German keyboard (qwertz)')),
-            ui.gui.choice_item('fr-fr-azerty', _('French keyboard (azerty)')),
-            ui.gui.choice_item('fr-be-azerty', _('Belgian French keyboard (azerty)')),
-            ui.gui.choice_item('de-ch-qwertz', _('Swiss German keyboard (qwertz)')),
-            ui.gui.choice_item('fr-ch-qwertz', _('Swiss French keyboard (qwertz)')),
-            ui.gui.choice_item('hu-hu-qwerty', _('Hungarian keyboard')),
-            ui.gui.choice_item('it-it-qwerty', _('Italian keyboard')),
-            ui.gui.choice_item('ja-jp-qwerty', _('Japanese keyboard')),
-            ui.gui.choice_item('no-no-querty', _('Norwegian keyboard')),
-            ui.gui.choice_item('pt-br-qwerty', _('Portuguese Brazilian keyboard')),
-            ui.gui.choice_item('sv-se-qwerty', _('Swedish keyboard')),
-            ui.gui.choice_item('tr-tr-qwerty', _('Turkish keyboard')),
-            ui.gui.choice_item('failsafe', _('Failsafe')),
-        ],
-        default='-',
-        tab=types.ui.Tab.PARAMETERS,
-        old_field_name='serverLayout',
     )
 
     ticket_validity = fields.tunnel_ticket_validity_field()
@@ -246,37 +173,18 @@ class HTML5RDPTransport(transports.Transport):
         ],
         default='true',
         tab=types.ui.Tab.ADVANCED,
-        old_field_name='forceNewWindow',
     )
 
-    security = ui.gui.ChoiceField(
+    nla = ui.gui.CheckBoxField(
         order=92,
-        label=_('Security'),
-        tooltip=_('Connection security mode for Guacamole RDP connection'),
-        required=True,
-        choices=[
-            ui.gui.choice_item('any', _('Any (Allow the server to choose the type of auth)')),
-            ui.gui.choice_item(
-                'rdp',
-                _('RDP (Standard RDP encryption. Should be supported by all servers)'),
-            ),
-            ui.gui.choice_item(
-                'nla',
-                _(
-                    'NLA (Network Layer authentication. Requires VALID username&password, or connection will fail)'
-                ),
-            ),
-            ui.gui.choice_item(
-                'nla-ext',
-                _(
-                    'NLA extended (Network Layer authentication. Requires VALID username&password, or connection will fail)'
-                ),
-            ),
-            ui.gui.choice_item('tls', _('TLS (Transport Security Layer encryption)')),
-        ],
-        default='any',
+        label=_('NLA authentication'),
+        tooltip=_(
+            'If checked, Network Level Authentication will be used. '
+            'Requires valid credentials or the connection will fail. '
+            'Uncheck to disable NLA (useful for credential providers or xrdp).'
+        ),
+        default=True,
         tab=types.ui.Tab.ADVANCED,
-        old_field_name='security',
     )
 
     rdp_port = ui.gui.NumericField(
@@ -287,38 +195,35 @@ class HTML5RDPTransport(transports.Transport):
         required=True,  #: Numeric fields have always a value, so this not really needed
         default=3389,
         tab=types.ui.Tab.ADVANCED,
-        old_field_name='rdpPort',
     )
 
-    custom_glyptodon_path = ui.gui.TextField(
-        label=_('Glyptodon Enterprise context path'),
+    session_quality = ui.gui.ChoiceField(
+        label=_('Session Quality'),
         order=94,
-        tooltip=_(
-            'Customized path for Glyptodon Enterprise tunnel. (Only valid for Glyptodon Enterprise Tunnel)'
-        ),
-        default='/',
-        length=128,
-        required=False,
+        tooltip=_('Quality of the session. Higher values mean better quality but more bandwidth.'),
+        required=True,
+        choices=[
+            ui.gui.choice_item('0', _('Ultra Performance')),
+            ui.gui.choice_item('1', _('Performance')),
+            ui.gui.choice_item('2', _('Balanced')),
+            ui.gui.choice_item('3', _('High Quality')),
+            ui.gui.choice_item('4', _('Lossless')),
+        ],
+        default='2',
         tab=types.ui.Tab.ADVANCED,
-        old_field_name='customGEPath',
     )
 
-    support_params = ui.gui.TextField(
-        label=_('Support parameters'),
-        order=999,
-        tooltip=_('Support provided parameters. Do not modify'),
+    allow_quality_switch = ui.gui.CheckBoxField(
+        label=_('Allow quality switch'),
+        order=96,
+        tooltip=_('If checked, users can change the image quality from the side menu during the session'),
+        default=True,
         tab=types.ui.Tab.ADVANCED,
     )
 
     def initialize(self, values: 'types.core.ValuesType') -> None:
         if not values:
             return
-        # if self.useEmptyCreds.as_bool() and self.security.value != 'rdp':
-        #    raise exceptions.ValidationException(
-        #        _(
-        #            'Empty credentials (on Credentials tab) is only allowed with Security level (on Parameters tab) set to "RDP"'
-        #        )
-        #    )
 
     # Same check as normal RDP transport
     def is_ip_allowed(self, userservice: 'models.UserService', ip: str) -> bool:
@@ -414,119 +319,37 @@ class HTML5RDPTransport(transports.Transport):
         request: 'ExtendedHttpRequestWithUser',  # pylint: disable=unused-argument
     ) -> str:
         creds_info = self.get_connection_info(userservice, user, password)
-        username, password, domain = (
-            creds_info.username,
-            creds_info.password,
-            creds_info.domain,
-        )
 
-        scrambler = CryptoManager.manager().random_string(32)
-        crypted_password = CryptoManager.manager().symmetric_encrypt(password, scrambler)
-
-        def as_txt(txt: typing.Any) -> str:
-            return 'true' if txt else 'false'
-
-        # Build params dict
-        params: dict[str, typing.Any] = {
-            'protocol': 'rdp',
-            'hostname': ip,
-            'port': self.rdp_port.as_int(),
-            'username': username,
-            'password': crypted_password,
-            'resize-method': 'display-update',
-            'ignore-cert': 'true',
-            'security': self.security.value,
-            'enable-drive': as_txt(self.enable_file_sharing.value in ('true', 'down', 'up')),
-            'disable-upload': as_txt(self.enable_file_sharing.value in ('false', 'down')),
-            'disable-download': as_txt(self.enable_file_sharing.value in ('false', 'up')),
-            'drive-path': f'/share/{user.uuid}',
-            'drive-name': (
-                settings.GUACAMOLE_DRIVE_NAME
-                if hasattr(settings, 'GUACAMOLE_DRIVE_NAME') and settings.GUACAMOLE_DRIVE_NAME
-                else 'UDSfs'
-            ),
-            'disable-copy': as_txt(self.enable_clipboard.value in ('dis-copy', 'disabled')),
-            'disable-paste': as_txt(self.enable_clipboard.value in ('dis-paste', 'disabled')),
-            'create-drive-path': 'true',
-            'ticket-info': {
-                'userService': userservice.uuid,
-                'user': user.uuid,
-                'service_type': types.services.ServiceType.VDI,
-            },
+        # Build extra params dict for rdphtml5 gateway (matches Rust ConnectionData)
+        extra: dict[str, typing.Any] = {
+            'user': creds_info.username or None,
+            'password': creds_info.password or None,
+            'domain': creds_info.domain or None,
+            'nla': self.nla.as_bool(),
+            'verify_ssl': False,
+            'best_experience': self.best_experience.as_bool(),
+            'allow_audio': self.enable_audio.as_bool(),
+            'allow_mic': self.enable_microphone.as_bool(),
+            'allow_clipboard': self.allow_clipboard.as_bool(),
+            'allow_upload': self.enable_file_sharing.value in ('up', 'true'),
+            'allow_download': self.enable_file_sharing.value in ('down', 'true'),
+            'session_quality': self.session_quality.as_int(),
+            'allow_quality_switch': self.allow_quality_switch.as_bool(),
+            'title': f'RDP {ip}',
         }
 
-        if (
-            not password and self.security.value != 'rdp'
-        ):  # No password, but not rdp, so we need to use creds popup
-            extra_params = f'&creds={username}@{domain}'
-        else:
-            extra_params = ''
-
-        # pylint: disable=using-constant-test
-        if False:  # Future imp
-            # sanitize = lambda x: re.sub("[^a-zA-Z0-9_-]", "_", x)
-            def sanitize(text: str) -> str:
-                return re.sub("[^a-zA-Z0-9_-]", "_", text)
-
-            params['recording-path'] = (
-                '/share/recording/'
-                + sanitize(user.manager.name)
-                + '_'
-                + sanitize(user.name)
-                + '/'
-                + sql_now().strftime('%Y%m%d-%H%M')
-            )
-            params['create-recording-path'] = 'true'
-
-        if domain:
-            params['domain'] = domain
-
-        if self.server_layout.value != '-':
-            params['server-layout'] = self.server_layout.value
-
-        if not self.enable_audio.as_bool():
-            params['disable-audio'] = 'true'
-        elif self.enable_microphone.as_bool():
-            params['enable-audio-input'] = 'true'
-
-        if self.enable_printing.as_bool():
-            params['enable-printing'] = 'true'
-            params['printer-name'] = 'UDS-Printer'
-
-        if self.wallpaper.as_bool():
-            params['enable-wallpaper'] = 'true'
-
-        if self.allow_destop_composition.as_bool():
-            params['enable-desktop-composition'] = 'true'
-
-        if self.smooth.as_bool():
-            params['enable-font-smoothing'] = 'true'
-
-        # add support params that is a comma separated list of key=value pairs
-        # ignore empty values or values without '='
-        params.update(
-            {
-                key.strip(): value.strip()
-                for key, value in (
-                    param.split('=', 1) for param in self.support_params.value.split(',') if '=' in param
-                )
-            }
+        ticket = models.TicketStore.create_for_tunnel(
+            userservice=userservice,
+            port=self.rdp_port.as_int(),
+            extra=extra,
+            validity=self.ticket_validity.as_int(),
         )
-
-        logger.debug('RDP Params: %s', params)
-
-        ticket = models.TicketStore.create(params, validity=self.ticket_validity.as_int())
 
         onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={transport.uuid}'
         if self.force_new_window.value == consts.TRUE_STR:
             onw = f'&{consts.transports.ON_NEW_WINDOW_VAR}={userservice.deployed_service.uuid}'
         elif self.force_new_window.value == 'overwrite':
             onw = f'&{consts.transports.ON_SAME_WINDOW_VAR}=yes'
-        path = self.custom_glyptodon_path.value if self.use_glyptodon.as_bool() else '/guacamole'
-        # Remove trailing /
-        path = path.rstrip('/')
 
         tunnel_server = fields.get_tunnel_from_field(self.tunnel)
-        return str(
-            f'https://{tunnel_server.host}:{tunnel_server.port}{path}/#/?data={ticket}.{scrambler}{onw}{extra_params}'
-        )
+        return f'https://{tunnel_server.host}:{tunnel_server.port}/rdp/?ticket={ticket}{onw}'

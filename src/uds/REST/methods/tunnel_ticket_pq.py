@@ -90,7 +90,7 @@ class TunnelTicketPQ(Handler):
                     # This data will always be with tz info (from 5.0 onwards)
                     total_time = sql_now() - ticket.started
 
-                    msg = f'User {ticket.userservice.user.name} stopped tunnel {ticket.tunnel_token[:8]}... to {ticket.remotes_as_str()}: u:{req.sent}/d:{req.recv}/t:{total_time}.'
+                    msg = f'User {ticket.userservice.user.name} stopped tunnel {req.token[:8]}... to {ticket.remotes_as_str()}: u:{req.sent}/d:{req.recv}/t:{total_time}.'
                     log.log(ticket.userservice.user.manager, types.log.LogLevel.INFO, msg)
                     log.log(ticket.userservice, types.log.LogLevel.INFO, msg)
 
@@ -103,7 +103,7 @@ class TunnelTicketPQ(Handler):
                             duration=total_time,
                             sent=req.sent,
                             received=req.recv,
-                            tunnel=ticket.tunnel_token,
+                            tunnel=req.token,
                         )
                     return {}
 
@@ -125,7 +125,6 @@ class TunnelTicketPQ(Handler):
                     notify_ticket = models.TicketStore.create_for_tunnel(
                         userservice=ticket.userservice,
                         remotes=ticket.remotes,
-                        tunnel_token=ticket.tunnel_token,
                         validity=MAX_SESSION_LENGTH,
                     )
 

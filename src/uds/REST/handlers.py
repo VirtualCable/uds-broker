@@ -30,6 +30,7 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 import abc
+import dataclasses
 import typing
 import logging
 import codecs
@@ -72,6 +73,7 @@ class Handler(abc.ABC):
     ROLE: typing.ClassVar[consts.UserRole] = consts.UserRole.USER  # By default, only users can access
 
     REST_API_INFO: typing.ClassVar[types.rest.api.RestApiInfo] = types.rest.api.RestApiInfo()
+    API_OPERATIONS: typing.ClassVar[dict[str, types.rest.api.Operation]] = {}
 
     _request: 'ExtendedHttpRequestWithUser'  # It's a modified HttpRequest
     _path: str
@@ -340,11 +342,11 @@ class Handler(abc.ABC):
             return net.contains(GlobalConfig.ADMIN_TRUSTED_SOURCES.get(True), self._request.ip)
         except Exception:
             logger.warning(
-                'Error checking truted ADMIN source: "%s" does not seems to be a valid network string. Using Unrestricted access.',
+                'Error checking trusted ADMIN source: "%s" does not seem to be a valid network string. Denying access.',
                 GlobalConfig.ADMIN_TRUSTED_SOURCES.get(),
             )
 
-        return True
+        return False
 
     def is_admin(self) -> bool:
         """
@@ -514,10 +516,35 @@ class Handler(abc.ABC):
         """
         Returns the API operations that should be registered
         """
-        return {}
+        if not cls.API_OPERATIONS:
+            return {}
+
+        def _update_op(
+            op: types.rest.api.Operation | None,
+        ) -> types.rest.api.Operation | None:
+            if op is None:
+                return None
+            kw: dict[str, typing.Any] = {'tags': tags}
+            if security:
+                kw['security'] = security
+            return dataclasses.replace(op, **kw)
+
+        return {
+            path: types.rest.api.PathItem(
+                get=_update_op(cls.API_OPERATIONS.get('get')),
+                post=_update_op(cls.API_OPERATIONS.get('post')),
+                put=_update_op(cls.API_OPERATIONS.get('put')),
+                delete=_update_op(cls.API_OPERATIONS.get('delete')),
+            )
+        }
 
 
 class ErrorHandler(Handler):
     """
     This handler is used to return errors in a consistent way, and to log them properly
+    
+    Note: in fact, ROLE is not important here, we will not instantiate this handler,
+    but use it as a "placeholder" for error logging. But we set this to ANONYMOUS anyway
+    to allow any future upgrade.
     """
+    ROLE = consts.UserRole.ANONYMOUS

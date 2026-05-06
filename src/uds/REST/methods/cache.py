@@ -35,7 +35,7 @@ import typing
 
 from django.core.cache import caches
 
-from uds.core import exceptions, consts
+from uds.core import exceptions, consts, types
 from uds.core.util.cache import Cache as UCache
 from uds.REST import Handler
 
@@ -45,6 +45,22 @@ logger = logging.getLogger(__name__)
 # Enclosed methods under /cache path
 class Cache(Handler):
     ROLE = consts.UserRole.ADMIN
+
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='Purge cache',
+            description='Purges all UDS caches (default and memory)',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Cache purged',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(type='string'),
+                    ),
+                ),
+            },
+        ),
+    }
 
     def get(self) -> typing.Any:
         """

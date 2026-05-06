@@ -238,8 +238,7 @@ class Config:
 
             if isinstance(value, bool):
                 value = ['0', '1'][value]
-
-            if isinstance(value, int):
+            else:
                 value = str(value)
 
             if self._type == Config.FieldType.PASSWORD:
@@ -249,7 +248,7 @@ class Config:
             try:
                 obj, _ = DBConfig.objects.get_or_create(section=self._section.name(), key=self._key)
                 obj.value, obj.field_type, obj.help = (
-                    str(value),
+                    value,
                     self._type,
                     self._help,
                 )
@@ -265,7 +264,7 @@ class Config:
                     self._key,
                 )
             finally:
-                self._data = str(value)
+                self._data = value
 
         def __str__(self) -> str:
             return f'{self._section.name()}.{self._key}'

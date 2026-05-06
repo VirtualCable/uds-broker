@@ -32,7 +32,7 @@ import logging
 import typing
 import collections.abc
 
-from uds.core import consts
+from uds.core import consts, types
 
 from ..handlers import Handler
 
@@ -42,6 +42,28 @@ logger = logging.getLogger(__name__)
 class UDSVersion(Handler):
     ROLE = consts.UserRole.ANONYMOUS
     NAME = 'version'
+
+    API_OPERATIONS = {
+        'get': types.rest.api.Operation(
+            summary='Get UDS version',
+            description='Returns the current UDS version and build number',
+            responses={
+                '200': types.rest.api.Response(
+                    description='Version information',
+                    content=types.rest.api.Content(
+                        media_type='application/json',
+                        schema=types.rest.api.SchemaProperty(
+                            type='object',
+                            properties={
+                                'version': types.rest.api.SchemaProperty(type='string'),
+                                'build': types.rest.api.SchemaProperty(type='string'),
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    }
 
     def get(self) -> collections.abc.MutableMapping[str, typing.Any]:
         return {'version': consts.system.VERSION, 'build': consts.system.VERSION_STAMP}

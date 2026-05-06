@@ -138,7 +138,30 @@ def api_paths(
                 security=security,
             )
         ),
+        f'{path}/{{uuid}}/{consts.rest.LOG}': types.rest.api.PathItem(
+            get=types.rest.api.Operation(
+                summary=f'Get logs of {name} item by UUID',
+                description=f'Retrieve logs of a {name} item by UUID',
+                parameters=api_utils.gen_uuid_parameters(with_odata=False),
+                responses=api_utils.gen_response('LogEntry', single=False),
+                tags=get_tags,
+                security=security,
+            )
+        ),
     }
+
+    for cm in cls.CUSTOM_METHODS:
+        cm_path = f'{path}/{{uuid}}/{cm.name}' if cm.needs_parent else f'{path}/{cm.name}'
+        api_desc[cm_path] = types.rest.api.PathItem(
+            get=types.rest.api.Operation(
+                summary=f'Custom method {cm.name} for {name}',
+                description=f'Execute custom method {cm.name} for {name}',
+                parameters=api_utils.gen_uuid_parameters(with_odata=False) if cm.needs_parent else [],
+                responses=api_utils.gen_response('object', single=True),
+                tags=get_tags,
+                security=security,
+            )
+        )
     if cls.REST_API_INFO.typed.is_single_type():
         api_desc[f'{path}/{consts.rest.GUI}'] = types.rest.api.PathItem(
             get=types.rest.api.Operation(
