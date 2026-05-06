@@ -33,10 +33,9 @@ const tunnel = await Tasks.startTunnel({
 let content = data.as_file.replace(/\{password\}/g, password);
 content = content.replace(/\{address\}/g, `127.0.0.1:${tunnel.port}`);
 
-try {
-    content = await Utils.signRdp(content, data.this_server, data.ticket_sign, data.tunnel.verify_ssl);
-} catch (e) {
-    Logger.info('RDP signing failed, using unsigned file: ' + e);
+// sign after {address} substitution, otherwise full address won't match
+if (data.ticket_sign) {
+    content = await RDP.sign(content, data.ticket_sign);
 }
 
 let rdpFilePath = File.createTempFile(null, content, '.rdp');

@@ -29,12 +29,11 @@
 Author: Adolfo Gómez, dkmaster at dkmon dot com
 """
 
-import collections
-import collections.abc
 import datetime
 import logging
 import pathlib
 import typing
+import collections.abc
 
 import certifi
 from cryptography import x509
