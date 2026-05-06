@@ -36,7 +36,8 @@ import typing
 from django.utils.translation import gettext_noop as _
 
 from uds.core.ui import gui
-from uds.core import transports, types
+from uds.core import exceptions, transports, types
+from uds.core.managers import crypto
 from uds.core.util.security import convert_to_credential_token
 from uds.models import UserService
 
@@ -382,13 +383,32 @@ class BaseRDPTransport(transports.Transport):
         old_field_name='customParametersWindows',
     )
     
+    sign_rdp_file = gui.CheckBoxField(
+        label=_('Sign RDP file'),
+        order=53,
+        tooltip=_('If checked, RDP file will be signed with the server configured in crypto manager.'),
+        tab=types.ui.Tab.ADVANCED,
+        default=False,
+    )
+
+    def check_rdp_can_be_signed(self) -> None:
+        if not self.sign_rdp_file.as_bool():
+            return
+        try:
+            crypto.CryptoManager.manager().check_cert_chain()
+        except Exception as e:
+            logger.error('RDP signing is enabled but certificate chain check failed: %s', e)
+            raise exceptions.ui.ValidationError(
+                _('RDP signing is enabled but certificate chain check failed, check logs for more details.')
+            ) from e
+
     def initialize(self, values: types.core.ValuesType) -> None:
         if not values:
             return
-        
+
         if self.use_sso.value:
             self.credssp.value = False   # Credssp and SSO are mutually exclusive, use_sso has preference
-        
+
 
     def is_ip_allowed(self, userservice: 'models.UserService', ip: str) -> bool:
         """

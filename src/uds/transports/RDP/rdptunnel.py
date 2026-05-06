@@ -118,10 +118,11 @@ class TRDPTransport(BaseRDPTransport):
 
     lnx_use_rdp_file = BaseRDPTransport.lnx_use_rdp_file
     mac_use_rdp_file = BaseRDPTransport.mac_use_rdp_file
+    sign_rdp_file = BaseRDPTransport.sign_rdp_file
     # optimizeTeams = BaseRDPTransport.optimizeTeams
 
     def initialize(self, values: 'types.core.ValuesType') -> None:
-        pass
+        self.check_rdp_can_be_signed()
 
     def get_transport_script(  # pylint: disable=too-many-locals
         self,
@@ -149,6 +150,20 @@ class TRDPTransport(BaseRDPTransport):
             userservice=userservice,
             port=self.rdp_port.as_int(),
             validity=self.startup_time.as_int() + 60,  # Ticket overtime
+        )
+
+        # sign has to happen client-side, after {address} is replaced
+        ticket_for_sign = (
+            TicketStore.create(
+                {
+                    'user': userservice.user.uuid if userservice.user else None,
+                    'userservice': userservice.uuid,
+                    'type': 'rdp',
+                },
+                validity=30,
+            )
+            if self.sign_rdp_file.as_bool()
+            else None
         )
 
         tunnel_fields = fields.get_tunnel_from_field(self.tunnel)
@@ -191,7 +206,7 @@ class TRDPTransport(BaseRDPTransport):
                 'verify_ssl': self.verify_certificate.as_bool(),
             },
             'password': ci.password,
-            'this_server': request.build_absolute_uri('/'),
+            'ticket_sign': ticket_for_sign,
         }
 
         if os.os == types.os.KnownOS.WINDOWS:

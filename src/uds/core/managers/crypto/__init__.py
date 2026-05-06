@@ -41,6 +41,7 @@ import logging
 import typing
 import secrets
 import base64
+import pathlib
 import collections.abc
 
 uuid7: None | collections.abc.Callable[[], 'uuid.UUID']
@@ -70,6 +71,7 @@ from uds.core.util import singleton
 from uds.core import types
 
 from . import kem
+from . import rdp
 
 logger = logging.getLogger(__name__)
 
@@ -404,6 +406,13 @@ class CryptoManager(metaclass=singleton.Singleton):
 
         return hashlib.sha3_256(value).hexdigest()
 
+    # RDP related
+    def sign_rdp(self, data: str) -> str:
+        """
+        Signs the data using the key and returns the signature.
+        """
+        return rdp.sign_rdp(data)
+
     def derive_tunnel_material(self, shared_secret: bytes, ticket_id: bytes) -> types.crypto.TunnelMaterial:
         """
         Derives keys and nonces for payload + tunnel from a KEM/Kyber shared_secret.
@@ -505,3 +514,15 @@ class CryptoManager(metaclass=singleton.Singleton):
         decrypted = self.aes256_gcm_decrypt(material.key_payload, material.nonce_payload, encrypted_data, b'')
 
         return json.loads(decrypted.decode())
+
+    def get_server_cert(self) -> str:
+        return certs.get_server_cert()
+
+    def get_server_key(self) -> str:
+        return certs.get_server_key()
+
+    def check_cert_chain(self, cert_chain: pathlib.Path | str | None = None) -> None:
+        return certs.check_cert_chain(cert_chain or certs.get_server_cert())
+
+    def sign_rdp(self, data: str) -> str:
+        return rdp.sign_rdp(data)

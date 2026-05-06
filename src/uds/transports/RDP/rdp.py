@@ -36,6 +36,7 @@ import typing
 from django.utils.translation import gettext_noop as _
 
 from uds.core import types
+from uds.core.managers import crypto
 
 from .rdp_base import BaseRDPTransport
 from .rdp_file import RDPFile
@@ -101,6 +102,11 @@ class RDPTransport(BaseRDPTransport):
 
     lnx_use_rdp_file = BaseRDPTransport.lnx_use_rdp_file
     mac_use_rdp_file = BaseRDPTransport.mac_use_rdp_file
+    sign_rdp_file = BaseRDPTransport.sign_rdp_file
+
+    def initialize(self, values: 'types.core.ValuesType') -> None:
+        super().initialize(values)
+        self.check_rdp_can_be_signed()
 
     def get_transport_script(  # pylint: disable=too-many-locals
         self,
@@ -158,7 +164,6 @@ class RDPTransport(BaseRDPTransport):
 
         sp: dict[str, typing.Any] = {
             'password': ci.password,
-            'this_server': request.build_absolute_uri('/'),
             'ip': ip,
             'port': self.rdp_port.value,  # As string, because we need to use it in the template
             'address': r.address,
@@ -168,9 +173,14 @@ class RDPTransport(BaseRDPTransport):
             r.custom_parameters = self.wnd_custom_parameters.value
             if ci.password:
                 r.password = '{password}'  # nosec: password is not hardcoded
+            as_file = r.as_file
+            # password field is not in the signed scope, so signing before
+            # the client's DPAPI substitution keeps the signature valid
+            if self.sign_rdp_file.as_bool():
+                as_file = crypto.CryptoManager.manager().sign_rdp(as_file)
             sp.update(
                 {
-                    'as_file': r.as_file,
+                    'as_file': as_file,
                 }
             )
         elif os.os == types.os.KnownOS.LINUX:
